@@ -1,3 +1,92 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-cream text-brand-dark font-sans selection:bg-brand-primary selection:text-white antialiased overflow-x-hidden;
+  }
+}
+
+@layer utilities {
+  .glass {
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(239, 230, 218, 0.6);
+  }
+
+  .glass-dark {
+    background: rgba(43, 43, 43, 0.03);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(239, 230, 218, 0.2);
+  }
+
+  .mesh-gradient {
+    background-image: 
+      radial-gradient(at 10% 20%, rgba(255, 89, 0, 0.15) 0px, transparent 50%),
+      radial-gradient(at 90% 10%, rgba(251, 130, 55, 0.12) 0px, transparent 50%),
+      radial-gradient(at 50% 80%, rgba(255, 211, 165, 0.3) 0px, transparent 50%);
+  }
+
+  .mesh-gradient-warm {
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(255, 89, 0, 0.2) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(251, 130, 55, 0.2) 0px, transparent 50%),
+      radial-gradient(at 50% 50%, rgba(255, 211, 165, 0.3) 0px, transparent 50%);
+  }
+
+  .text-stroke {
+    -webkit-text-stroke: 1px currentColor;
+    color: transparent;
+  }
+
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* Strip inner Card styles in auth flow to embed inside the unified split card */
+.auth-container .glass {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+.auth-container [class*="pb-6"] {
+  padding-bottom: 12px !important;
+}
+.auth-container [class*="py-6"] {
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+}
+
+@keyframes kenburns {
+  0% {
+    transform: scale(1) translate(0, 0);
+  }
+  100% {
+    transform: scale(1.08) translate(-1%, -1%);
+  }
+}
+
+.craft-kenburns {
+  animation: kenburns 6s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .craft-kenburns {
+    animation: none;
+    transform: none;
+  }
+}
