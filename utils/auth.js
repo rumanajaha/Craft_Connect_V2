@@ -1,9 +1,6 @@
 import bcrypt from 'bcryptjs'
 import { SignJWT, jwtVerify } from 'jose'
 
-if (!process.env.JWT_SECRET) {
-  throw new Error("JWT_SECRET missing")
-}
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET)
 
 export async function hashPassword(password) {
