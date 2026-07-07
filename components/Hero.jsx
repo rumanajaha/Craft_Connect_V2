@@ -9,13 +9,13 @@ import Link from "next/link";
 export default function Hero() {
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center py-16 px-6 md:px-12 overflow-hidden">
-      {/* Background Mesh Gradients */}
+      
       <div className="absolute inset-0 mesh-gradient pointer-events-none -z-10" />
 
-      {/* Grid container */}
+      
       <div className="mx-auto max-w-7xl w-full grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         
-        {/* Left Column: Typography & CTAs */}
+        
         <div className="lg:col-span-6 flex flex-col justify-center text-left z-10">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -76,13 +76,13 @@ export default function Hero() {
           </motion.div>
         </div>
 
-        {/* Right Column: Layered Floating UI Cards */}
+        
         <div className="lg:col-span-6 relative h-[600px] w-full flex items-center justify-center">
           
-          {/* Decorative radial lighting in background */}
+          
           <div className="absolute w-72 h-72 rounded-full bg-brand-accent/20 blur-3xl -z-10" />
 
-          {/* CARD 1: Brand Profile Card (Ceramics) */}
+          
           <motion.div
             initial={{ opacity: 0, scale: 0.9, x: 20, y: -20 }}
             animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
@@ -117,7 +117,7 @@ export default function Hero() {
             </div>
           </motion.div>
 
-          {/* CARD 2: Creator Match UI Card */}
+          
           <motion.div
             initial={{ opacity: 0, scale: 0.9, x: -30, y: 40 }}
             animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
@@ -161,7 +161,7 @@ export default function Hero() {
             </div>
           </motion.div>
 
-          {/* CARD 3: AI Studio Floating Tag */}
+          
           <motion.div
             animate={{
               y: [0, -10, 0],
@@ -182,7 +182,7 @@ export default function Hero() {
             </div>
           </motion.div>
 
-          {/* CARD 4: Messages Overlay */}
+          
           <motion.div
             animate={{
               y: [0, 8, 0],
@@ -204,7 +204,7 @@ export default function Hero() {
             </div>
           </motion.div>
 
-          {/* CARD 5: Product Showcase (Candles) */}
+          
           <motion.div
             initial={{ opacity: 0, scale: 0.8, y: 100 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}

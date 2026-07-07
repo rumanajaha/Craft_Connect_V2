@@ -14,7 +14,7 @@ const MIN_RATINGS = [0, 3, 4, 4.5, 4.8];
 const INITIAL_SAVED = ["ochre-clay"];
 
 export default function DiscoverPage() {
-  const [tab, setTab]           = useState("brands");      // "brands" | "products"
+  const [tab, setTab]           = useState("brands");      
   const [query, setQuery]       = useState("");
   const [category, setCategory] = useState("All");
   const [location, setLocation] = useState("All Locations");
@@ -47,13 +47,13 @@ export default function DiscoverPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      {/* Header */}
+      
       <div>
         <h1 className="font-serif text-3xl font-bold text-brand-dark">Discover</h1>
         <p className="text-brand-muted text-sm mt-1">Find handcrafted brands and products made by independent makers.</p>
       </div>
 
-      {/* Search */}
+      
       <div className="relative">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted pointer-events-none" />
         <input
@@ -65,11 +65,11 @@ export default function DiscoverPage() {
         />
       </div>
 
-      {/* Filters */}
+      
       <div className="flex flex-wrap gap-3 items-center">
         <SlidersHorizontal className="w-4 h-4 text-brand-muted shrink-0" />
 
-        {/* Category chips */}
+        
         <div className="flex gap-2 flex-wrap">
           {CATEGORIES.map(c => (
             <button
@@ -86,7 +86,7 @@ export default function DiscoverPage() {
           ))}
         </div>
 
-        {/* Location dropdown */}
+        
         <select
           value={location}
           onChange={e => setLocation(e.target.value)}
@@ -95,7 +95,7 @@ export default function DiscoverPage() {
           {LOCATIONS.map(l => <option key={l}>{l}</option>)}
         </select>
 
-        {/* Min Rating */}
+        
         <select
           value={minRating}
           onChange={e => setMinRating(Number(e.target.value))}
@@ -107,7 +107,7 @@ export default function DiscoverPage() {
         </select>
       </div>
 
-      {/* Tab toggle */}
+      
       <div className="flex gap-1 bg-white rounded-xl border border-brand-border/50 p-1 w-fit">
         {["brands", "products"].map(t => (
           <button
@@ -124,7 +124,7 @@ export default function DiscoverPage() {
         ))}
       </div>
 
-      {/* Brands grid */}
+      
       {tab === "brands" && (
         filteredBrands.length === 0
           ? <EmptyState message="No brands match your filters." />
@@ -142,7 +142,7 @@ export default function DiscoverPage() {
           )
       )}
 
-      {/* Products grid */}
+      
       {tab === "products" && (
         filteredProducts.length === 0
           ? <EmptyState message="No products match your filters." />

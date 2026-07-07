@@ -36,17 +36,17 @@ export default function ManageCampaignsPage() {
 
   const handleSaveProduct = (productData) => {
     if (editingProduct) {
-      // Edit
+      
       setProducts(products.map(p => p.id === editingProduct.id ? { ...p, ...productData } : p));
       addFeedUpdate("product_update", `Ochre Clay Studio updated details for "${productData.name}".`);
     } else {
-      // Add new
+      
       const newId = `p-new-${Date.now()}`;
       setProducts([{
         id: newId,
         brandId: "ochre-clay",
         ...productData,
-        image: productData.image || "https://images.unsplash.com/photo-1612196808214-b8e1d6145a8c?w=500&auto=format&fit=crop&q=80" // mock image
+        image: productData.image || "https://images.unsplash.com/photo-1612196808214-b8e1d6145a8c?w=500&auto=format&fit=crop&q=80" 
       }, ...products]);
       addFeedUpdate("product_add", `Ochre Clay Studio added a new product: "${productData.name}".`);
     }
@@ -56,7 +56,7 @@ export default function ManageCampaignsPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-8">
       
-      {/* Header */}
+      
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="font-serif text-3xl md:text-4xl font-bold text-brand-dark">
@@ -72,7 +72,7 @@ export default function ManageCampaignsPage() {
         </Button>
       </div>
 
-      {/* Product List */}
+      
       {products.length === 0 ? (
         <div className="bg-white rounded-3xl border border-brand-border/50 p-12 flex flex-col items-center justify-center text-center">
           <div className="w-16 h-16 rounded-2xl bg-brand-primary/10 flex items-center justify-center text-brand-primary mb-4">
@@ -99,7 +99,7 @@ export default function ManageCampaignsPage() {
         </div>
       )}
 
-      {/* Modal */}
+      
       {isModalOpen && (
         <ProductFormModal
           product={editingProduct}

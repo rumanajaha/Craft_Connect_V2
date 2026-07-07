@@ -29,7 +29,7 @@ export default function NotificationsTab({ setIsDirty }) {
     <div className="space-y-4 animate-in fade-in duration-300">
       <div className="bg-white border border-brand-border/50 shadow-sm rounded-2xl overflow-hidden">
         
-        {/* Table header */}
+        
         <div className="flex items-end justify-between px-6 py-5 border-b border-brand-border/30">
           <div>
             <h3 className="font-serif text-base font-bold text-brand-dark">Brand Notifications</h3>
@@ -47,7 +47,7 @@ export default function NotificationsTab({ setIsDirty }) {
           </div>
         </div>
 
-        {/* Notification rows */}
+        
         <div className="divide-y divide-brand-border/20">
           {[
             { key: "newPitch", label: "Creator Pitches", desc: "When a creator requests to collaborate with your brand." },

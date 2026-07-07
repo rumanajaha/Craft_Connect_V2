@@ -8,13 +8,13 @@ import BrandCard from "@/components/customer/BrandCard";
 import RequestStatusBadge from "@/components/customer/RequestStatusBadge";
 import { createClient } from "@/lib/supabase/client";
 
-// TODO: replace with real saved brands from user profile API
+
 const INITIAL_SAVED = ["ochre-clay", "gaea-weaves"];
 
-// TODO: replace with real AI personalization engine feed API call
+
 const RECOMMENDED_BRANDS = MOCK_BRANDS.slice(0, 5);
 
-// Small inline stat pill
+
 function StatPill({ icon: Icon, value, label, accent }) {
   return (
     <div className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl border ${
@@ -42,32 +42,32 @@ function StatPill({ icon: Icon, value, label, accent }) {
 export default function CustomerDashboard() {
   const [saved, setSaved] = useState(INITIAL_SAVED);
 
-  // Greeting state
+  
   const [greeting, setGreeting] = useState("");
   const [subtext, setSubtext] = useState("");
 
   useEffect(() => {
     async function buildGreeting() {
-      // Check if this is a fresh signup (set by signup-form.jsx in sessionStorage)
+      
       const isNew  = sessionStorage.getItem("cc_new_user") === "1";
       let   name   = sessionStorage.getItem("cc_display_name") ?? "";
 
-      // If no name from session, try Supabase user metadata
+      
       if (!name) {
         try {
           const supabase = createClient();
           const { data: { user } } = await supabase.auth.getUser();
           const meta = user?.user_metadata ?? {};
-          // full_name (Google/OAuth), name (some providers), or email prefix
+          
           const rawName = meta.full_name ?? meta.name ?? user?.email ?? "";
-          name = rawName.split(/[\s@]/)[0]; // first word or email prefix
+          name = rawName.split(/[\s@]/)[0]; 
         } catch (_) {}
       }
 
       const firstName = name ? `, ${name}` : "";
 
       if (isNew) {
-        // Clear the flag immediately so next visit shows "Welcome back"
+        
         sessionStorage.removeItem("cc_new_user");
         sessionStorage.removeItem("cc_display_name");
         setGreeting(`Welcome${firstName}! `);
@@ -89,7 +89,7 @@ export default function CustomerDashboard() {
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
 
-      {/* Page header */}
+      
       <div className="min-h-[72px]">
         <h1 className="font-serif text-3xl md:text-4xl font-bold text-brand-dark">
           {greeting || <span className="opacity-0">Welcome</span>}
@@ -99,7 +99,7 @@ export default function CustomerDashboard() {
         </p>
       </div>
 
-      {/* Stat pills row */}
+      
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatPill icon={Bookmark}      value={saved.length}       label="Saved Brands"      />
         <StatPill icon={FileText}      value={activeRequests}     label="Active Requests"   accent />
@@ -107,7 +107,7 @@ export default function CustomerDashboard() {
         <StatPill icon={TrendingUp}    value={MOCK_BRANDS.length} label="Brands Available"  />
       </div>
 
-      {/* Recent Requests */}
+      
       <section>
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-serif text-xl font-bold text-brand-dark">Recent Requests</h2>
@@ -144,7 +144,7 @@ export default function CustomerDashboard() {
         </div>
       </section>
 
-      {/* Recommended Brands */}
+      
       <section>
         <div className="flex items-center gap-2 mb-4">
           <Sparkles className="w-4 h-4 text-brand-primary" />

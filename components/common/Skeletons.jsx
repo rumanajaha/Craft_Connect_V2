@@ -1,6 +1,6 @@
 import React from "react";
 
-// Stat card pulse
+
 function StatCardSkeleton() {
   return (
     <div className="bg-white border border-brand-border/40 p-5 rounded-2xl animate-pulse space-y-3">
@@ -11,7 +11,7 @@ function StatCardSkeleton() {
   );
 }
 
-// Table row pulse
+
 function TableRowSkeleton() {
   return (
     <div className="flex items-center justify-between py-4 border-b border-brand-border/10 animate-pulse">
@@ -28,20 +28,20 @@ function TableRowSkeleton() {
   );
 }
 
-// 1. Dashboard Skeleton (Stats + Main Grid)
+
 export function DashboardSkeleton() {
   return (
     <div className="space-y-8">
-      {/* Stat Cards */}
+      
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         <StatCardSkeleton />
         <StatCardSkeleton />
         <StatCardSkeleton />
       </div>
 
-      {/* Main split dashboard section */}
+      
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left side requests table */}
+        
         <div className="lg:col-span-8 bg-white border border-brand-border/40 rounded-3xl p-6 space-y-6">
           <div className="flex justify-between items-center border-b border-brand-border/30 pb-4">
             <div className="h-5 w-40 bg-brand-border/30 rounded-full animate-pulse" />
@@ -55,7 +55,7 @@ export function DashboardSkeleton() {
           </div>
         </div>
 
-        {/* Right side widget */}
+        
         <div className="lg:col-span-4 bg-white border border-brand-border/40 rounded-3xl p-6 space-y-6">
           <div className="h-5 w-32 bg-brand-border/30 rounded-full animate-pulse border-b border-brand-border/30 pb-4" />
           <div className="space-y-4 animate-pulse">
@@ -75,11 +75,11 @@ export function DashboardSkeleton() {
   );
 }
 
-// 2. Grid Skeleton (Product catalog / Discover / Feed / Saved)
+
 export function GridSkeleton({ tileCount = 8 }) {
   return (
     <div className="space-y-6">
-      {/* Title + Filters header */}
+      
       <div className="flex justify-between items-center pb-4">
         <div className="space-y-2 animate-pulse">
           <div className="h-6 w-48 bg-brand-border/30 rounded-full" />
@@ -88,7 +88,7 @@ export function GridSkeleton({ tileCount = 8 }) {
         <div className="h-10 w-44 bg-brand-border/20 rounded-xl animate-pulse" />
       </div>
 
-      {/* Grid of items */}
+      
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 animate-pulse">
         {Array.from({ length: tileCount }).map((_, i) => (
           <div key={i} className="bg-white border border-brand-border/20 rounded-2xl overflow-hidden aspect-square flex flex-col justify-between p-4">
@@ -104,11 +104,11 @@ export function GridSkeleton({ tileCount = 8 }) {
   );
 }
 
-// 3. Messages Skeleton (Thread list + chat window)
+
 export function MessagesSkeleton() {
   return (
     <div className="bg-white border border-brand-border/40 rounded-3xl overflow-hidden h-[calc(100vh-180px)] min-h-[500px] grid grid-cols-12 animate-pulse">
-      {/* Left panel: Threads */}
+      
       <div className="col-span-4 border-r border-brand-border/40 p-4 space-y-4">
         <div className="h-9 w-full bg-brand-border/20 rounded-xl" />
         <div className="space-y-3 pt-2">
@@ -124,9 +124,9 @@ export function MessagesSkeleton() {
         </div>
       </div>
 
-      {/* Right panel: Chat messages */}
+      
       <div className="col-span-8 flex flex-col justify-between p-6 bg-brand-border/5">
-        {/* Chat header */}
+        
         <div className="flex items-center gap-3 border-b border-brand-border/30 pb-4">
           <div className="w-9 h-9 rounded-full bg-brand-border/30" />
           <div className="space-y-2">
@@ -135,7 +135,7 @@ export function MessagesSkeleton() {
           </div>
         </div>
 
-        {/* Message bubbles */}
+        
         <div className="flex-1 py-6 space-y-4">
           <div className="flex gap-2 max-w-sm">
             <div className="w-7 h-7 rounded-full bg-brand-border/30 mt-auto" />
@@ -150,33 +150,33 @@ export function MessagesSkeleton() {
           </div>
         </div>
 
-        {/* Text Input area */}
+        
         <div className="h-12 w-full bg-white border border-brand-border/30 rounded-xl" />
       </div>
     </div>
   );
 }
 
-// 4. Settings Skeleton (tabs + profile fields)
+
 export function SettingsSkeleton() {
   return (
     <div className="space-y-6">
-      {/* Header */}
+      
       <div className="space-y-2 animate-pulse mb-8">
         <div className="h-7 w-48 bg-brand-border/30 rounded-full" />
         <div className="h-3.5 w-64 bg-brand-border/15 rounded-full" />
       </div>
 
-      {/* Tabs */}
+      
       <div className="flex gap-2 border-b border-brand-border/40 pb-1 animate-pulse">
         <div className="h-8 w-24 bg-brand-border/20 rounded-lg" />
         <div className="h-8 w-24 bg-brand-border/10 rounded-lg" />
         <div className="h-8 w-24 bg-brand-border/10 rounded-lg" />
       </div>
 
-      {/* Inputs box */}
+      
       <div className="bg-white border border-brand-border/40 rounded-3xl p-6 space-y-6 animate-pulse">
-        {/* Avatar circle */}
+        
         <div className="flex items-center gap-6 pb-4 border-b border-brand-border/10">
           <div className="w-20 h-20 rounded-full bg-brand-border/30" />
           <div className="space-y-2 flex-1">
@@ -185,7 +185,7 @@ export function SettingsSkeleton() {
           </div>
         </div>
 
-        {/* Inputs */}
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="space-y-2">
@@ -203,17 +203,17 @@ export function SettingsSkeleton() {
   );
 }
 
-// 5. AI Studio page Skeleton
+
 export function StudioSkeleton() {
   return (
     <div className="space-y-6">
-      {/* Header */}
+      
       <div className="space-y-2 animate-pulse">
         <div className="h-7 w-52 bg-brand-border/30 rounded-full" />
         <div className="h-3.5 w-72 bg-brand-border/15 rounded-full" />
       </div>
 
-      {/* Grid of tools */}
+      
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="bg-white border border-brand-border/40 rounded-3xl p-6 space-y-4">
@@ -233,14 +233,14 @@ export function StudioSkeleton() {
   );
 }
 
-// 6. Brand Profile Detail Page Skeleton
+
 export function BrandProfileSkeleton() {
   return (
     <div className="space-y-8 animate-pulse">
-      {/* Banner Area */}
+      
       <div className="w-full h-64 md:h-80 bg-brand-border/20 rounded-3xl relative" />
 
-      {/* Title/logo row */}
+      
       <div className="flex flex-col md:flex-row gap-6 items-start md:items-end -mt-16 px-6 relative z-10">
         <div className="w-32 h-32 rounded-3xl bg-white border-4 border-white shadow-md flex items-center justify-center">
           <div className="w-full h-full bg-brand-border/20 rounded-2xl" />
@@ -252,9 +252,9 @@ export function BrandProfileSkeleton() {
         <div className="h-10 w-32 bg-brand-primary/20 rounded-xl shrink-0" />
       </div>
 
-      {/* Details layout */}
+      
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-4">
-        {/* Left column */}
+        
         <div className="lg:col-span-8 space-y-6">
           <div className="bg-white border border-brand-border/30 rounded-3xl p-6 space-y-4">
             <div className="h-5 w-36 bg-brand-border/30 rounded-full" />
@@ -263,7 +263,7 @@ export function BrandProfileSkeleton() {
           </div>
         </div>
 
-        {/* Right column */}
+        
         <div className="lg:col-span-4 bg-white border border-brand-border/30 rounded-3xl p-6 space-y-4">
           <div className="h-5 w-24 bg-brand-border/30 rounded-full" />
           <div className="space-y-3">

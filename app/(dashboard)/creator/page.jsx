@@ -46,7 +46,7 @@ export default function CreatorDashboardPage() {
   const { outgoingPitches, addPitch } = useCollab();
   const [pitchBrand, setPitchBrand] = useState(null);
   
-  // AI Matcher State
+  
   const [isGeneratingMatches, setIsGeneratingMatches] = useState(false);
   const [matchesGenerated, setMatchesGenerated] = useState(false);
   const [matchInputs, setMatchInputs] = useState({ categories: "", comp: "", value: "" });
@@ -65,7 +65,7 @@ export default function CreatorDashboardPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
-      {/* ProposeCollabModal */}
+      
       <ProposeCollabModal
         isOpen={!!pitchBrand}
         onClose={() => setPitchBrand(null)}
@@ -73,7 +73,7 @@ export default function CreatorDashboardPage() {
         onSubmit={(pitch) => addPitch(pitch)}
       />
 
-      {/* Header */}
+      
       <div>
         <h1 className="font-serif text-3xl md:text-4xl font-bold text-brand-dark">
           Welcome back, Sarah
@@ -83,7 +83,7 @@ export default function CreatorDashboardPage() {
         </p>
       </div>
 
-      {/* Stat Cards */}
+      
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard icon={Handshake} label="Active Collabs" value={activePitches} accent="bg-emerald-50 text-emerald-600" />
         <StatCard icon={Clock} label="Pending Pitches" value={pendingPitches} accent="bg-amber-50 text-amber-600" />
@@ -91,7 +91,7 @@ export default function CreatorDashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        {/* Outgoing Pitches */}
+        
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center gap-2 px-1">
             <Handshake className="w-4 h-4 text-brand-primary" />
@@ -109,7 +109,7 @@ export default function CreatorDashboardPage() {
                 const CompIcon = compBadge.icon;
                 return (
                   <div key={pitch.id} className="flex flex-col sm:flex-row gap-4 p-4 items-start sm:items-center bg-white border border-brand-border/50 rounded-2xl hover:shadow-sm transition-shadow">
-                    {/* Brand Info */}
+                    
                     <div className="flex items-center gap-3 w-full sm:w-1/4 shrink-0">
                       <div className="relative w-10 h-10 rounded-xl overflow-hidden border border-brand-border/40 shrink-0 bg-white">
                         <Image src={pitch.brandLogo} alt={pitch.brandName} fill className="object-cover" />
@@ -120,7 +120,7 @@ export default function CreatorDashboardPage() {
                       </div>
                     </div>
 
-                    {/* Compensation Badge */}
+                    
                     <div className="w-full sm:w-auto shrink-0">
                       <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold uppercase tracking-wider ${compBadge.color}`}>
                         <CompIcon className="w-3.5 h-3.5" />
@@ -128,12 +128,12 @@ export default function CreatorDashboardPage() {
                       </div>
                     </div>
 
-                    {/* Snippet */}
+                    
                     <div className="flex-1 w-full min-w-0">
                       <p className="text-sm text-brand-dark/80 line-clamp-2 leading-relaxed">&quot;{pitch.snippet}&quot;</p>
                     </div>
 
-                    {/* Status */}
+                    
                     <div className="flex items-center w-full sm:w-auto shrink-0 justify-end">
                       <span className={`text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-full ${getStatusBadge(pitch.status)}`}>
                         {pitch.status}
@@ -146,7 +146,7 @@ export default function CreatorDashboardPage() {
           )}
         </div>
 
-        {/* AI Brand Matches */}
+        
         <aside className="space-y-4">
           <div className="flex items-center gap-2 px-1">
             <Sparkles className="w-4 h-4 text-brand-primary" />

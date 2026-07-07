@@ -15,16 +15,16 @@ export default function BrandProfilePage() {
   const { id } = useParams();
   const router = useRouter();
 
-  // ── Mutable content from shared context (written by AI Studio) ──
-  // Falls back gracefully if this brand isn't the active brand in context.
+  
+  
   const { brandInfo, brandAbout, products: contextProducts, activeBrandId } = useBrandData();
   const isActiveBrand = id === activeBrandId;
 
-  // Static brand metadata (name, logo, rating, etc.) from mock
+  
   const brandFromMock = MOCK_BRANDS.find(b => b.id === id);
   const collabs = MOCK_COLLABS.filter(c => c.brandId === id);
 
-  // Dynamic brand object merged with context settings
+  
   const brand = (isActiveBrand && brandInfo) ? {
     ...brandFromMock,
     name: brandInfo.name,
@@ -36,8 +36,8 @@ export default function BrandProfilePage() {
     tags: brandInfo.tags ? brandInfo.tags.split(",").map(t => t.trim()).filter(Boolean) : [],
   } : brandFromMock;
 
-  // For the active brand, use context products so AI-saved descriptions show up.
-  // For other brands, fall back to static MOCK data (they have no AI Studio session).
+  
+  
   const products = isActiveBrand ? contextProducts : MOCK_PRODUCTS.filter(p => p.brandId === id);
   const aboutText = brand.about ?? "";
 
@@ -61,7 +61,7 @@ export default function BrandProfilePage() {
   const handleSendRequest = () => {
     if (!message.trim()) return;
     setSending(true);
-    // TODO: wire to backend — create message thread in DB
+    
     setTimeout(() => {
       setSending(false);
       setShowModal(false);
@@ -71,12 +71,12 @@ export default function BrandProfilePage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
-      {/* Back */}
+      
       <Link href="/customer/discover" className="inline-flex items-center gap-1.5 text-sm text-brand-muted hover:text-brand-primary transition-colors">
         ← Back to Discover
       </Link>
 
-      {/* Header banner */}
+      
       <div className="relative w-full h-52 md:h-64 rounded-2xl overflow-hidden bg-brand-border/20">
         {isActiveBrand && brand.banner ? (
           <video 
@@ -92,7 +92,7 @@ export default function BrandProfilePage() {
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
-        {/* Bookmark */}
+        
         <button
           onClick={() => setIsSaved(s => !s)}
           className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow hover:bg-white transition-colors"
@@ -103,7 +103,7 @@ export default function BrandProfilePage() {
           }
         </button>
 
-        {/* Brand logo + name overlay */}
+        
         <div className="absolute bottom-4 left-5 flex items-end gap-3">
           <div className="relative w-16 h-16 rounded-xl overflow-hidden border-2 border-white shadow-md bg-white">
             <Image src={brand.logo} alt={brand.name} fill sizes="64px" className="object-cover" />
@@ -118,10 +118,10 @@ export default function BrandProfilePage() {
         </div>
       </div>
 
-      {/* Meta row */}
+      
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-4">
-          {/* Rating */}
+          
           <div className="flex items-center gap-1.5">
             {[1,2,3,4,5].map(i => (
               <Star key={i} className={`w-4 h-4 ${i <= Math.floor(brand.rating) ? "text-amber-400 fill-amber-400" : "text-brand-border"}`} />
@@ -130,13 +130,13 @@ export default function BrandProfilePage() {
             <span className="text-xs text-brand-muted">({brand.reviewsCount} reviews)</span>
           </div>
 
-          {/* Trust score */}
+          
           <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-200 rounded-full">
             <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
             <span className="text-xs font-bold text-emerald-700">Trust Score {brand.trustScore}%</span>
           </div>
 
-          {/* Category */}
+          
           <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-1 bg-brand-primary/10 text-brand-primary rounded-full">
             {brand.category}
           </span>
@@ -171,7 +171,7 @@ export default function BrandProfilePage() {
         )}
       </section>
 
-      {/* Products */}
+      
       {products.length > 0 && (
         <section>
           <h2 className="font-serif text-xl font-bold text-brand-dark mb-4">Featured Products</h2>
@@ -181,7 +181,7 @@ export default function BrandProfilePage() {
         </section>
       )}
 
-      {/* Collaborations */}
+      
       {collabs.length > 0 && (
         <section>
           <h2 className="font-serif text-xl font-bold text-brand-dark mb-4">Past Creator Collaborations</h2>
@@ -201,7 +201,7 @@ export default function BrandProfilePage() {
         </section>
       )}
 
-      {/* Send Request Modal */}
+      
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 space-y-5 relative">
@@ -213,7 +213,7 @@ export default function BrandProfilePage() {
               <p className="text-xs text-brand-muted mt-1">to {brand.name}</p>
             </div>
 
-            {/* Request type */}
+            
             <div className="flex gap-2">
               {["Custom Product", "General Inquiry"].map(t => (
                 <button
@@ -248,7 +248,7 @@ export default function BrandProfilePage() {
               <Input id="deadline" label="Deadline (optional)" placeholder="e.g. Aug 20" value={deadline} onChange={e => setDeadline(e.target.value)} />
             </div>
 
-            {/* TODO: wire to backend — create DB entry */}
+            
             <Button variant="primary" size="md" className="w-full" isLoading={sending} onClick={handleSendRequest}>
               <Send className="w-4 h-4 mr-1.5" /> Send Request
             </Button>

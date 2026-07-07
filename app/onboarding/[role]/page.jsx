@@ -48,7 +48,7 @@ export default function OnboardingPlaceholderPage() {
 
   return (
     <main className="relative min-h-screen flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8 overflow-hidden bg-cream">
-      {/* Background Mesh Gradient */}
+      
       <div className="absolute inset-0 mesh-gradient pointer-events-none -z-10" />
 
       <motion.div

@@ -11,7 +11,7 @@ import ProfileTab from "@/components/brand/settings/ProfileTab";
 import SecurityTab from "@/components/brand/settings/SecurityTab";
 import NotificationsTab from "@/components/brand/settings/NotificationsTab";
 
-// Mock helper components for Settings Tabs
+
 const TabButton = ({ active, children, onClick }) => (
   <button
     onClick={onClick}
@@ -31,7 +31,7 @@ export default function BrandSettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
 
-  // Mock Profile State
+  
   const [profile, setProfile] = useState({
     name: brandInfo.name,
     category: brandInfo.category,
@@ -74,7 +74,7 @@ export default function BrandSettingsPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      {/* Page Header */}
+      
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="font-serif text-3xl md:text-4xl font-bold text-brand-dark flex flex-wrap items-center gap-3">
@@ -91,7 +91,7 @@ export default function BrandSettingsPage() {
         </div>
         
         <div className="flex items-center gap-3 flex-wrap">
-          {/* Preview link */}
+          
           <Link
             href="/brand/profile"
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-brand-border/60 bg-white text-sm font-semibold text-brand-dark hover:border-brand-primary/50 hover:text-brand-primary transition-all shadow-sm whitespace-nowrap"
@@ -100,7 +100,7 @@ export default function BrandSettingsPage() {
             Preview public profile
           </Link>
 
-          {/* Save button */}
+          
           <Button
             variant="primary"
             onClick={handleSave}
@@ -116,7 +116,7 @@ export default function BrandSettingsPage() {
         </div>
       </div>
 
-      {/* Tabs */}
+      
       <div className="flex items-center gap-2 border-b border-brand-border/50 overflow-x-auto hide-scrollbar">
         <TabButton active={activeTab === "profile"} onClick={() => setActiveTab("profile")}>
           Brand Profile
@@ -129,7 +129,7 @@ export default function BrandSettingsPage() {
         </TabButton>
       </div>
 
-      {/* Tab Content */}
+      
       <div className="pt-2">
         {activeTab === "profile" && (
           <ProfileTab 

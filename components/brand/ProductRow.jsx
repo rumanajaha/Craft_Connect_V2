@@ -10,7 +10,7 @@ export default function ProductRow({ product, onEdit, onDelete }) {
 
   return (
     <div className="flex flex-col sm:flex-row gap-4 p-4 items-start sm:items-center bg-white border border-brand-border/50 rounded-2xl hover:shadow-sm transition-shadow">
-      {/* Product Image & Basic Info */}
+      
       <div className="flex items-center gap-4 w-full sm:w-2/5 shrink-0">
         <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-brand-border/40 shrink-0 bg-brand-border/20">
           {product.image ? (
@@ -25,7 +25,7 @@ export default function ProductRow({ product, onEdit, onDelete }) {
         </div>
       </div>
 
-      {/* Status Badge */}
+      
       <div className="w-full sm:w-1/5 shrink-0">
         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider ${
           isAvailable 
@@ -36,7 +36,7 @@ export default function ProductRow({ product, onEdit, onDelete }) {
         </span>
       </div>
 
-      {/* Buy Link (mock display) */}
+      
       <div className="flex-1 w-full min-w-0">
         <div className="flex items-center gap-1.5 text-xs text-brand-muted truncate cursor-not-allowed" title="External link (mock)">
           <ExternalLink className="w-3.5 h-3.5 shrink-0" />
@@ -44,7 +44,7 @@ export default function ProductRow({ product, onEdit, onDelete }) {
         </div>
       </div>
 
-      {/* Actions */}
+      
       <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 justify-end">
         <Button
           variant="outline"

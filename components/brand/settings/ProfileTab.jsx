@@ -371,7 +371,7 @@ export default function ProfileTab({ profile, setProfile, setIsDirty }) {
       {renderStoryModal()}
       {renderTagsModal()}
 
-      {/* Logo & Basic Info */}
+      
       <div className="bg-white rounded-2xl border border-brand-border/50 p-6">
         <h3 className="font-serif text-lg font-bold text-brand-dark mb-4">Brand Identity</h3>
         <div className="flex flex-col sm:flex-row gap-8 items-start">
@@ -443,7 +443,7 @@ export default function ProfileTab({ profile, setProfile, setIsDirty }) {
                     className="w-full px-4 py-2.5 rounded-xl border border-brand-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all text-brand-dark"
                   />
                   <p className="text-[10px] text-brand-muted mt-1.5">
-                    Example to copy: <span className="select-all underline">https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4</span>
+                    Example to copy: <span className="select-all underline">https:
                   </p>
                   {profile.videoUrl ? (
                     <div className="mt-2 relative w-full h-32 rounded-xl overflow-hidden bg-black/5 border border-brand-border/40 group">
@@ -466,7 +466,7 @@ export default function ProfileTab({ profile, setProfile, setIsDirty }) {
                 </div>
               </div>
 
-              {/* About the Brand */}
+              
               <div className="md:col-span-2">
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-brand-dark/80 block">
@@ -497,7 +497,7 @@ export default function ProfileTab({ profile, setProfile, setIsDirty }) {
         </div>
       </div>
 
-      {/* AI & Discovery */}
+      
       <div className="bg-white rounded-2xl border border-brand-border/50 p-6">
         <div className="flex items-center justify-between mb-1">
           <h3 className="font-serif text-lg font-bold text-brand-dark">AI Recommendation Tags</h3>
@@ -525,7 +525,7 @@ export default function ProfileTab({ profile, setProfile, setIsDirty }) {
         />
       </div>
 
-      {/* Social Links */}
+      
       <div className="bg-white rounded-2xl border border-brand-border/50 p-6">
         <h3 className="font-serif text-lg font-bold text-brand-dark mb-4">Social Channels</h3>
         <div className="space-y-4">

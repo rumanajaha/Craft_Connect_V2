@@ -2,8 +2,8 @@
 
 import SharedFeedPage from "@/components/common/SharedFeedPage";
 
-// Creator's declared niches — used to surface fresh/trending items
-// TODO: pull from useBrandData or creator profile store once backend is live
+
+
 const CREATOR_TAGS = [
   "lifestyle", "aesthetic", "slow living", "home decor", "ceramics",
   "handmade", "wabi-sabi", "sustainable"

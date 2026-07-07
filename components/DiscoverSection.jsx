@@ -92,7 +92,7 @@ export default function DiscoverSection() {
     <section id="discover" className="py-24 px-6 md:px-12 bg-[#FAF7F0]/40 relative">
       <div className="mx-auto max-w-7xl">
         
-        {/* Header */}
+        
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
           <div className="max-w-2xl">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-primary/10 text-brand-primary text-xs font-bold uppercase tracking-wider mb-4">
@@ -109,14 +109,14 @@ export default function DiscoverSection() {
           </p>
         </div>
 
-        {/* Clean Static Grid */}
+        
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
           {DISCOVER_ITEMS.map((item) => (
             <div
               key={item.id}
               className="relative rounded-2xl overflow-hidden group bg-white border border-brand-border/60 flex flex-col h-full shadow-sm hover:border-brand-primary/30 transition-all duration-300"
             >
-              {/* Image box with static aspect ratio */}
+              
               <div className="relative aspect-[4/3] w-full overflow-hidden bg-cream border-b border-brand-border/40">
                 <Image
                   src={item.image}
@@ -126,13 +126,13 @@ export default function DiscoverSection() {
                   className="object-cover transition-transform duration-500 ease-out group-hover:scale-103"
                 />
                 
-                {/* Category indicator tag */}
+                
                 <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md px-2.5 py-0.5 rounded-full text-[9px] font-bold text-brand-muted tracking-wider uppercase shadow-sm">
                   {item.category}
                 </div>
               </div>
 
-              {/* Text Info */}
+              
               <div className="p-5 flex flex-col justify-between flex-grow">
                 <div>
                   <span className="text-[10px] font-bold tracking-widest text-brand-primary uppercase block mb-1">

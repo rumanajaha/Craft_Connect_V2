@@ -14,7 +14,7 @@ function WelcomeTransition() {
   const [destination, setDestination] = useState("");
   const [fadeOut, setFadeOut] = useState(false);
 
-  // Check user role from Supabase, fallback to query param or login
+  
   useEffect(() => {
     async function checkRoleAndSession() {
       try {
@@ -23,7 +23,7 @@ function WelcomeTransition() {
         const role = data?.user?.user_metadata?.role;
         
         if (role) {
-          // If query destination was onboarding, keep onboarding. Otherwise redirect to dashboard
+          
           if (queryDest && queryDest.includes("onboarding")) {
             setDestination(queryDest);
           } else {
@@ -42,19 +42,19 @@ function WelcomeTransition() {
     checkRoleAndSession();
   }, [queryDest]);
 
-  // Handle welcome screen timing and redirection
+  
   useEffect(() => {
     if (!destination) return;
 
     const animDuration = shouldReduceMotion ? 500 : 2000;
     const redirectDuration = shouldReduceMotion ? 800 : 2400;
 
-    // Trigger full-screen fadeout
+    
     const fadeTimeout = setTimeout(() => {
       setFadeOut(true);
     }, animDuration);
 
-    // Redirect to final dashboard/onboarding route
+    
     const redirectTimeout = setTimeout(() => {
       router.replace(destination);
     }, redirectDuration);
@@ -67,7 +67,7 @@ function WelcomeTransition() {
 
   const characters = Array.from("CraftConnect");
 
-  // Motion variants
+  
   const containerVariants = {
     initial: {},
     animate: {
@@ -99,7 +99,7 @@ function WelcomeTransition() {
       transition={{ duration: 0.4, ease: "easeInOut" }}
     >
       <div className="text-center">
-        {/* Wordmark Staggered Reveal */}
+        
         <motion.div
           variants={containerVariants}
           initial="initial"
@@ -111,7 +111,7 @@ function WelcomeTransition() {
               {char}
             </motion.span>
           ))}
-          {/* Orange period animating at the end */}
+          
           <motion.span
             variants={letterVariants}
             className="text-brand-primary"
@@ -120,7 +120,7 @@ function WelcomeTransition() {
           </motion.span>
         </motion.div>
 
-        {/* Tagline reveal */}
+        
         <motion.p
           initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 8 }}
           animate={{ opacity: 1, y: 0 }}

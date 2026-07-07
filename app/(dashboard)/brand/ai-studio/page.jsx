@@ -22,7 +22,7 @@ import UsageQuotaBar from "@/components/brand/UsageQuotaBar";
 import { MOCK_AI_USAGE } from "@/lib/mockData";
 import { useAIUsage } from "@/lib/aiUsageStore";
 
-// ─── Tool definitions ────────────────────────────────────────────────────────
+
 const PUBLISH_TOOLS = [
   {
     slug: "brand-story",
@@ -67,7 +67,7 @@ const WORKSPACE_TOOLS = [
   },
 ];
 
-// ─── Tool Card ───────────────────────────────────────────────────────────────
+
 function ToolCard({ tool, isPublish }) {
   const Icon = tool.icon;
 
@@ -76,7 +76,7 @@ function ToolCard({ tool, isPublish }) {
       href={`/brand/ai-studio/${tool.slug}`}
       className="group flex flex-col gap-4 p-5 bg-white border border-brand-border/50 rounded-2xl hover:border-brand-primary/40 hover:shadow-md hover:shadow-brand-primary/5 transition-all duration-200"
     >
-      {/* Icon + Badge row */}
+      
       <div className="flex items-start justify-between gap-3">
         <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
           isPublish
@@ -94,7 +94,7 @@ function ToolCard({ tool, isPublish }) {
         )}
       </div>
 
-      {/* Text */}
+      
       <div className="flex-1">
         <h3 className="font-serif text-base font-bold text-brand-dark group-hover:text-brand-primary transition-colors leading-snug">
           {tool.title}
@@ -104,7 +104,7 @@ function ToolCard({ tool, isPublish }) {
         </p>
       </div>
 
-      {/* Arrow indicator */}
+      
       <div className="flex items-center gap-1 text-xs font-semibold text-brand-primary opacity-0 group-hover:opacity-100 transition-opacity">
         Open tool <ArrowRight className="w-3.5 h-3.5" />
       </div>
@@ -112,7 +112,7 @@ function ToolCard({ tool, isPublish }) {
   );
 }
 
-// ─── Section heading ─────────────────────────────────────────────────────────
+
 function SectionHeading({ icon: Icon, label, description }) {
   return (
     <div className="flex items-center gap-2.5 mb-4">
@@ -127,7 +127,7 @@ function SectionHeading({ icon: Icon, label, description }) {
   );
 }
 
-// ─── Hub page ────────────────────────────────────────────────────────────────
+
 export default function AIStudioHubPage() {
   const { usageByTool, FREE_TRIAL_LIMIT, isPro } = useAIUsage();
   
@@ -139,7 +139,7 @@ export default function AIStudioHubPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-8">
 
-      {/* Page Header */}
+      
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="font-serif text-3xl md:text-4xl font-bold text-brand-dark flex flex-wrap items-center gap-3">
@@ -162,10 +162,10 @@ export default function AIStudioHubPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
 
-        {/* ── Left: Tool Grid ── */}
+        
         <div className="lg:col-span-2 space-y-8">
         
-          {/* Usage summary card */}
+          
           <div className={`bg-white border rounded-2xl p-5 shadow-sm ${isCapped ? 'border-amber-300 shadow-amber-500/10' : 'border-brand-border/50'}`}>
              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                <div className="flex-1">
@@ -199,7 +199,7 @@ export default function AIStudioHubPage() {
              </div>
           </div>
 
-          {/* "Publish" group */}
+          
           <div>
             <SectionHeading
               icon={Globe}
@@ -213,7 +213,7 @@ export default function AIStudioHubPage() {
             </div>
           </div>
 
-          {/* "Your workspace" group */}
+          
           <div>
             <SectionHeading
               icon={Wrench}
@@ -228,7 +228,7 @@ export default function AIStudioHubPage() {
           </div>
         </div>
 
-        {/* ── Right: Sidebar ── */}
+        
         <aside className="space-y-6">
 
           <div className="bg-white border border-brand-border/50 rounded-2xl p-5 shadow-sm space-y-6">

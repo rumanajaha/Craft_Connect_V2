@@ -44,6 +44,16 @@ export async function POST(request) {
         password: hashedPassword,
         name,
         role: normalizedRole,
+        brand: normalizedRole === 'BRANDOWNER' ? {
+          create: {
+            name: name || 'My Brand',
+          }
+        } : undefined,
+        creator: normalizedRole === 'CREATOR' ? {
+          create: {
+            name: name || 'My Creator Profile',
+          }
+        } : undefined,
       },
     })
 

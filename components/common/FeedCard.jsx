@@ -9,7 +9,7 @@ export default function FeedCard({ item, viewerRole }) {
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  // Helper to format date
+  
   const formatTimeAgo = (dateString) => {
     const date = new Date(dateString);
     const seconds = Math.floor((new Date() - date) / 1000);
@@ -26,13 +26,13 @@ export default function FeedCard({ item, viewerRole }) {
     return "just now";
   };
 
-  // Determine brand profile link depending on role
+  
   const getBrandLink = (brandId) => {
     if (viewerRole === "brand") return "/brand/profile";
     return `/customer/brand/${brandId}`;
   };
 
-  // Render Product Card
+  
   const renderProduct = () => (
     <div className="flex flex-col bg-white rounded-3xl border border-brand-border/40 overflow-hidden hover:shadow-md transition-all duration-300">
       <div className="relative w-full h-64 bg-brand-border/10">
@@ -107,7 +107,7 @@ export default function FeedCard({ item, viewerRole }) {
     </div>
   );
 
-  // Render Brand Profile Update Card
+  
   const renderBrandUpdate = () => (
     <div className="flex flex-col bg-white rounded-3xl border border-brand-border/40 p-6 hover:shadow-md transition-all duration-300">
       <div className="flex items-start justify-between gap-4 mb-4">
@@ -163,7 +163,7 @@ export default function FeedCard({ item, viewerRole }) {
     </div>
   );
 
-  // Render Creator Content Card
+  
   const renderCreatorContent = () => (
     <div className="flex flex-col bg-white rounded-3xl border border-brand-border/40 overflow-hidden hover:shadow-md transition-all duration-300">
       <div className="p-5 flex items-center justify-between gap-4 border-b border-brand-border/20">

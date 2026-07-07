@@ -15,7 +15,7 @@ export function AIUsageProvider({ children }) {
     'campaign-planner': 0,
     'request-analyzer': 0,
     'content-inspiration': 0,
-    // Creator tools
+    
     'trending-feed': 0,
     'brand-match': 0,
     'content-ideas': 0,
@@ -25,7 +25,7 @@ export function AIUsageProvider({ children }) {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [isPro, setIsPro] = useState(false);
 
-  // Load from localStorage if present (optional mock persistence during session)
+  
   useEffect(() => {
     const saved = localStorage.getItem("cc_usage_by_tool");
     if (saved) {
@@ -55,7 +55,7 @@ export function AIUsageProvider({ children }) {
   };
 
   const getRemainingForTool = (toolKey) => {
-    if (isPro) return FREE_TRIAL_LIMIT; // Technically unlimited, but max for UI
+    if (isPro) return FREE_TRIAL_LIMIT; 
     return Math.max(0, FREE_TRIAL_LIMIT - (usageByTool[toolKey] || 0));
   };
 

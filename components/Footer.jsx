@@ -6,13 +6,13 @@ export default function Footer() {
   return (
     <footer className="bg-cream pt-20 pb-10 border-t border-brand-border/60 relative overflow-hidden">
       
-      {/* Decorative light reflection */}
+      
       <div className="absolute left-10 bottom-0 w-80 h-80 rounded-full bg-brand-accent/10 blur-3xl pointer-events-none" />
 
       <div className="mx-auto max-w-7xl px-6 md:px-12">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-12 pb-16 border-b border-brand-border/50">
           
-          {/* Brand Info */}
+          
           <div className="md:col-span-4 flex flex-col gap-6">
             <span className="font-serif text-3xl font-extrabold text-brand-dark tracking-tight">
               CraftConnect<span className="text-brand-primary">.</span>
@@ -44,7 +44,7 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Directory Links */}
+          
           <div className="md:col-span-4 grid grid-cols-2 gap-8">
             <div className="flex flex-col gap-4">
               <h4 className="text-xs font-bold uppercase tracking-widest text-brand-dark">EXPLORE</h4>
@@ -62,7 +62,7 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Newsletter Box */}
+          
           <div className="md:col-span-4 flex flex-col gap-4">
             <h4 className="text-xs font-bold uppercase tracking-widest text-brand-dark flex items-center gap-1.5">
               <span>NEWSLETTER</span>
@@ -89,7 +89,7 @@ export default function Footer() {
 
         </div>
 
-        {/* Lower row */}
+        
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-brand-muted">
           <span>&copy; {new Date().getFullYear()} CraftConnect Platform. All rights reserved.</span>
           <div className="flex gap-6">

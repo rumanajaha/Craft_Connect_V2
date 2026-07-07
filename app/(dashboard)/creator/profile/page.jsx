@@ -12,11 +12,11 @@ export default function CreatorPublicProfilePage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-12">
-      {/* Header banner */}
+      
       <div className="relative w-full h-52 md:h-64 rounded-2xl overflow-hidden bg-gradient-to-br from-brand-primary/20 to-purple-500/20">
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
-        {/* Creator avatar + name overlay */}
+        
         <div className="absolute bottom-4 left-5 flex items-end gap-4">
           <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-white shadow-md bg-white">
             <Image src={creator.avatar} alt={creator.name} fill sizes="80px" className="object-cover" />
@@ -30,23 +30,23 @@ export default function CreatorPublicProfilePage() {
         </div>
       </div>
 
-      {/* Meta row */}
+      
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-4">
-          {/* Followers */}
+          
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-brand-border/50 rounded-full shadow-sm">
             <Users className="w-4 h-4 text-brand-primary" />
             <span className="text-sm font-bold text-brand-dark">{creator.followers.toLocaleString()}</span>
             <span className="text-xs text-brand-muted">Followers</span>
           </div>
 
-          {/* Engagement */}
+          
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full shadow-sm">
             <Activity className="w-4 h-4 text-emerald-600" />
             <span className="text-sm font-bold text-emerald-700">{creator.engagementRate}% Engagement</span>
           </div>
 
-          {/* Social Links */}
+          
           <div className="flex items-center gap-2">
             <a href={`https://instagram.com/${creator.instagram}`} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-white border border-brand-border/50 flex items-center justify-center text-brand-muted hover:text-brand-primary hover:border-brand-primary/50 transition-colors shadow-sm">
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>

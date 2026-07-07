@@ -2,8 +2,8 @@
 
 import SharedFeedPage from "@/components/common/SharedFeedPage";
 
-// Customer's saved brands and preferred tags (mock)
-// TODO: pull from real user profile / saved brands store once backend is live
+
+
 const CUSTOMER_TAGS = [
   "ceramics", "handmade", "minimalist", "wabi-sabi", "slow living",
   "tableware", "eco-friendly", "home decor"

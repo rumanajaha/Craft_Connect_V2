@@ -68,13 +68,13 @@ function AccordionItem({ question, answer, isOpen, onClick }) {
 }
 
 export default function FAQ() {
-  const [openId, setOpenId] = useState(1); // open first question by default
+  const [openId, setOpenId] = useState(1); 
 
   return (
     <section id="faq" className="py-24 px-6 md:px-12 bg-white relative">
       <div className="mx-auto max-w-4xl">
         
-        {/* Header */}
+        
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-primary/10 text-brand-primary text-xs font-bold uppercase tracking-wider mb-4">
             <HelpCircle className="w-3.5 h-3.5" />
@@ -85,7 +85,7 @@ export default function FAQ() {
           </h2>
         </div>
 
-        {/* Accordions */}
+        
         <div className="mt-8 border-t border-brand-border/60">
           {FAQS.map((faq) => (
             <AccordionItem

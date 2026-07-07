@@ -1,15 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Package, Inbox, Sparkles, ArrowRight, ExternalLink } from "lucide-react";
-import { MOCK_PRODUCTS, MOCK_REQUESTS, MOCK_CREATOR_PITCHES, MOCK_CREATORS } from "@/lib/mockData";
 import CollabRequestRow from "@/components/brand/CollabRequestRow";
 import CreatorMatchCard from "@/components/brand/CreatorMatchCard";
 import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
 
-// Small inline stat pill (cloned/adapted from Customer dashboard)
 function StatPill({ icon: Icon, value, label, accent }) {
   return (
     <div className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl border ${
@@ -35,39 +33,82 @@ function StatPill({ icon: Icon, value, label, accent }) {
 }
 
 export default function BrandOverview() {
-  const [pitches, setPitches] = useState(MOCK_CREATOR_PITCHES);
+  const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState({ activeProducts: 0, pendingRequests: 0, aiMatches: 0 });
+  const [pitches, setPitches] = useState([]);
+  const [creators, setCreators] = useState([]);
   
-  // AI Matcher State
   const [isGeneratingMatches, setIsGeneratingMatches] = useState(false);
   const [matchesGenerated, setMatchesGenerated] = useState(false);
   const [matchInputs, setMatchInputs] = useState({ productType: "", audience: "", goal: "" });
-  
-  // Calculate mock stats (filtered to 'ochre-clay' as the dummy active brand)
-  const activeBrandId = "ochre-clay";
-  const activeProducts = MOCK_PRODUCTS.filter(p => p.brandId === activeBrandId && p.inStock).length;
-  const pendingRequests = MOCK_REQUESTS.filter(r => r.brandId === activeBrandId && r.status === "pending").length;
-  const aiMatches = MOCK_CREATORS.length;
 
-  const handlePitchAction = (id, newStatus) => {
-    // We update local state, actual backend mutation would go here
-    setPitches(prev => prev.map(p => p.id === id ? { ...p, status: newStatus } : p));
-    // In a real app we'd show a toast here
-    // alert(`Pitch ${newStatus}`);
+  useEffect(() => {
+    async function loadDashboard() {
+      try {
+        const response = await fetch("/api/brand/dashboard");
+        if (response.ok) {
+          const data = await response.json();
+          setStats({
+            activeProducts: data.activeProducts,
+            pendingRequests: data.pendingRequests,
+            aiMatches: data.aiMatches
+          });
+          setPitches(data.pitches);
+          setCreators(data.creators);
+        }
+      } catch (err) {
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadDashboard();
+  }, []);
+
+  const handlePitchAction = async (id, newStatus) => {
+    try {
+      const response = await fetch(`/api/brand/pitches/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (response.ok) {
+        setPitches(prev => prev.map(p => p.id === id ? { ...p, status: newStatus } : p));
+      }
+    } catch (err) {
+    }
   };
 
-  const handleGenerateMatches = (e) => {
+  const handleGenerateMatches = async (e) => {
     e.preventDefault();
     setIsGeneratingMatches(true);
-    setTimeout(() => {
+    try {
+      const response = await fetch("/api/brand/matches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(matchInputs)
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setCreators(data.matches);
+        setMatchesGenerated(true);
+      }
+    } catch (err) {
+    } finally {
       setIsGeneratingMatches(false);
-      setMatchesGenerated(true);
-    }, 1500);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-brand-muted text-sm font-semibold">Loading dashboard...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
       
-      {/* Page header */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         <div>
           <h1 className="font-serif text-3xl md:text-4xl font-bold text-brand-dark">
@@ -78,7 +119,6 @@ export default function BrandOverview() {
           </p>
         </div>
 
-        {/* Preview public profile */}
         <Link
           href="/brand/profile"
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-brand-border/60 bg-white text-sm font-semibold text-brand-dark hover:border-brand-primary/50 hover:text-brand-primary transition-all shadow-sm shrink-0"
@@ -88,15 +128,13 @@ export default function BrandOverview() {
         </Link>
       </div>
 
-      {/* Stat pills row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <StatPill icon={Package} value={activeProducts} label="Active Products" />
-        <StatPill icon={Inbox} value={pendingRequests} label="Pending Requests" accent />
-        <StatPill icon={Sparkles} value={aiMatches} label="New AI Matches" />
+        <StatPill icon={Package} value={stats.activeProducts} label="Active Products" />
+        <StatPill icon={Inbox} value={stats.pendingRequests} label="Pending Requests" accent />
+        <StatPill icon={Sparkles} value={stats.aiMatches} label="New AI Matches" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-        {/* Left Col: Collab Requests */}
         <section className="space-y-4">
           <div className="flex items-center justify-between px-1">
             <h2 className="font-serif text-xl font-bold text-brand-dark">Incoming Pitches</h2>
@@ -123,7 +161,6 @@ export default function BrandOverview() {
           </div>
         </section>
 
-        {/* Right Col: AI Matches */}
         <section className="space-y-4">
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
@@ -151,13 +188,13 @@ export default function BrandOverview() {
               <>
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-200">
-                    Found {MOCK_CREATORS.length} matches
+                    Found {creators.length} matches
                   </span>
                   <button onClick={() => setMatchesGenerated(false)} className="text-xs font-semibold text-brand-muted hover:text-brand-dark transition-colors">
                     Reset search
                   </button>
                 </div>
-                {MOCK_CREATORS.map(creator => (
+                {creators.map(creator => (
                   <CreatorMatchCard key={creator.id} creator={creator} />
                 ))}
               </>

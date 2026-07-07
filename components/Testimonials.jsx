@@ -71,7 +71,7 @@ export default function Testimonials() {
     <section className="py-24 bg-[#FAF7F0]/40 overflow-hidden relative select-none">
       <div className="mx-auto max-w-7xl px-6 md:px-12 mb-16">
         
-        {/* Header */}
+        
         <div className="text-center max-w-2xl mx-auto">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-primary/10 text-brand-primary text-xs font-bold uppercase tracking-wider mb-4">
             <Sparkles className="w-3.5 h-3.5" />
@@ -87,7 +87,7 @@ export default function Testimonials() {
 
       </div>
 
-      {/* Marquee Row 1 (Slides Left) */}
+      
       <div className="relative flex overflow-x-hidden w-full mb-8">
         <div className="flex whitespace-nowrap animate-marquee gap-8">
           {TESTIMONIALS_ROW1.concat(TESTIMONIALS_ROW1).map((t, idx) => (
@@ -121,7 +121,7 @@ export default function Testimonials() {
         <div className="absolute top-0 bottom-0 right-0 w-32 bg-gradient-to-l from-cream to-transparent pointer-events-none" />
       </div>
 
-      {/* Marquee Row 2 (Slides Right) */}
+      
       <div className="relative flex overflow-x-hidden w-full">
         <div className="flex whitespace-nowrap animate-marquee-reverse gap-8">
           {TESTIMONIALS_ROW2.concat(TESTIMONIALS_ROW2).map((t, idx) => (

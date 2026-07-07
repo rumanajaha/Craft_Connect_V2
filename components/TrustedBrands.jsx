@@ -24,9 +24,9 @@ export default function TrustedBrands() {
         </p>
       </div>
 
-      {/* Marquee wrapper */}
+      
       <div className="relative flex overflow-x-hidden w-full">
-        {/* Infinite scrolling row */}
+        
         <div className="flex whitespace-nowrap animate-marquee py-2 gap-12 items-center">
           {BRANDS.concat(BRANDS).map((brand, idx) => (
             <div key={idx} className="flex items-center gap-12">
@@ -38,7 +38,7 @@ export default function TrustedBrands() {
           ))}
         </div>
 
-        {/* Shadow Overlays to fade margins */}
+        
         <div className="absolute top-0 bottom-0 left-0 w-24 bg-gradient-to-r from-cream to-transparent pointer-events-none" />
         <div className="absolute top-0 bottom-0 right-0 w-24 bg-gradient-to-l from-cream to-transparent pointer-events-none" />
       </div>

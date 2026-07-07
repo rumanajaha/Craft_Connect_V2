@@ -56,18 +56,18 @@ export default function Statistics() {
       suffix: "M+",
       icon: Heart,
       desc: "Aggregated social impressions and traffic.",
-      isFloat: true // handles decimal animation
+      isFloat: true 
     }
   ];
 
   return (
     <section className="py-24 px-6 md:px-12 bg-white border-y border-brand-border/60 relative overflow-hidden">
-      {/* Decorative background shape */}
+      
       <div className="absolute right-0 top-0 w-96 h-96 rounded-full bg-brand-primary/5 blur-3xl pointer-events-none" />
 
       <div className="mx-auto max-w-7xl">
         
-        {/* Intro */}
+        
         <div className="max-w-2xl mb-16 text-left">
           <p className="text-[10px] uppercase font-bold tracking-widest text-brand-primary mb-3">
             COMMUNITY TRACTION
@@ -77,7 +77,7 @@ export default function Statistics() {
           </h2>
         </div>
 
-        {/* Stats Grid */}
+        
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {stats.map((stat, i) => {
             const Icon = stat.icon;
@@ -91,14 +91,14 @@ export default function Statistics() {
                 key={stat.id}
                 className="glass bg-[#FAF7F0]/20 p-8 rounded-3xl border border-brand-border/40 relative group hover:border-brand-primary/30 transition-all duration-300"
               >
-                {/* Floating icon */}
+                
                 <div className="w-10 h-10 rounded-xl bg-white border border-brand-border flex items-center justify-center text-brand-primary mb-6 shadow-sm">
                   <Icon className="w-5 h-5" />
                 </div>
 
                 <div className="font-serif text-4xl md:text-5xl font-black text-brand-dark tracking-tight mb-2">
                   {stat.isFloat ? (
-                    // Decimal animator wrapper
+                    
                     <DecimalCounter value={stat.value} suffix={stat.suffix} />
                   ) : (
                     <Counter value={stat.value} suffix={stat.suffix} />
@@ -121,7 +121,7 @@ export default function Statistics() {
   );
 }
 
-// Custom component for decimal float animation
+
 function DecimalCounter({ value, suffix }) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
