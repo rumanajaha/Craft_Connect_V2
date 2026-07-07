@@ -22,19 +22,33 @@ export default function LoginForm() {
     setIsLoading(true);
     setError("");
 
-    // Simulate network delay for realistic frontend loading
-    setTimeout(() => {
-      let role = "creator"; // Default fallback
-      
-      const lowerEmail = email.toLowerCase();
-      if (lowerEmail.includes("brand")) {
-        role = "brand";
-      } else if (lowerEmail.includes("customer")) {
-        role = "customer";
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || "Login failed");
+        setIsLoading(false);
+        return;
       }
 
+      const roleMap = {
+        CREATOR: "creator",
+        BRANDOWNER: "brand",
+        CUSTOMER: "customer",
+      };
+
+      const role = roleMap[data.user.role] || "creator";
       router.push(`/welcome?to=/${role}`);
-    }, 1000);
+    } catch (err) {
+      setError("An unexpected error occurred");
+      setIsLoading(false);
+    }
   };
 
   return (

@@ -13,7 +13,11 @@ export async function POST(request) {
       )
     }
 
-    const normalizedRole = role.toUpperCase()
+    let normalizedRole = role.toUpperCase()
+    if (normalizedRole === 'BRAND') {
+      normalizedRole = 'BRANDOWNER'
+    }
+
     if (!['CREATOR', 'BRANDOWNER', 'CUSTOMER'].includes(normalizedRole)) {
       return NextResponse.json(
         { error: 'Invalid role' },

@@ -76,15 +76,43 @@ export default function SignupForm() {
     setIsLoading(true);
     setSubmitError("");
 
-    // Simulate network delay for realistic frontend loading
-    setTimeout(() => {
-      // Flag this as a new signup so the dashboard can greet by name
+    try {
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password,
+          name: fullName,
+          role,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setSubmitError(data.error || "Registration failed");
+        setIsLoading(false);
+        return;
+      }
+
       if (typeof window !== "undefined") {
         sessionStorage.setItem("cc_new_user", "1");
         sessionStorage.setItem("cc_display_name", fullName.trim().split(" ")[0]);
       }
-      router.push(`/welcome?to=/${role}`);
-    }, 1000);
+
+      const roleMap = {
+        CREATOR: "creator",
+        BRANDOWNER: "brand",
+        CUSTOMER: "customer",
+      };
+
+      const finalRole = roleMap[data.user.role] || role;
+      router.push(`/welcome?to=/${finalRole}`);
+    } catch (err) {
+      setSubmitError("An unexpected error occurred");
+      setIsLoading(false);
+    }
   };
 
   if (step === 3) {
