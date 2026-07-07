@@ -69,7 +69,7 @@ export default function CreatorAIStudioPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
-      {/* Header */}
+      
       <div>
         <h1 className="font-serif text-3xl md:text-4xl font-bold text-brand-dark flex flex-wrap items-center gap-3">
           <span>AI Studio</span>
@@ -89,9 +89,9 @@ export default function CreatorAIStudioPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        {/* Left: Tools */}
+        
         <div className="lg:col-span-2 space-y-8">
-          {/* Usage card */}
+          
           <div className={`bg-white border rounded-2xl p-5 shadow-sm ${isCapped ? 'border-amber-300 shadow-amber-500/10' : 'border-brand-border/50'}`}>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex-1">
@@ -125,7 +125,7 @@ export default function CreatorAIStudioPage() {
             </div>
           </div>
 
-          {/* Tool grid */}
+          
           <div>
             <div className="flex items-center gap-2.5 mb-4">
               <div className="w-7 h-7 rounded-lg bg-brand-border/20 flex items-center justify-center">
@@ -141,7 +141,7 @@ export default function CreatorAIStudioPage() {
           </div>
         </div>
 
-        {/* Right: Sidebar */}
+        
         <aside className="space-y-6">
           <div className="bg-white border border-brand-border/50 rounded-2xl p-5 shadow-sm space-y-6">
             <h3 className="font-serif font-bold text-brand-dark text-lg border-b border-brand-border/40 pb-3">

@@ -14,7 +14,7 @@ const NAV_ITEMS = [
   { label: "Settings",     href: "/customer/settings",  icon: Settings },
 ];
 
-// Derive the current page title from the pathname
+
 function getPageTitle(pathname) {
   if (pathname === "/customer") return "Dashboard";
   if (pathname?.startsWith("/customer/feed")) return "For You";
@@ -30,7 +30,7 @@ function getPageTitle(pathname) {
 function Sidebar({ pathname, onClose }) {
   return (
     <div className="flex flex-col h-full bg-white border-r border-brand-border/40">
-      {/* Logo */}
+      
       <div className="px-6 py-5 border-b border-brand-border/40 flex items-center justify-between">
         <Link href="/" className="font-serif text-xl font-bold text-brand-dark hover:text-brand-primary transition-colors">
           CraftConnect<span className="text-brand-primary">.</span>
@@ -42,14 +42,14 @@ function Sidebar({ pathname, onClose }) {
         )}
       </div>
 
-      {/* Role badge */}
+      
       <div className="px-6 py-3 border-b border-brand-border/40">
         <span className="inline-block px-2.5 py-1 bg-brand-primary/10 text-brand-primary text-[10px] font-bold uppercase tracking-wider rounded-full">
           Customer
         </span>
       </div>
 
-      {/* Nav links */}
+      
       <nav className="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto">
         {NAV_ITEMS.map(({ label, href, icon: Icon }) => {
           const isActive = pathname === href || (href !== "/customer" && pathname?.startsWith(href));
@@ -71,7 +71,7 @@ function Sidebar({ pathname, onClose }) {
         })}
       </nav>
 
-      {/* Logout */}
+      
       <div className="px-3 py-4 border-t border-brand-border/40">
         <Link
           href="/login"
@@ -92,12 +92,12 @@ export default function CustomerLayout({ children }) {
 
   return (
     <div className="min-h-screen bg-[#FAF7F0] flex">
-      {/* Desktop sidebar */}
+      
       <aside className="hidden lg:flex flex-col w-56 shrink-0 fixed inset-y-0 left-0 z-30">
         <Sidebar pathname={pathname} />
       </aside>
 
-      {/* Mobile overlay */}
+      
       {mobileOpen && (
         <div className="fixed inset-0 z-40 flex lg:hidden">
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
@@ -107,13 +107,13 @@ export default function CustomerLayout({ children }) {
         </div>
       )}
 
-      {/* Main content area */}
+      
       <div className="flex-1 lg:ml-56 flex flex-col min-h-screen">
 
-        {/* Top bar — visible on all screen sizes on desktop, replaces the mobile-only bar */}
+        
         <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-brand-border/40">
           <div className="flex items-center justify-between px-5 py-3.5 max-w-full">
-            {/* Left: hamburger (mobile) + page title */}
+            
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setMobileOpen(true)}
@@ -130,22 +130,22 @@ export default function CustomerLayout({ children }) {
               </h2>
             </div>
 
-            {/* Right: notification bell + profile avatar */}
+            
             <div className="flex items-center gap-2">
-              {/* Notification Bell */}
+              
               <Link
                 href="/customer/notifications"
                 className="relative w-9 h-9 rounded-full flex items-center justify-center text-brand-muted hover:text-brand-dark hover:bg-brand-border/30 transition-all"
                 aria-label="Notifications"
               >
                 <Bell className="w-4.5 h-4.5" />
-                {/* TODO: sync with real notification state */}
+                
                 <span className="absolute -top-1 -right-1 w-4 h-4 bg-brand-primary text-white text-[10px] font-bold flex items-center justify-center rounded-full border border-white">
                   3
                 </span>
               </Link>
 
-              {/* Profile Avatar */}
+              
               <Link href="/customer/settings" aria-label="Profile settings">
                 <div className="w-8 h-8 rounded-full bg-brand-primary flex items-center justify-center text-white text-xs font-bold font-serif shadow-sm hover:shadow-md hover:ring-2 hover:ring-brand-primary/40 transition-all">
                   A

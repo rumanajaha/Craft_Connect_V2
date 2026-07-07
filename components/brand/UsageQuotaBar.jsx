@@ -19,9 +19,9 @@ export default function UsageQuotaBar({ used, total }) {
         </span>
       </div>
       
-      {/* Progress Bar Track */}
+      
       <div className="h-2 w-full bg-brand-border/30 rounded-full overflow-hidden">
-        {/* Progress Bar Fill */}
+        
         <div 
           className={`h-full transition-all duration-500 rounded-full ${
             isNearLimit ? "bg-amber-500" : "bg-brand-primary"

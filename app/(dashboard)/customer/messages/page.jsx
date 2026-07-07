@@ -7,7 +7,7 @@ import { Send, Paperclip, ArrowLeft, Image as ImageIcon } from "lucide-react";
 import { MOCK_BRANDS, MOCK_MESSAGES } from "@/lib/mockData";
 import Button from "@/components/ui/button";
 
-// Local in-memory message state (structured for easy Supabase Realtime wiring later)
+
 function useMessages(initialThreads) {
   const [threads, setThreads] = useState(initialThreads);
   const addMessage = (threadId, msg) => {
@@ -29,7 +29,7 @@ function MessagesContent() {
   );
 
   const [activeId, setActiveId]   = useState(initialThreadId);
-  const [mobileView, setMobileView] = useState("list"); // "list" | "thread"
+  const [mobileView, setMobileView] = useState("list"); 
   const [text, setText]           = useState("");
   const [imagePreview, setImagePreview] = useState(null);
   const bottomRef = useRef(null);
@@ -77,7 +77,7 @@ function MessagesContent() {
       <h1 className="font-serif text-3xl font-bold text-brand-dark mb-5">Messages</h1>
       <div className="bg-white rounded-2xl border border-brand-border/50 shadow-sm overflow-hidden flex h-[calc(100vh-13rem)]">
 
-        {/* Thread list pane */}
+        
         <div className={`w-full md:w-72 lg:w-80 border-r border-brand-border/40 flex flex-col shrink-0 ${mobileView === "thread" ? "hidden md:flex" : "flex"}`}>
           <div className="px-4 py-3 border-b border-brand-border/40">
             <p className="text-xs font-bold text-brand-muted uppercase tracking-wider">Conversations</p>
@@ -110,11 +110,11 @@ function MessagesContent() {
           </ul>
         </div>
 
-        {/* Active thread pane */}
+        
         <div className={`flex-1 flex flex-col min-w-0 ${mobileView === "list" ? "hidden md:flex" : "flex"}`}>
           {activeThread ? (
             <>
-              {/* Thread header */}
+              
               <div className="flex items-center gap-3 px-5 py-3.5 border-b border-brand-border/40">
                 <button onClick={() => setMobileView("list")} className="md:hidden text-brand-muted hover:text-brand-dark">
                   <ArrowLeft className="w-5 h-5" />
@@ -128,7 +128,7 @@ function MessagesContent() {
                 </div>
               </div>
 
-              {/* Messages */}
+              
               <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
                 {activeThread.messages.map(msg => {
                   const isCustomer = msg.sender === "customer";
@@ -152,7 +152,7 @@ function MessagesContent() {
                     </div>
                   );
                 })}
-                {/* Image preview bubble */}
+                
                 {imagePreview && (
                   <div className="flex justify-end">
                     <div className="relative w-32 h-24 rounded-xl overflow-hidden border-2 border-brand-primary/30">
@@ -164,7 +164,7 @@ function MessagesContent() {
                 <div ref={bottomRef} />
               </div>
 
-              {/* Input */}
+              
               <div className="border-t border-brand-border/40 px-4 py-3 flex items-end gap-2">
                 <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
                 <button

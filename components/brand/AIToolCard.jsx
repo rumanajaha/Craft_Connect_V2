@@ -14,8 +14,8 @@ export default function AIToolCard({ title, description, inputs, mockResult, but
     setIsGenerating(true);
     setResult(null);
 
-    // Simulate network delay for AI generation
-    // TODO: wire to Gemini API
+    
+    
     setTimeout(() => {
       setResult(mockResult);
       setIsGenerating(false);
@@ -31,7 +31,7 @@ export default function AIToolCard({ title, description, inputs, mockResult, but
 
   return (
     <div className="bg-white border border-brand-border/50 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col h-full">
-      {/* Header */}
+      
       <div className="p-5 border-b border-brand-border/40 bg-gradient-to-br from-brand-primary/5 to-transparent">
         <div className="flex items-center gap-2 mb-1.5">
           <Sparkles className="w-4 h-4 text-brand-primary" />
@@ -40,7 +40,7 @@ export default function AIToolCard({ title, description, inputs, mockResult, but
         <p className="text-xs text-brand-muted">{description}</p>
       </div>
 
-      {/* Form */}
+      
       <form onSubmit={handleGenerate} className="p-5 flex-1 flex flex-col">
         <div className="space-y-4 flex-1">
           {inputs}
@@ -58,7 +58,7 @@ export default function AIToolCard({ title, description, inputs, mockResult, but
         </div>
       </form>
 
-      {/* Result Panel */}
+      
       {result && (
         <div className="bg-brand-dark text-white p-5 animate-in slide-in-from-bottom-2 fade-in duration-300">
           <div className="flex items-start justify-between gap-4 mb-2">

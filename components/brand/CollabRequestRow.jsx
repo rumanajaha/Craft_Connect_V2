@@ -36,7 +36,7 @@ export default function CollabRequestRow({ pitch, onAccept, onReject }) {
 
   return (
     <div className="flex flex-col sm:flex-row gap-4 p-4 items-start sm:items-center bg-white border border-brand-border/50 rounded-2xl hover:shadow-sm transition-shadow">
-      {/* Creator Info */}
+      
       <div className="flex items-center gap-3 w-full sm:w-1/4 shrink-0">
         <div className="relative w-10 h-10 rounded-full overflow-hidden border border-brand-border/40 shrink-0">
           <Image src={pitch.creatorAvatar} alt={pitch.creatorName} fill className="object-cover" />
@@ -47,7 +47,7 @@ export default function CollabRequestRow({ pitch, onAccept, onReject }) {
         </div>
       </div>
 
-      {/* Compensation Badge */}
+      
       <div className="w-full sm:w-auto shrink-0">
         <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold uppercase tracking-wider ${getCompensationColor(pitch.compensation)}`}>
           {getCompensationIcon(pitch.compensation)}
@@ -55,14 +55,14 @@ export default function CollabRequestRow({ pitch, onAccept, onReject }) {
         </div>
       </div>
 
-      {/* Snippet */}
+      
       <div className="flex-1 w-full min-w-0">
         <p className="text-sm text-brand-dark/80 line-clamp-2 leading-relaxed">
           "{pitch.snippet}"
         </p>
       </div>
 
-      {/* Actions */}
+      
       <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 justify-end">
         {status === "pending" ? (
           <>

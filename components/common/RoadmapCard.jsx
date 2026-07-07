@@ -4,10 +4,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 
-/**
- * Badge — lightweight inline badge styled with CraftConnect tokens.
- * Filled (accent orange) for done/in-progress, outline (muted) for upcoming.
- */
+
 function Badge({ children, variant = "filled" }) {
   const base =
     "inline-block text-[10px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full whitespace-nowrap leading-tight";
@@ -18,23 +15,11 @@ function Badge({ children, variant = "filled" }) {
   return <span className={`${base} ${variants[variant] || variants.filled}`}>{children}</span>;
 }
 
-/**
- * RoadmapCard — a horizontal (desktop) / vertical (mobile) timeline of steps
- * inside a Card container.
- *
- * @param {string}   title        – card title
- * @param {string}   description  – card subtitle
- * @param {Object[]} items        – array of { label, title, description, status }
- *                                  status: "done" | "in-progress" | "upcoming"
- */
+
 export default function RoadmapCard({ title, description, items = [] }) {
   const itemCount = items.length || 1;
 
-  /**
-   * Derive dot style from status.
-   *   done / in-progress → active orange
-   *   upcoming           → muted gray
-   */
+  
   const dotColorClass = (status) =>
     status === "done" || status === "in-progress"
       ? "bg-brand-primary border-brand-primary shadow-[0_0_0_4px_rgba(255,89,0,0.12)]"
@@ -48,7 +33,7 @@ export default function RoadmapCard({ title, description, items = [] }) {
   const badgeVariant = (status) =>
     status === "done" || status === "in-progress" ? "filled" : "outline";
 
-  // Framer Motion variants
+  
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: (i) => ({
@@ -70,12 +55,11 @@ export default function RoadmapCard({ title, description, items = [] }) {
       </CardHeader>
 
       <CardContent className="pt-2 pb-2">
-        {/* Relative wrapper for the connecting line + items */}
+        
         <div className="relative">
 
-          {/* ── Horizontal connecting line (desktop) ──────────────────── */}
-          {/* Sits behind the dots, vertically centered on the dot row.
-              On mobile it becomes a vertical line on the left edge. */}
+          
+          
           <div
             className="
               hidden md:block
@@ -85,7 +69,7 @@ export default function RoadmapCard({ title, description, items = [] }) {
             aria-hidden="true"
           />
 
-          {/* ── Vertical connecting line (mobile only) ────────────────── */}
+          
           <div
             className="
               block md:hidden
@@ -95,7 +79,7 @@ export default function RoadmapCard({ title, description, items = [] }) {
             aria-hidden="true"
           />
 
-          {/* ── Items row (horizontal desktop, vertical mobile) ───────── */}
+          
           <div className="flex flex-col md:flex-row">
             {items.map((item, index) => (
               <motion.div
@@ -108,9 +92,9 @@ export default function RoadmapCard({ title, description, items = [] }) {
                 whileInView="visible"
                 viewport={{ once: true, amount: 0.3 }}
               >
-                {/* ── Mobile layout (vertical, stacked) ──────────────── */}
+                
                 <div className="flex md:hidden items-start gap-4 pb-8 last:pb-0">
-                  {/* Dot */}
+                  
                   <motion.div
                     className={`relative z-10 w-[36px] h-[36px] shrink-0 rounded-full border-2 flex items-center justify-center cursor-default ${dotColorClass(item.status)}`}
                     whileHover={{ scale: 1.2 }}
@@ -119,7 +103,7 @@ export default function RoadmapCard({ title, description, items = [] }) {
                     <span className={`w-2 h-2 rounded-full ${innerDotClass(item.status)}`} />
                   </motion.div>
 
-                  {/* Content */}
+                  
                   <div className="pt-1">
                     <Badge variant={badgeVariant(item.status)}>{item.label}</Badge>
                     <h4 className="font-serif text-base font-semibold text-brand-dark mt-1.5 leading-snug">
@@ -131,9 +115,9 @@ export default function RoadmapCard({ title, description, items = [] }) {
                   </div>
                 </div>
 
-                {/* ── Desktop layout (horizontal, equal columns) ─────── */}
+                
                 <div className="hidden md:flex flex-col items-center text-center px-2">
-                  {/* Dot */}
+                  
                   <motion.div
                     className={`relative z-10 w-[36px] h-[36px] rounded-full border-2 flex items-center justify-center cursor-default ${dotColorClass(item.status)}`}
                     whileHover={{ scale: 1.2 }}
@@ -142,7 +126,7 @@ export default function RoadmapCard({ title, description, items = [] }) {
                     <span className={`w-2 h-2 rounded-full ${innerDotClass(item.status)}`} />
                   </motion.div>
 
-                  {/* Content below dot */}
+                  
                   <div className="mt-5 max-w-[200px]">
                     <Badge variant={badgeVariant(item.status)}>{item.label}</Badge>
                     <h4 className="font-serif text-sm font-semibold text-brand-dark mt-2 leading-snug">

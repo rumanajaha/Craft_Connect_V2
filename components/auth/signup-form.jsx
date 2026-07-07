@@ -14,7 +14,7 @@ export default function SignupForm() {
   const router = useRouter();
   const supabase = createClient();
 
-  const [step, setStep] = useState(1); // 1: Role picker, 2: Info form, 3: Success verification state
+  const [step, setStep] = useState(1); 
   const [role, setRole] = useState("");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -204,7 +204,7 @@ export default function SignupForm() {
               </div>
             )}
 
-            {/* Desktop: side-by-side to reduce height, Mobile: stacked */}
+            
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Input
                 id="fullName"
@@ -228,7 +228,7 @@ export default function SignupForm() {
               />
             </div>
 
-            {/* Desktop: side-by-side to reduce height, Mobile: stacked */}
+            
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Input
                 id="password"

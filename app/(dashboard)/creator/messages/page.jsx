@@ -14,7 +14,7 @@ export default function CreatorMessagesPage() {
   const allThreads = MOCK_CREATOR_MESSAGES;
   
   const [activeThread, setActiveThread] = useState(null);
-  const [mobileView, setMobileView] = useState("list"); // 'list' | 'chat'
+  const [mobileView, setMobileView] = useState("list"); 
   const [inputText, setInputText] = useState("");
   const [showAnalyzer, setShowAnalyzer] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -61,7 +61,7 @@ export default function CreatorMessagesPage() {
     
     setInputText("");
     
-    // Simulate brand reply
+    
     setTimeout(() => {
       const reply = {
         id: `ct-m-${Date.now()+1}`,
@@ -72,7 +72,7 @@ export default function CreatorMessagesPage() {
       activeThread.messages.push(reply);
       activeThread.lastMessageText = reply.text;
       
-      // trigger re-render
+      
       setActiveThread({ ...activeThread });
     }, 2000);
   };
@@ -84,7 +84,7 @@ export default function CreatorMessagesPage() {
 
   return (
     <div className="h-[calc(100vh-6rem)] md:h-[calc(100vh-8rem)] -m-6 md:-m-8 bg-[#FAF7F0] flex">
-      {/* ─── Thread List Pane (Left) ─── */}
+      
       <div className={`w-full md:w-80 lg:w-96 flex flex-col bg-white border-r border-brand-border/40 shrink-0 ${mobileView === 'chat' ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-5 border-b border-brand-border/40">
           <h1 className="font-serif text-2xl font-bold text-brand-dark">Messages</h1>
@@ -125,11 +125,11 @@ export default function CreatorMessagesPage() {
         </div>
       </div>
 
-      {/* ─── Chat Pane (Right) ─── */}
+      
       <div className={`flex-1 flex flex-col bg-[#fdfbfa] ${mobileView === 'list' ? 'hidden md:flex' : 'flex'}`}>
         {activeThread ? (
           <>
-            {/* Chat Header */}
+            
             <div className="h-16 px-4 md:px-6 border-b border-brand-border/40 bg-white flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
                 <button 
@@ -164,17 +164,17 @@ export default function CreatorMessagesPage() {
               </div>
             </div>
 
-            {/* Messages Area */}
+            
             <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
               
-              {/* AI Analyzer Panel (Overlay/Inline) */}
+              
               {showAnalyzer && (
                 <div className="bg-white border border-brand-primary/30 shadow-md shadow-brand-primary/10 rounded-2xl p-5 mb-6 animate-in slide-in-from-top-2 fade-in relative">
                   <button 
                     onClick={() => setShowAnalyzer(false)}
                     className="absolute top-4 right-4 text-brand-muted hover:text-brand-dark"
                   >
-                    <ArrowLeft className="w-4 h-4" /> {/* Or X */}
+                    <ArrowLeft className="w-4 h-4" /> 
                   </button>
                   <div className="flex items-center gap-2 mb-3">
                     <Sparkles className="w-4 h-4 text-brand-primary" />
@@ -203,7 +203,7 @@ export default function CreatorMessagesPage() {
                         </ul>
                       </div>
                       
-                      {/* Smart Replies */}
+                      
                       <div className="mt-4 pt-4 border-t border-brand-border/40">
                         <p className="text-xs font-bold uppercase tracking-wider text-brand-muted mb-2">Suggested Replies</p>
                         <div className="flex flex-col gap-2">
@@ -264,7 +264,7 @@ export default function CreatorMessagesPage() {
               })}
             </div>
 
-            {/* Input Area */}
+            
             <div className="p-4 bg-white border-t border-brand-border/40 shrink-0">
               <form onSubmit={handleSend} className="flex items-end gap-3 max-w-4xl mx-auto">
                 <div className="flex-1 relative">

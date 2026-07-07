@@ -95,7 +95,7 @@ export default function CreatorNotificationsPage() {
     setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
   };
 
-  // Group notifications by dateGroup
+  
   const grouped = notifications.reduce((acc, notif) => {
     const key = notif.dateGroup;
     if (!acc[key]) acc[key] = [];
@@ -108,7 +108,7 @@ export default function CreatorNotificationsPage() {
   return (
     <div className="max-w-5xl mx-auto">
       
-      {/* Header */}
+      
       <div className="flex items-start justify-between mb-8">
         <div>
           <h1 className="font-serif text-2xl font-bold text-brand-dark">Notifications</h1>
@@ -121,7 +121,7 @@ export default function CreatorNotificationsPage() {
         </Button>
       </div>
 
-      {/* Grouped List */}
+      
       <div className="space-y-8">
         {groups.map(group => (
           <div key={group}>
@@ -140,12 +140,12 @@ export default function CreatorNotificationsPage() {
                       : "bg-[#fdfbfa]"
                   }`}
                 >
-                  {/* Icon */}
+                  
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${notif.iconBg}`}>
                     <notif.Icon className={`w-5 h-5 ${notif.iconColor}`} />
                   </div>
 
-                  {/* Content */}
+                  
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <h3 className={`text-sm font-bold truncate ${notif.isRead ? "text-brand-dark/90" : "text-brand-dark"}`}>
@@ -161,7 +161,7 @@ export default function CreatorNotificationsPage() {
                     </p>
                   </div>
 
-                  {/* Action */}
+                  
                   <Link 
                     href={notif.link}
                     className="text-xs font-bold text-brand-primary hover:text-brand-secondary transition-colors shrink-0 px-3 py-1.5 tracking-wide"

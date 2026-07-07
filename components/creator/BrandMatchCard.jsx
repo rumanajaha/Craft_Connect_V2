@@ -13,7 +13,7 @@ export default function BrandMatchCard({ brand, onPitch }) {
 
   return (
     <div className="flex flex-col sm:flex-row gap-4 p-4 items-start sm:items-center bg-white border border-brand-border/50 rounded-2xl hover:border-brand-primary/30 hover:shadow-sm transition-all">
-      {/* Brand Logo & Info */}
+      
       <div className="flex items-center gap-4 w-full sm:w-1/3 shrink-0">
         <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-brand-border/40 shrink-0 bg-white">
           <Image src={brand.logo} alt={brand.name} fill className="object-cover" />
@@ -24,14 +24,14 @@ export default function BrandMatchCard({ brand, onPitch }) {
         </div>
       </div>
 
-      {/* Compatibility Badge */}
+      
       <div className="flex-1 flex items-center justify-start sm:justify-center">
         <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${getCompColor(brand.compatibility)}`}>
           <span className="text-xs font-bold">{brand.compatibility}% Match</span>
         </div>
       </div>
 
-      {/* Pitch Button */}
+      
       <div className="flex items-center w-full sm:w-auto shrink-0 justify-end">
         <button
           onClick={() => onPitch?.(brand)}

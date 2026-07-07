@@ -19,7 +19,7 @@ export default function UpgradeModal({ isOpen, onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 space-y-6 relative border border-brand-border/30">
         
-        {/* Close Button */}
+        
         <button 
           onClick={onClose} 
           className="absolute top-4 right-4 text-brand-muted hover:text-brand-dark transition-colors"
@@ -28,7 +28,7 @@ export default function UpgradeModal({ isOpen, onClose }) {
           <X className="w-5 h-5" />
         </button>
 
-        {/* Modal Content */}
+        
         <div className="text-center space-y-3 pt-2">
           <div className="w-12 h-12 rounded-full bg-brand-primary/10 flex items-center justify-center mx-auto text-brand-primary">
             <Sparkles className="w-6 h-6" />
@@ -43,7 +43,7 @@ export default function UpgradeModal({ isOpen, onClose }) {
           </p>
         </div>
 
-        {/* Action Buttons */}
+        
         <div className="space-y-2 pt-2">
           <Button 
             variant="primary" 

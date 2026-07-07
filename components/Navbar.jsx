@@ -17,14 +17,14 @@ export default function Navbar() {
     >
       <div className="mx-auto max-w-7xl">
         <nav className="glass rounded-full px-6 py-3 flex items-center justify-between shadow-sm transition-all duration-300">
-          {/* Logo */}
+          
           <a href="#" className="flex items-center gap-2 group">
             <span className="font-serif text-2xl font-bold tracking-tight text-brand-dark transition-colors duration-300 group-hover:text-brand-primary">
               CraftConnect<span className="text-brand-primary">.</span>
             </span>
           </a>
 
-          {/* Desktop Navigation */}
+          
           <div className="hidden md:flex items-center gap-8">
             <a href="#discover" className="text-sm font-medium text-brand-muted hover:text-brand-dark transition-colors">
               Discover
@@ -43,7 +43,7 @@ export default function Navbar() {
             </a>
           </div>
 
-          {/* CTAs */}
+          
           <div className="hidden md:flex items-center gap-4">
             <a
               href="#discover"
@@ -65,7 +65,7 @@ export default function Navbar() {
             </motion.div>
           </div>
 
-          {/* Mobile Menu Button */}
+          
           <button
             onClick={() => setIsOpen(!isOpen)}
             className="md:hidden p-2 text-brand-dark hover:text-brand-primary transition-colors focus:outline-none"
@@ -76,7 +76,7 @@ export default function Navbar() {
         </nav>
       </div>
 
-      {/* Mobile Drawer */}
+      
       {isOpen && (
         <motion.div
           initial={{ opacity: 0, y: -20 }}

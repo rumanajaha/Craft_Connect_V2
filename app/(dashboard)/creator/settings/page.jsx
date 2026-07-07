@@ -13,7 +13,7 @@ import PortfolioItem from "@/components/creator/PortfolioItem";
 export default function CreatorProfilePage() {
   const [activeTab, setActiveTab] = useState("profile");
 
-  // Profile state
+  
   const [profile, setProfile] = useState({
     displayName: MOCK_ACTIVE_CREATOR.name,
     bio: MOCK_ACTIVE_CREATOR.bio,
@@ -30,7 +30,7 @@ export default function CreatorProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  // Security state
+  
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -50,7 +50,7 @@ export default function CreatorProfilePage() {
     }, 800);
   };
 
-  // Notifications state
+  
   const [notifPrefs, setNotifPrefs] = useState({
     brandMatchFound: { email: true, desktop: true },
     pitchResponse: { email: true, desktop: true },
@@ -64,7 +64,7 @@ export default function CreatorProfilePage() {
 
   const handleSave = () => {
     setIsSaving(true);
-    // TODO: persist to backend
+    
     setTimeout(() => {
       setIsSaving(false);
       setSaved(true);
@@ -80,7 +80,7 @@ export default function CreatorProfilePage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
-      {/* Header */}
+      
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="font-serif text-3xl md:text-4xl font-bold text-brand-dark">Profile Settings</h1>
@@ -97,7 +97,7 @@ export default function CreatorProfilePage() {
         </div>
       </div>
 
-      {/* Tabs */}
+      
       <div className="flex gap-1 bg-brand-border/20 p-1 rounded-xl w-fit max-w-full overflow-x-auto scrollbar-none">
         {TABS.map(tab => (
           <button
@@ -114,10 +114,10 @@ export default function CreatorProfilePage() {
         ))}
       </div>
 
-      {/* ─── Profile Tab ─── */}
+      
       {activeTab === "profile" && (
         <div className="space-y-8">
-          {/* Avatar + Name */}
+          
           <Card className="p-6">
             <div className="flex items-center gap-6">
               <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-brand-border/50 bg-white shrink-0">
@@ -132,7 +132,7 @@ export default function CreatorProfilePage() {
             </div>
           </Card>
 
-          {/* Bio + Niches */}
+          
           <Card className="p-6 space-y-5">
             <h3 className="font-serif font-bold text-brand-dark text-lg">About You</h3>
             <div className="flex flex-col gap-1.5">
@@ -168,7 +168,7 @@ export default function CreatorProfilePage() {
             </div>
           </Card>
 
-          {/* Social Links */}
+          
           <Card className="p-6 space-y-5">
             <h3 className="font-serif font-bold text-brand-dark text-lg">Social Channels</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -187,7 +187,7 @@ export default function CreatorProfilePage() {
             </div>
           </Card>
 
-          {/* Portfolio */}
+          
           <Card className="p-6 space-y-5">
             <div className="flex items-center justify-between">
               <h3 className="font-serif font-bold text-brand-dark text-lg">Portfolio</h3>
@@ -204,7 +204,7 @@ export default function CreatorProfilePage() {
             </div>
           </Card>
 
-          {/* Save */}
+          
           <div className="flex justify-end">
             <Button variant="primary" onClick={handleSave} disabled={isSaving}>
               {isSaving ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : saved ? <Check className="w-4 h-4 mr-1.5" /> : <Save className="w-4 h-4 mr-1.5" />}
@@ -214,7 +214,7 @@ export default function CreatorProfilePage() {
         </div>
       )}
 
-      {/* ─── Security Tab ─── */}
+      
       {activeTab === "security" && (
         <div className="bg-white rounded-2xl border border-brand-border/50 p-6 animate-in fade-in duration-300">
           <h3 className="font-serif text-lg font-bold text-brand-dark mb-1">Password & Security</h3>
@@ -242,25 +242,25 @@ export default function CreatorProfilePage() {
         </div>
       )}
 
-      {/* ─── Notifications Tab ─── */}
+      
       {activeTab === "notifications" && (
         <div className="space-y-4">
-          {/* Main notifications table card */}
+          
           <div className="bg-white border border-brand-border/50 shadow-sm rounded-2xl overflow-hidden">
             
-            {/* Table header */}
+            
             <div className="flex items-end justify-between px-6 py-5 border-b border-brand-border/30">
               <div>
                 <h3 className="font-serif text-base font-bold text-brand-dark">Notification Preferences</h3>
                 <p className="text-xs text-brand-muted mt-0.5">Control which alerts you receive about your creator activity.</p>
               </div>
               <div className="flex items-center gap-8 pr-1 shrink-0">
-                {/* Email column header */}
+                
                 <div className="flex flex-col items-center gap-1 w-16">
                   <Mail className="w-4 h-4 text-brand-muted" />
                   <span className="text-[9px] font-bold uppercase tracking-wider text-brand-muted">Email</span>
                 </div>
-                {/* Desktop column header */}
+                
                 <div className="flex flex-col items-center gap-1 w-16">
                   <Monitor className="w-4 h-4 text-brand-muted" />
                   <span className="text-[9px] font-bold uppercase tracking-wider text-brand-muted">Push</span>
@@ -268,14 +268,14 @@ export default function CreatorProfilePage() {
               </div>
             </div>
 
-            {/* Notification rows */}
+            
             <div className="divide-y divide-brand-border/20">
               {[
                 { key: "brandMatchFound", label: "New brand match found", desc: "Get notified when AI finds a compatible brand for you." },
                 { key: "pitchResponse", label: "Brand responded to my pitch", desc: "Get notified when a brand accepts or declines your pitch." },
                 { key: "newMessage", label: "New message received", desc: "Get notified when a brand sends you a message." },
               ].map(pref => {
-                // Reusable toggle switch matching the customer toggle style
+                
                 const Toggle = ({ checked, onChange }) => (
                   <button
                     type="button"

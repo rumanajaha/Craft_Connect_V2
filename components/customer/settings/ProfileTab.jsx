@@ -36,7 +36,7 @@ export default function ProfileTab({ profile, setProfile, setIsDirty, createdAt 
     <div className="space-y-6 animate-in fade-in duration-300">
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         
-        {/* Left Col: Profile picture card */}
+        
         <div className="col-span-12 md:col-span-4">
           <Card className="p-6 flex flex-col items-center text-center bg-white border border-brand-border/50 shadow-sm rounded-2xl">
             <h3 className="text-xs font-bold uppercase tracking-wider text-brand-dark/70 mb-4 w-full text-left">
@@ -83,7 +83,7 @@ export default function ProfileTab({ profile, setProfile, setIsDirty, createdAt 
           </Card>
         </div>
 
-        {/* Right Col: Basic Info Form */}
+        
         <div className="col-span-12 md:col-span-8">
           <Card className="p-6 bg-white border border-brand-border/50 shadow-sm rounded-2xl space-y-5">
             <h3 className="text-xs font-bold uppercase tracking-wider text-brand-dark/70 pb-3 border-b border-brand-border/30">
@@ -132,7 +132,7 @@ export default function ProfileTab({ profile, setProfile, setIsDirty, createdAt 
 
       </div>
 
-      {/* Account Overview Card */}
+      
       <Card className="p-6 bg-white border border-brand-border/50 shadow-sm rounded-2xl">
         <h3 className="text-xs font-bold uppercase tracking-wider text-brand-dark/70 pb-3 border-b border-brand-border/30 mb-5">
           Account Overview

@@ -7,8 +7,8 @@ export default function Button({
   children,
   onClick,
   type = "button",
-  variant = "primary", // primary, secondary, outline, ghost, glass
-  size = "md",         // sm, md, lg
+  variant = "primary", 
+  size = "md",         
   className = "",
   disabled = false,
   isLoading = false,

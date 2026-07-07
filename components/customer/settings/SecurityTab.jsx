@@ -47,7 +47,7 @@ export default function SecurityTab() {
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       
-      {/* Change Password Form */}
+      
       <Card className="p-6 bg-white border border-brand-border/50 shadow-sm rounded-2xl">
         <h3 className="text-xs font-bold uppercase tracking-wider text-brand-dark/70 pb-3 border-b border-brand-border/30 mb-5">
           Change Password
@@ -102,7 +102,7 @@ export default function SecurityTab() {
         </form>
       </Card>
 
-      {/* Session Management */}
+      
       <Card className="p-6 bg-white border border-brand-border/50 shadow-sm rounded-2xl">
         <h3 className="text-xs font-bold uppercase tracking-wider text-brand-dark/70 pb-3 border-b border-brand-border/30 mb-4">
           Session Management
@@ -119,7 +119,7 @@ export default function SecurityTab() {
         </Button>
       </Card>
 
-      {/* Danger Zone */}
+      
       <Card className="p-6 bg-red-50/20 border border-red-200/60 shadow-sm rounded-2xl">
         <div className="flex items-start gap-3">
           <ShieldAlert className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />

@@ -19,6 +19,88 @@ model User {
   password  String
   name      String?
   role      Role     @default(CUSTOMER)
+  brand     Brand?
+  creator   Creator?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Brand {
+  id           String    @id @default(uuid())
+  userId       String    @unique
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  logo         String?
+  banner       String?
+  category     String?
+  location     String?
+  rating       Float     @default(5.0)
+  reviewsCount Int       @default(0)
+  trustScore   Int       @default(100)
+  website      String?
+  about        String?
+  videoUrl     String?
+  products     Product[]
+  requests     Request[]
+  pitches      Pitch[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Creator {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  avatar         String?
+  niches         String[]
+  followers      Int      @default(0)
+  engagementRate Float    @default(0.0)
+  bio            String?
+  tags           String[]
+  instagram      String?
+  tiktok         String?
+  youtube        String?
+  pitches        Pitch[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Product {
+  id        String   @id @default(uuid())
+  brandId   String
+  brand     Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  name      String
+  price     Float
+  image     String?
+  inStock   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Request {
+  id        String   @id @default(uuid())
+  brandId   String
+  brand     Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  type      String
+  subject   String
+  message   String
+  budget    String
+  deadline  String
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Pitch {
+  id           String   @id @default(uuid())
+  brandId      String
+  brand        Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  creatorId    String
+  creator      Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  compensation String
+  snippet      String
+  status       String   @default("pending")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }

@@ -30,15 +30,15 @@ export default function ProductFormModal({ product, onClose, onSave }) {
   };
 
   const handleAISuggest = () => {
-    // Deep-link to the full SEO Description AI tool, pre-selecting this product.
-    // The tool page will write the output back to BrandDataContext on "Save to product".
+    
+    
     const productId = product?.id;
     if (productId) {
-      // Navigate to AI Studio with the product pre-selected
+      
       router.push(`/brand/ai-studio/seo-description?product=${productId}`);
-      onClose(); // close this modal so the user lands cleanly on the tool page
+      onClose(); 
     } else {
-      // New product not yet saved — navigate without pre-selection
+      
       router.push("/brand/ai-studio/seo-description");
       onClose();
     }
@@ -53,7 +53,7 @@ export default function ProductFormModal({ product, onClose, onSave }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
         
-        {/* Header */}
+        
         <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border/50">
           <h2 className="font-serif text-xl font-bold text-brand-dark">
             {product ? "Edit Product" : "Add New Product"}
@@ -66,7 +66,7 @@ export default function ProductFormModal({ product, onClose, onSave }) {
           </button>
         </div>
 
-        {/* Body */}
+        
         <div className="p-6 overflow-y-auto">
           <form id="productForm" onSubmit={handleSubmit} className="space-y-4">
             
@@ -142,7 +142,7 @@ export default function ProductFormModal({ product, onClose, onSave }) {
                 className="w-full px-4 py-3 rounded-xl border border-brand-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all text-brand-dark placeholder:text-brand-muted resize-none"
                 placeholder="Describe your product..."
               />
-              {/* TODO: wire to Gemini API for real generation */}
+              
             </div>
 
             <div className="pt-2 border-t border-brand-border/40">
@@ -163,7 +163,7 @@ export default function ProductFormModal({ product, onClose, onSave }) {
           </form>
         </div>
 
-        {/* Footer */}
+        
         <div className="px-6 py-4 bg-brand-border/10 border-t border-brand-border/50 flex justify-end gap-3">
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel

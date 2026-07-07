@@ -12,7 +12,7 @@ export default function ProductCard({ product }) {
   return (
     <Link href={`/customer/brand/${product.brandId}`} className="group block">
       <div className="bg-white rounded-2xl border border-brand-border/50 shadow-sm hover:shadow-md hover:border-brand-primary/20 transition-all duration-300 overflow-hidden">
-        {/* Product Image */}
+        
         <div className="relative aspect-square w-full overflow-hidden bg-brand-border/20">
           <Image
             src={product.image}
@@ -21,7 +21,7 @@ export default function ProductCard({ product }) {
             sizes="(max-width: 640px) 100vw, 250px"
             className="object-cover group-hover:scale-105 transition-transform duration-500"
           />
-          {/* Stock badge */}
+          
           <div className={`absolute top-2.5 right-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
             product.inStock
               ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
@@ -34,7 +34,7 @@ export default function ProductCard({ product }) {
           </div>
         </div>
 
-        {/* Details */}
+        
         <div className="p-3.5">
           <p className="text-[10px] font-bold text-brand-primary uppercase tracking-widest mb-1">
             {brand?.name}

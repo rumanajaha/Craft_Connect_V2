@@ -5,26 +5,22 @@ import Image from "next/image";
 import Link from "next/link";
 import { Play, Eye, Sparkles } from "lucide-react";
 
-/**
- * FeedTile — edge-to-edge image tile for the masonry-style explore grid.
- * Hover reveals a bottom-scrim overlay with item name/brand attribution.
- * The old card-based FeedCard.jsx is kept for reference; this replaces it in the grid.
- */
+
 export default function FeedTile({ item, viewerRole, isWide }) {
   const [hovered, setHovered] = useState(false);
 
-  // Derive image src depending on content type
+  
   const getImageSrc = () => {
     if (item.type === "product") return item.image;
     if (item.type === "creator_content") return item.portfolioImage;
     if (item.type === "brand_update") {
-      // Use brand banner image for brand updates (logo is too small for a tile)
+      
       return item.bannerImage || item.brandLogo;
     }
     return null;
   };
 
-  // Derive navigation destination
+  
   const getHref = () => {
     if (item.type === "product") {
       if (viewerRole === "brand") return "/brand/profile";
@@ -41,7 +37,7 @@ export default function FeedTile({ item, viewerRole, isWide }) {
     return "#";
   };
 
-  // Primary text for the hover overlay
+  
   const getPrimaryLabel = () => {
     if (item.type === "product") return item.name;
     if (item.type === "brand_update") return item.brandName;
@@ -49,7 +45,7 @@ export default function FeedTile({ item, viewerRole, isWide }) {
     return "";
   };
 
-  // Secondary text for the hover overlay
+  
   const getSecondaryLabel = () => {
     if (item.type === "product") return `${item.brandName} · $${item.price}`;
     if (item.type === "brand_update") {
@@ -73,7 +69,7 @@ export default function FeedTile({ item, viewerRole, isWide }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* Primary image fills the tile */}
+      
       <Image
         src={imgSrc}
         alt={getPrimaryLabel()}
@@ -83,14 +79,14 @@ export default function FeedTile({ item, viewerRole, isWide }) {
         unoptimized
       />
 
-      {/* Top-right: play/view icon for creator content */}
+      
       {isCreatorOrVideo && (
         <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
           <Play className="w-3.5 h-3.5 text-white fill-white ml-0.5" />
         </div>
       )}
 
-      {/* Top-right: reason tooltip — visible only on hover */}
+      
       {item.reason && hovered && (
         <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm text-white px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 pointer-events-none">
           <Sparkles className="w-2.5 h-2.5 text-amber-300" />
@@ -98,7 +94,7 @@ export default function FeedTile({ item, viewerRole, isWide }) {
         </div>
       )}
 
-      {/* Bottom scrim + metadata — appears on hover */}
+      
       <div
         className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent px-3 pb-3 pt-8 transition-opacity duration-200 ${
           hovered ? "opacity-100" : "opacity-0"
@@ -108,7 +104,7 @@ export default function FeedTile({ item, viewerRole, isWide }) {
         <p className="text-white/70 text-[10px] leading-snug line-clamp-1 mt-0.5">{getSecondaryLabel()}</p>
       </div>
 
-      {/* Top-right: eye count — subtle, always visible */}
+      
       {item.views && (
         <div className="absolute bottom-2 right-2 flex items-center gap-1 text-white/70 text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity">
           <Eye className="w-3 h-3" />

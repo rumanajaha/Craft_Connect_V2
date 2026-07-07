@@ -1,32 +1,20 @@
 "use client";
 
-/**
- * BrandDataStore — single source of truth for the active brand's
- * mutable profile data (about text) and products (with descriptions).
- *
- * Both the Brand Owner AI Studio (write) and the Customer-facing
- * brand profile page (read) subscribe to this context so AI-published
- * content is immediately visible cross-role within the same session.
- *
- * TODO: persist to Supabase on every setBrandAbout / updateProductDescription call.
- *
- * NOTE: When the Creator dashboard brand-profile view is built, it should
- * also call useBrandData() here — no extra wiring needed, just import the hook.
- */
+
 
 import React, { createContext, useContext, useState } from "react";
 import { MOCK_BRANDS, MOCK_PRODUCTS } from "@/lib/mockData";
 
-// ─────────────────────────────────────────────
-// Active brand seed (the logged-in brand owner)
-// ─────────────────────────────────────────────
+
+
+
 const ACTIVE_BRAND_ID = "ochre-clay";
 const seedBrand = MOCK_BRANDS.find(b => b.id === ACTIVE_BRAND_ID);
 const seedProducts = MOCK_PRODUCTS.filter(p => p.brandId === ACTIVE_BRAND_ID);
 
-// ─────────────────────────────────────────────
-// Context definition
-// ─────────────────────────────────────────────
+
+
+
 const BrandDataContext = createContext(null);
 
 const seedBrandInfo = {
@@ -41,14 +29,14 @@ const seedBrandInfo = {
   tiktok: "ochre_clay_studio",
 };
 
-// Helper to log a dynamic feed update
+
 export const addFeedUpdate = (updateType, details) => {
   if (typeof window === "undefined") return;
   try {
     const existing = localStorage.getItem("cc_brand_updates");
     const updates = existing ? JSON.parse(existing) : [];
     
-    // Check if duplicate update in the last 5 seconds to prevent spam
+    
     if (updates.length > 0 && updates[0].updateText === details && Date.now() - new Date(updates[0].created_at).getTime() < 5000) {
       return;
     }
@@ -59,7 +47,7 @@ export const addFeedUpdate = (updateType, details) => {
       brandName: "Ochre Clay Studio",
       brandLogo: "https://images.unsplash.com/photo-1612196808214-b8e1d6145a8c?w=120&auto=format&fit=crop&q=80",
       type: "brand_update",
-      updateType, // "story" | "product_add" | "product_seo"
+      updateType, 
       updateText: details,
       created_at: new Date().toISOString(),
       views: Math.floor(Math.random() * 500) + 100,
@@ -74,7 +62,7 @@ export const addFeedUpdate = (updateType, details) => {
 };
 
 export function BrandDataProvider({ children }) {
-  // Full Brand Info state initialized from localStorage if available
+  
   const [brandInfo, setBrandInfoState] = useState(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("cc_brand_info");
@@ -97,7 +85,7 @@ export function BrandDataProvider({ children }) {
     addFeedUpdate("story", `Ochre Clay Studio published a new brand story focusing on ${brandInfo.category.toLowerCase()} craftsmanship.`);
   };
 
-  // Products array initialized from localStorage if available
+  
   const [products, setProductsState] = useState(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("cc_brand_products");
@@ -113,10 +101,7 @@ export function BrandDataProvider({ children }) {
     }
   };
 
-  /**
-   * Update a single product's description in the shared store.
-   * Called by the SEO Description Writer after "Save to product".
-   */
+  
   const updateProductDescription = (productId, description) => {
     const nextProducts = products.map(p => p.id === productId ? { ...p, description } : p);
     setProducts(nextProducts);
@@ -130,7 +115,7 @@ export function BrandDataProvider({ children }) {
       brandInfo,
       setBrandInfo,
       brandAbout,
-      setBrandAbout,       // AI Studio Brand Story → "Publish to profile"
+      setBrandAbout,       
       products,
       setProducts,
       updateProductDescription,
@@ -141,15 +126,11 @@ export function BrandDataProvider({ children }) {
   );
 }
 
-/**
- * Hook — call in any component that needs to read or write brand data.
- *
- * Returns fallback values from localStorage or seed if called outside the provider
- */
+
 export function useBrandData() {
   const ctx = useContext(BrandDataContext);
   if (!ctx) {
-    // Graceful fallback for components rendered outside the provider (e.g. Customer, Creator)
+    
     let localBrandInfo = seedBrandInfo;
     let localProducts = seedProducts;
     

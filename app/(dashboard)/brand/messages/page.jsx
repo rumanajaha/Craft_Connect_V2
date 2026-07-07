@@ -11,14 +11,14 @@ function BrandMessagesContent() {
   const searchParams = useSearchParams();
   const threadId = searchParams?.get("thread");
   
-  // Filter messages specifically for the active brand (ochre-clay)
+  
   const allThreads = MOCK_MESSAGES.filter(t => t.brandId === "ochre-clay");
   
   const [activeThread, setActiveThread] = useState(null);
-  const [mobileView, setMobileView] = useState("list"); // 'list' | 'chat'
+  const [mobileView, setMobileView] = useState("list"); 
   const [inputText, setInputText] = useState("");
   
-  // AI Analyzer state
+  
   const [showAnalyzer, setShowAnalyzer] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
@@ -48,7 +48,7 @@ function BrandMessagesContent() {
     e.preventDefault();
     if (!inputText.trim()) return;
     
-    // Create new message object
+    
     const newMessage = {
       id: Date.now().toString(),
       sender: "brand",
@@ -56,7 +56,7 @@ function BrandMessagesContent() {
       timestamp: new Date().toISOString()
     };
     
-    // Update active thread locally
+    
     setActiveThread(prev => ({
       ...prev,
       messages: [...prev.messages, newMessage]
@@ -73,7 +73,7 @@ function BrandMessagesContent() {
     }, 1500);
   };
 
-  // Helper to get the correct avatar/name for the other party
+  
   const getThreadContactInfo = (thread) => {
     if (thread.isCreatorThread) {
       return {
@@ -82,7 +82,7 @@ function BrandMessagesContent() {
         type: "creator"
       };
     }
-    // Customer mock
+    
     return {
       name: "Customer User",
       avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80",
@@ -97,7 +97,7 @@ function BrandMessagesContent() {
   return (
     <div className="bg-white border border-brand-border/50 rounded-2xl shadow-sm overflow-hidden h-[calc(100vh-140px)] flex">
       
-      {/* LEFT PANE: Thread List */}
+      
       <div className={`w-full md:w-80 lg:w-96 border-r border-brand-border/50 flex flex-col ${mobileView === 'chat' ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-5 border-b border-brand-border/50 bg-[#fdfbfa]">
           <h2 className="font-serif text-xl font-bold text-brand-dark">Inbox</h2>
@@ -132,7 +132,7 @@ function BrandMessagesContent() {
                             {info.name.charAt(0)}
                           </div>
                         )}
-                        {/* Type Badge on Avatar */}
+                        
                         <div className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border border-white flex items-center justify-center ${
                           info.type === "creator" ? "bg-purple-500" : "bg-emerald-500"
                         }`}>
@@ -173,10 +173,10 @@ function BrandMessagesContent() {
         </div>
       </div>
 
-      {/* RIGHT PANE: Chat View */}
+      
       <div className={`flex-1 flex flex-col min-w-0 bg-white relative ${mobileView === 'list' ? 'hidden md:flex' : 'flex'}`}>
         
-        {/* Chat Header */}
+        
         <div className="px-5 py-4 border-b border-brand-border/50 flex items-center justify-between bg-white z-10 shrink-0">
           <div className="flex items-center gap-3">
             <button 
@@ -218,17 +218,17 @@ function BrandMessagesContent() {
           </div>
         </div>
 
-        {/* Chat Messages */}
+        
         <div className="flex-1 overflow-y-auto p-5 space-y-6 bg-brand-border/5 relative">
           
-          {/* AI Analyzer Panel (Overlay/Inline) */}
+          
           {showAnalyzer && (
             <div className="bg-white border border-brand-primary/30 shadow-md shadow-brand-primary/10 rounded-2xl p-5 mb-6 animate-in slide-in-from-top-2 fade-in relative">
               <button 
                 onClick={() => setShowAnalyzer(false)}
                 className="absolute top-4 right-4 text-brand-muted hover:text-brand-dark"
               >
-                <ArrowLeft className="w-4 h-4" /> {/* Or X */}
+                <ArrowLeft className="w-4 h-4" /> 
               </button>
               <div className="flex items-center gap-2 mb-3">
                 <Sparkles className="w-4 h-4 text-brand-primary" />
@@ -242,7 +242,7 @@ function BrandMessagesContent() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {/* TODO: wire to Gemini API */}
+                  
                   <div className="bg-brand-border/20 p-3 rounded-xl border border-brand-border/40">
                     <p className="text-xs font-bold uppercase tracking-wider text-brand-muted mb-1">Intent</p>
                     <p className="text-sm text-brand-dark">
@@ -268,7 +268,7 @@ function BrandMessagesContent() {
                     </ul>
                   </div>
                   
-                  {/* Smart Replies */}
+                  
                   <div className="mt-4 pt-4 border-t border-brand-border/40">
                     <p className="text-xs font-bold uppercase tracking-wider text-brand-muted mb-2">Suggested Replies</p>
                     <div className="flex flex-col gap-2">
@@ -292,8 +292,8 @@ function BrandMessagesContent() {
           )}
 
           {activeThread.messages.map((msg, idx) => {
-            // Note: sender "customer" in MOCK_MESSAGES means the other person (customer OR creator)
-            // sender "brand" means the brand owner (you)
+            
+            
             const isMe = msg.sender === "brand";
             
             return (
@@ -318,7 +318,7 @@ function BrandMessagesContent() {
           })}
         </div>
 
-        {/* Chat Input */}
+        
         <div className="p-4 bg-white border-t border-brand-border/50 shrink-0">
           <form onSubmit={handleSendMessage} className="flex gap-3">
             <input

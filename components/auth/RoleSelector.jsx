@@ -54,12 +54,12 @@ export default function RoleSelector({ selectedRole, onSelectRole }) {
                 : "bg-white/50 border border-brand-border/60 hover:bg-white/80 hover:shadow-sm"
             }`}
           >
-            {/* Left/Top: Icon container */}
+            
             <div className={`p-2 rounded-xl bg-gradient-to-br shrink-0 ${role.color} ${role.iconColor}`}>
               <Icon className="w-4 h-4" />
             </div>
 
-            {/* Middle: Text content */}
+            
             <div className="flex-1 min-w-0 sm:w-full">
               <h4 className="font-serif font-bold text-brand-dark text-xs sm:text-sm leading-snug">
                 {role.title}
@@ -69,7 +69,7 @@ export default function RoleSelector({ selectedRole, onSelectRole }) {
               </p>
             </div>
 
-            {/* Right/Bottom: Selection circle */}
+            
             <div className="flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
               <div className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center transition-colors duration-300 ${
                 isSelected ? "border-brand-primary" : "border-brand-border"

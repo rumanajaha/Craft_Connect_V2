@@ -48,7 +48,7 @@ export default function FeaturedCollections() {
     <section className="py-24 px-6 md:px-12 bg-white relative">
       <div className="mx-auto max-w-7xl">
         
-        {/* Header */}
+        
         <div className="text-center max-w-3xl mx-auto mb-20">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-primary/10 text-brand-primary text-xs font-bold uppercase tracking-wider mb-4">
             <Sparkles className="w-3.5 h-3.5" />
@@ -62,14 +62,14 @@ export default function FeaturedCollections() {
           </p>
         </div>
 
-        {/* Collection Grid: 4-Column Layout */}
+        
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {COLLECTIONS.map((col) => (
             <div
               key={col.id}
               className="group cursor-pointer flex flex-col h-full"
             >
-              {/* Image box with static aspect ratio */}
+              
               <div className="relative aspect-[4/3] w-full rounded-2xl overflow-hidden shadow-sm mb-4 border border-brand-border/40 bg-cream">
                 <Image
                   src={col.image}
@@ -79,7 +79,7 @@ export default function FeaturedCollections() {
                   className="object-cover transition-transform duration-500 ease-out group-hover:scale-103"
                 />
                 
-                {/* Floating details */}
+                
                 <div className="absolute top-4 left-4">
                   <span className="glass px-2.5 py-1 rounded-full text-[8px] font-bold text-brand-dark uppercase tracking-widest">
                     {col.tag}
@@ -93,7 +93,7 @@ export default function FeaturedCollections() {
                 </div>
               </div>
 
-              {/* Text Info */}
+              
               <div className="px-1 flex flex-col justify-between flex-grow">
                 <div>
                   <div className="flex items-start justify-between gap-2 group-hover:text-brand-primary transition-colors">

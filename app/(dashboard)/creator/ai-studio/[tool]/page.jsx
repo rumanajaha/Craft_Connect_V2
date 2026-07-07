@@ -18,7 +18,7 @@ import Button from "@/components/ui/button";
 import { useAIUsage } from "@/lib/aiUsageStore";
 import { MOCK_ACTIVE_CREATOR } from "@/lib/mockData";
 
-// ─── Tool config ─────────────────────────────────────────────────────────────
+
 const TOOL_CONFIG = {
   "trending-feed": {
     title: "Trending & Inspiration",
@@ -97,7 +97,7 @@ Visuals: Tell the story of a specific artisan brand you're collaborating with. A
   },
 };
 
-// ─── Output Panel ─────────────────────────────────────────────────────────────
+
 function OutputPanel({ result, isGenerating, toolConfig }) {
   const [copied, setCopied] = useState(false);
 
@@ -154,7 +154,7 @@ function OutputPanel({ result, isGenerating, toolConfig }) {
   );
 }
 
-// ─── Main Page Component ──────────────────────────────────────────────────────
+
 export default function CreatorToolPage() {
   const { tool: toolSlug } = useParams();
   const { usageByTool, FREE_TRIAL_LIMIT, isPro, incrementUsage } = useAIUsage();
@@ -196,7 +196,7 @@ export default function CreatorToolPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-12">
-      {/* Header */}
+      
       <div className="flex flex-col gap-4">
         <Link href="/creator/ai-studio" className="inline-flex items-center gap-1.5 text-sm text-brand-muted hover:text-brand-primary transition-colors w-fit">
           <ArrowLeft className="w-4 h-4" /> Back to Studio Hub
@@ -220,7 +220,7 @@ export default function CreatorToolPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-        {/* Left Column: Form / Input */}
+        
         <div className="bg-white border border-brand-border/50 rounded-2xl p-5 sm:p-6 shadow-sm">
           {!toolConfig.noInput ? (
             <div className="space-y-5">
@@ -291,7 +291,7 @@ export default function CreatorToolPage() {
           )}
         </div>
 
-        {/* Right Column: Output */}
+        
         <div className="lg:sticky lg:top-24">
           <OutputPanel
             result={result}

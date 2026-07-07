@@ -24,7 +24,7 @@ export default function ProposeCollabModal({ isOpen, onClose, brand, onSubmit })
     if (!message.trim()) return;
     setIsSending(true);
 
-    // TODO: persist to backend
+    
     setTimeout(() => {
       const pitch = {
         id: `pitch-${Date.now()}`,
@@ -47,12 +47,12 @@ export default function ProposeCollabModal({ isOpen, onClose, brand, onSubmit })
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 space-y-5 relative border border-brand-border/30">
-        {/* Close */}
+        
         <button onClick={onClose} className="absolute top-4 right-4 text-brand-muted hover:text-brand-dark transition-colors">
           <X className="w-5 h-5" />
         </button>
 
-        {/* Brand header */}
+        
         <div className="flex items-center gap-4 pb-4 border-b border-brand-border/40">
           <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-brand-border/40 shrink-0 bg-white">
             <Image src={brand.logo} alt={brand.name} fill className="object-cover" />
@@ -64,7 +64,7 @@ export default function ProposeCollabModal({ isOpen, onClose, brand, onSubmit })
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Compensation type */}
+          
           <div>
             <label className="text-xs font-bold text-brand-dark uppercase tracking-wider block mb-2">Compensation Type</label>
             <div className="grid grid-cols-2 gap-2">
@@ -93,7 +93,7 @@ export default function ProposeCollabModal({ isOpen, onClose, brand, onSubmit })
             </div>
           </div>
 
-          {/* Pitch message */}
+          
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-bold text-brand-dark uppercase tracking-wider block">Your Pitch</label>
@@ -120,7 +120,7 @@ export default function ProposeCollabModal({ isOpen, onClose, brand, onSubmit })
             />
           </div>
 
-          {/* Submit */}
+          
           <Button type="submit" variant="primary" className="w-full justify-center" disabled={isSending || !message.trim()}>
             {isSending ? "Sending..." : <><Send className="w-4 h-4 mr-1.5" /> Send Pitch</>}
           </Button>

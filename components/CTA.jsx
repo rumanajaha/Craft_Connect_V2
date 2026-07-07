@@ -10,7 +10,7 @@ export default function CTA() {
     <section id="cta" className="py-20 px-6 md:px-12 bg-cream relative overflow-hidden">
       <div className="mx-auto max-w-7xl">
         
-        {/* Rounded Gradient Container */}
+        
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           whileInView={{ opacity: 1, scale: 1 }}
@@ -18,12 +18,12 @@ export default function CTA() {
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           className="relative rounded-[40px] bg-gradient-to-br from-brand-secondary via-brand-primary to-brand-dark p-8 md:p-20 text-center overflow-hidden shadow-xl"
         >
-          {/* Ambient lighting overlays */}
+          
           <div className="absolute inset-0 mesh-gradient-warm opacity-30 mix-blend-overlay pointer-events-none" />
           <div className="absolute -left-32 -bottom-32 w-96 h-96 rounded-full bg-brand-accent/30 blur-3xl pointer-events-none" />
           <div className="absolute -right-32 -top-32 w-96 h-96 rounded-full bg-cream/20 blur-3xl pointer-events-none" />
 
-          {/* Content */}
+          
           <div className="relative z-10 max-w-3xl mx-auto flex flex-col items-center">
             
             <motion.div

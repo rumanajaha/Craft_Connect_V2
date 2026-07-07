@@ -4,7 +4,7 @@ import React from "react";
 import { Globe } from "lucide-react";
 import RoadmapCard from "@/components/common/RoadmapCard";
 
-// Corrected pipeline steps — statuses are stylistic (visual progression), not literal completion
+
 const TIMELINE_ITEMS = [
   {
     label: "STORYTELLING · BRAND",
@@ -48,7 +48,7 @@ export default function CreatorCollaboration() {
     <section id="collaboration" className="py-24 px-6 md:px-12 bg-white relative overflow-hidden">
       <div className="mx-auto max-w-7xl">
 
-        {/* Header */}
+        
         <div className="text-center max-w-3xl mx-auto mb-16">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-primary/10 text-brand-primary text-xs font-bold uppercase tracking-wider mb-4">
             <Globe className="w-3.5 h-3.5" />
@@ -63,7 +63,7 @@ export default function CreatorCollaboration() {
           </p>
         </div>
 
-        {/* Horizontal Roadmap Card */}
+        
         <RoadmapCard
           title="Collaboration Pipeline"
           description="From brand setup to published collaboration — five steps, no middleman."
