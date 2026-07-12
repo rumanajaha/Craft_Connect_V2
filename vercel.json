@@ -1,0 +1,8 @@
+{
+    "crons": [
+        {
+            "path": "/api/cron/recompute-feed",
+            "schedule": "0 */4 * * *"
+        }
+    ]
+}
