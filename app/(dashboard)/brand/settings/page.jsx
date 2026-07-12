@@ -33,43 +33,68 @@ export default function BrandSettingsPage() {
 
   
   const [profile, setProfile] = useState({
-    name: brandInfo.name,
-    category: brandInfo.category,
-    location: brandInfo.location,
-    website: brandInfo.website,
-    videoUrl: brandInfo.videoUrl,
-    description: brandInfo.description,
-    tags: brandInfo.tags,
-    instagram: brandInfo.instagram,
-    tiktok: brandInfo.tiktok,
+    name: "",
+    category: "Ceramics",
+    location: "",
+    website: "",
+    videoUrl: "",
+    description: "",
+    tags: "",
+    instagram: "",
+    tiktok: "",
     rating: 4.9,
-    reviews: 42
+    reviews: 42,
+    notification_prefs: {
+      newPitch: { email: true, desktop: true },
+      newRequest: { email: true, desktop: true },
+      aiMatch: { email: false, desktop: true },
+      messages: { email: true, desktop: true }
+    }
   });
 
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+
   useEffect(() => {
-    setProfile(p => ({
-      ...p,
-      name: brandInfo.name,
-      category: brandInfo.category,
-      location: brandInfo.location,
-      website: brandInfo.website,
-      videoUrl: brandInfo.videoUrl,
-      description: brandInfo.description,
-      tags: brandInfo.tags,
-      instagram: brandInfo.instagram,
-      tiktok: brandInfo.tiktok,
-    }));
-  }, [brandInfo]);
+    async function fetchProfile() {
+      try {
+        const response = await fetch("/api/brand/profile");
+        if (response.ok) {
+          const data = await response.json();
+          setProfile(data.profile);
+        }
+      } catch (err) {
+        console.error("Failed to load profile settings:", err);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    }
+    fetchProfile();
+  }, []);
 
   const { isPro } = useAIUsage();
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsSaving(true);
-    setTimeout(() => {
-      setBrandInfo(profile);
+    try {
+      const response = await fetch("/api/brand/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(profile)
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setProfile(data.profile);
+        setBrandInfo(data.profile);
+        setIsDirty(false);
+      } else {
+        alert("Failed to save settings.");
+      }
+    } catch (err) {
+      console.error("Save settings error:", err);
+      alert("Error saving settings.");
+    } finally {
       setIsSaving(false);
-      setIsDirty(false);
-    }, 800);
+    }
   };
 
   return (
@@ -131,15 +156,30 @@ export default function BrandSettingsPage() {
 
       
       <div className="pt-2">
-        {activeTab === "profile" && (
-          <ProfileTab 
-            profile={profile} 
-            setProfile={setProfile} 
-            setIsDirty={setIsDirty} 
-          />
+        {isLoadingProfile ? (
+          <div className="flex items-center justify-center p-12 bg-white rounded-2xl border border-brand-border/50">
+            <Loader2 className="w-6 h-6 animate-spin text-brand-primary mr-2" />
+            <span className="text-sm font-semibold text-brand-muted">Loading profile settings...</span>
+          </div>
+        ) : (
+          <>
+            {activeTab === "profile" && (
+              <ProfileTab 
+                profile={profile} 
+                setProfile={setProfile} 
+                setIsDirty={setIsDirty} 
+              />
+            )}
+            {activeTab === "security" && <SecurityTab />}
+            {activeTab === "notifications" && (
+              <NotificationsTab 
+                profile={profile} 
+                setProfile={setProfile} 
+                setIsDirty={setIsDirty} 
+              />
+            )}
+          </>
         )}
-        {activeTab === "security" && <SecurityTab />}
-        {activeTab === "notifications" && <NotificationsTab setIsDirty={setIsDirty} />}
       </div>
     </div>
   );

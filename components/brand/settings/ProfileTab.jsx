@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import Image from "next/image";
 import { Camera, Lock, Star, Loader2, Video, Sparkles, Info, AtSign, X } from "lucide-react";
 import Input from "@/components/ui/input";
@@ -6,8 +6,9 @@ import Button from "@/components/ui/button";
 import { useAIUsage } from "@/lib/aiUsageStore";
 
 export default function ProfileTab({ profile, setProfile, setIsDirty }) {
-  const { isPro, getRemainingForTool, triggerGeneration, incrementUsage } = useAIUsage();
+  const { isPro, getRemainingForTool, triggerGeneration, incrementUsage, refreshUsage } = useAIUsage();
 
+  const fileInputRef = useRef(null);
   const [isGeneratingStory, setIsGeneratingStory] = useState(false);
   const [isGeneratingTags, setIsGeneratingTags] = useState(false);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
@@ -38,6 +39,39 @@ export default function ProfileTab({ profile, setProfile, setIsDirty }) {
   const handleProfileChange = (e) => {
     setProfile({ ...profile, [e.target.name]: e.target.value });
     setIsDirty(true);
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/brand/profile/upload", {
+        method: "POST",
+        body: formData
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setProfile(prev => ({
+          ...prev,
+          logo: data.logoUrl,
+          logoUrl: data.logoUrl
+        }));
+        setIsDirty(true);
+      } else {
+        alert(data.error || "Failed to upload image.");
+      }
+    } catch (err) {
+      console.error("Logo upload error:", err);
+      alert("Error uploading logo.");
+    }
   };
 
   const handleOpenVideoModal = () => {
@@ -117,18 +151,32 @@ export default function ProfileTab({ profile, setProfile, setIsDirty }) {
             <Button 
               variant="primary" 
               className="flex-1 justify-center" 
-              onClick={() => {
+              onClick={async () => {
                 setShowVideoModal(false);
                 setIsGeneratingVideo(true);
-                setTimeout(() => {
-                  setProfile(p => ({
-                    ...p,
-                    videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-potter-working-on-a-pottery-wheel-41711-large.mp4"
-                  }));
-                  setIsDirty(true);
+                try {
+                  const res = await fetch("/api/brand/ai/video", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(videoInputs)
+                  });
+                  const data = await res.json();
+                  if (res.ok) {
+                    setProfile(p => ({
+                      ...p,
+                      videoUrl: data.videoUrl
+                    }));
+                    setIsDirty(true);
+                    refreshUsage();
+                  } else {
+                    alert(data.message || data.error || "Failed to generate video.");
+                  }
+                } catch (err) {
+                  console.error(err);
+                  alert("Failed to generate video.");
+                } finally {
                   setIsGeneratingVideo(false);
-                  incrementUsage('banner-video');
-                }, 1200);
+                }
               }}
             >
               Generate Video
@@ -196,18 +244,32 @@ export default function ProfileTab({ profile, setProfile, setIsDirty }) {
             <Button 
               variant="primary" 
               className="flex-1 justify-center" 
-              onClick={() => {
+              onClick={async () => {
                 setShowStoryModal(false);
                 setIsGeneratingStory(true);
-                setTimeout(() => {
-                  setProfile(p => ({
-                    ...p,
-                    description: "Rooted in the slow rhythms of Kyoto's ceramic district and the rugged forests of the Pacific Northwest, Ochre Clay Studio exists at the intersection of ancient technique and quiet modernity.\n\nEvery piece we make — from a whisper-thin tea bowl to a full dinner service — carries the imprint of hands, time, and fire. We don't chase trends. We chase that specific gravity that makes you pick up a mug and hold it just a little longer than you planned."
-                  }));
-                  setIsDirty(true);
+                try {
+                  const res = await fetch("/api/brand/ai/story", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(storyInputs)
+                  });
+                  const data = await res.json();
+                  if (res.ok) {
+                    setProfile(p => ({
+                      ...p,
+                      description: data.story
+                    }));
+                    setIsDirty(true);
+                    refreshUsage();
+                  } else {
+                    alert(data.message || data.error || "Failed to generate story.");
+                  }
+                } catch (err) {
+                  console.error(err);
+                  alert("Failed to generate story.");
+                } finally {
                   setIsGeneratingStory(false);
-                  incrementUsage('brand-story');
-                }, 1500);
+                }
               }}
             >
               Generate Story
@@ -270,30 +332,29 @@ export default function ProfileTab({ profile, setProfile, setIsDirty }) {
                 <Button 
                   variant="primary" 
                   className="flex-1 justify-center" 
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.preventDefault();
-                    const allowed = triggerGeneration('recommendation-tags');
-                    if (!allowed) {
-                      setShowTagsModal(false);
-                      return;
-                    }
                     setIsGeneratingTags(true);
-                    setTimeout(() => {
-                      const baseTags = ["handmade", "artisan", "slow living", "wabi-sabi"];
-                      const userAesthetic = tagsInputs.aesthetic.split(",")
-                        .map(s => s.trim().toLowerCase())
-                        .filter(Boolean);
-                      const generated = Array.from(new Set([
-                        tagsInputs.category.toLowerCase().trim(),
-                        ...userAesthetic,
-                        ...baseTags
-                      ])).slice(0, 8);
-
-                      setSuggestedTags(generated);
-                      setTagsGenerated(true);
+                    try {
+                      const res = await fetch("/api/brand/ai/tags", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(tagsInputs)
+                      });
+                      const data = await res.json();
+                      if (res.ok) {
+                        setSuggestedTags(data.tags);
+                        setTagsGenerated(true);
+                        refreshUsage();
+                      } else {
+                        alert(data.message || data.error || "Failed to generate tags.");
+                      }
+                    } catch (err) {
+                      console.error(err);
+                      alert("Failed to generate tags.");
+                    } finally {
                       setIsGeneratingTags(false);
-                      incrementUsage('recommendation-tags');
-                    }, 1200);
+                    }
                   }}
                   disabled={isGeneratingTags}
                 >
@@ -375,16 +436,26 @@ export default function ProfileTab({ profile, setProfile, setIsDirty }) {
       <div className="bg-white rounded-2xl border border-brand-border/50 p-6">
         <h3 className="font-serif text-lg font-bold text-brand-dark mb-4">Brand Identity</h3>
         <div className="flex flex-col sm:flex-row gap-8 items-start">
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleLogoUpload} 
+            style={{ display: "none" }} 
+            accept="image/*" 
+          />
           
           <div className="flex flex-col items-center gap-3">
-            <div className="relative w-32 h-32 rounded-2xl overflow-hidden border-2 border-brand-border/50 group bg-brand-border/10">
+            <div 
+              onClick={triggerFileInput}
+              className="relative w-32 h-32 rounded-2xl overflow-hidden border-2 border-brand-border/50 group bg-brand-border/10 cursor-pointer"
+            >
               <Image 
-                src="https://images.unsplash.com/photo-1612196808214-b8e1d6145a8c?w=400&auto=format&fit=crop&q=80" 
+                src={profile.logoUrl || profile.logo || "https://images.unsplash.com/photo-1612196808214-b8e1d6145a8c?w=400&auto=format&fit=crop&q=80"} 
                 alt="Brand Logo" 
                 fill 
                 className="object-cover" 
               />
-              <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+              <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                 <Camera className="w-6 h-6 text-white mb-1" />
                 <span className="text-[10px] text-white font-bold uppercase tracking-wider">Change</span>
               </div>

@@ -25,16 +25,20 @@ export function AIUsageProvider({ children }) {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [isPro, setIsPro] = useState(false);
 
-  
-  useEffect(() => {
-    const saved = localStorage.getItem("cc_usage_by_tool");
-    if (saved) {
-      try {
-        setUsageByTool({ ...INITIAL_USAGE, ...JSON.parse(saved) });
-      } catch (e) {
-        console.error("Failed to parse cc_usage_by_tool", e);
+  const refreshUsage = async () => {
+    try {
+      const response = await fetch("/api/brand/ai/usage");
+      if (response.ok) {
+        const data = await response.json();
+        setUsageByTool(prev => ({ ...prev, ...data.usage }));
       }
+    } catch (err) {
+      console.error("Failed to load AI usage from API:", err);
     }
+  };
+
+  useEffect(() => {
+    refreshUsage();
     const savedPro = localStorage.getItem("cc_is_pro");
     if (savedPro === "true") {
       setIsPro(true);
@@ -42,11 +46,7 @@ export function AIUsageProvider({ children }) {
   }, []);
 
   const incrementUsage = (toolKey) => {
-    setUsageByTool((prev) => {
-      const next = { ...prev, [toolKey]: (prev[toolKey] || 0) + 1 };
-      localStorage.setItem("cc_usage_by_tool", JSON.stringify(next));
-      return next;
-    });
+    refreshUsage(); // Sync from backend
   };
 
   const isToolOverLimit = (toolKey) => {
@@ -84,7 +84,8 @@ export function AIUsageProvider({ children }) {
         showUpgradeModal,
         setShowUpgradeModal,
         isPro,
-        handleUpgrade
+        handleUpgrade,
+        refreshUsage
       }}
     >
       {children}
