@@ -17,13 +17,28 @@ const NotifToggle = ({ checked, onChange }) => (
   </button>
 );
 
-export default function NotificationsTab({ setIsDirty }) {
-  const [notifications, setNotifications] = useState({
+export default function NotificationsTab({ profile, setProfile, setIsDirty }) {
+  const notifications = profile.notification_prefs || {
     newPitch: { email: true, desktop: true },
     newRequest: { email: true, desktop: true },
     aiMatch: { email: false, desktop: true },
     messages: { email: true, desktop: true }
-  });
+  };
+
+  const handleToggleNotification = (key, channel) => {
+    const updatedPrefs = {
+      ...notifications,
+      [key]: {
+        ...notifications[key],
+        [channel]: !notifications[key][channel]
+      }
+    };
+    setProfile(prev => ({
+      ...prev,
+      notification_prefs: updatedPrefs
+    }));
+    setIsDirty(true);
+  };
 
   return (
     <div className="space-y-4 animate-in fade-in duration-300">
@@ -63,20 +78,14 @@ export default function NotificationsTab({ setIsDirty }) {
               <div className="flex items-center gap-8 pr-1 shrink-0">
                 <div className="w-16 flex justify-center">
                   <NotifToggle 
-                    checked={notifications[item.key].email} 
-                    onChange={() => {
-                      setNotifications(prev => ({ ...prev, [item.key]: { ...prev[item.key], email: !prev[item.key].email } }));
-                      setIsDirty(true);
-                    }}
+                    checked={notifications[item.key]?.email ?? true} 
+                    onChange={() => handleToggleNotification(item.key, 'email')}
                   />
                 </div>
                 <div className="w-16 flex justify-center">
                   <NotifToggle 
-                    checked={notifications[item.key].desktop} 
-                    onChange={() => {
-                      setNotifications(prev => ({ ...prev, [item.key]: { ...prev[item.key], desktop: !prev[item.key].desktop } }));
-                      setIsDirty(true);
-                    }}
+                    checked={notifications[item.key]?.desktop ?? true} 
+                    onChange={() => handleToggleNotification(item.key, 'desktop')}
                   />
                 </div>
               </div>
