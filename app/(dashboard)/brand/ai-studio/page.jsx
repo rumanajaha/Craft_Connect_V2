@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   BookOpen,
@@ -19,7 +19,6 @@ import {
   Sparkles
 } from "lucide-react";
 import UsageQuotaBar from "@/components/brand/UsageQuotaBar";
-import { MOCK_AI_USAGE } from "@/lib/mockData";
 import { useAIUsage } from "@/lib/aiUsageStore";
 
 
@@ -131,6 +130,30 @@ function SectionHeading({ icon: Icon, label, description }) {
 export default function AIStudioHubPage() {
   const { usageByTool, FREE_TRIAL_LIMIT, isPro } = useAIUsage();
   
+  const [insights, setInsights] = useState({
+    trendingCategories: ['Ceramics', 'Woodwork', 'Textiles', 'Apothecary'],
+    fastestGrowing: ['Kyoto Knife Series', 'Ochre Clay Studio', 'Portland Woodworks'],
+    opportunityAlert: {
+      title: 'Opportunity Alert',
+      text: 'Searches for "Sustainable Home Decor" are up 40% this week. Consider updating your brand story.'
+    }
+  });
+
+  useEffect(() => {
+    async function loadInsights() {
+      try {
+        const res = await fetch("/api/brand/ai/insights");
+        if (res.ok) {
+          const data = await res.json();
+          setInsights(data.insights);
+        }
+      } catch (err) {
+        console.error("Failed to load AI insights:", err);
+      }
+    }
+    loadInsights();
+  }, []);
+
   const tools = Object.keys(usageByTool || {});
   const totalTools = tools.length || 8;
   const cappedTools = tools.filter(tool => (usageByTool[tool] || 0) >= FREE_TRIAL_LIMIT).length;
@@ -242,7 +265,7 @@ export default function AIStudioHubPage() {
                 <h4 className="text-xs font-bold uppercase tracking-wider text-brand-dark">Trending Categories</h4>
               </div>
               <div className="flex flex-wrap gap-2">
-                {MOCK_AI_USAGE.trendingCategories.map(cat => (
+                {(insights.trendingCategories || []).map(cat => (
                   <span key={cat} className="inline-block px-2.5 py-1 rounded-full bg-brand-border/20 text-brand-dark/80 text-[10px] font-bold uppercase tracking-wider">
                     {cat}
                   </span>
@@ -256,7 +279,7 @@ export default function AIStudioHubPage() {
                 <h4 className="text-xs font-bold uppercase tracking-wider text-brand-dark">Fastest Growing Brands</h4>
               </div>
               <ul className="space-y-2">
-                {MOCK_AI_USAGE.fastestGrowing.map(brand => (
+                {(insights.fastestGrowing || []).map(brand => (
                   <li key={brand} className="text-sm text-brand-muted flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                     {brand}
@@ -269,9 +292,9 @@ export default function AIStudioHubPage() {
               <div className="flex items-start gap-2">
                 <Lightbulb className="w-4 h-4 text-brand-primary shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="text-xs font-bold text-brand-dark">Opportunity Alert</h4>
+                  <h4 className="text-xs font-bold text-brand-dark">{insights.opportunityAlert?.title || 'Opportunity Alert'}</h4>
                   <p className="text-xs text-brand-muted mt-1 leading-relaxed">
-                    Searches for "Sustainable Home Decor" are up 40% this week. Consider updating your brand story to highlight eco-friendly materials.
+                    {insights.opportunityAlert?.text || 'Searches for "Sustainable Home Decor" are up 40% this week. Consider updating your brand story.'}
                   </p>
                 </div>
               </div>

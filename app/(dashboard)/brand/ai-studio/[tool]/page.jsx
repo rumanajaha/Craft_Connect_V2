@@ -34,7 +34,7 @@ function ToolPageContent() {
   const [publishSuccess, setPublishSuccess] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const { isPro, getRemainingForTool, triggerGeneration, incrementUsage, FREE_TRIAL_LIMIT } = useAIUsage();
+  const { isPro, getRemainingForTool, triggerGeneration, incrementUsage, FREE_TRIAL_LIMIT, refreshUsage } = useAIUsage();
 
   useEffect(() => {
     setResult(null);
@@ -59,20 +59,31 @@ function ToolPageContent() {
 
   const Icon = config.icon;
 
-  const handleGenerate = (_inputs) => {
-    const allowed = triggerGeneration(tool);
-    if (!allowed) return;
-
+  const handleGenerate = async (inputs) => {
     setIsGenerating(true);
     setResult(null);
     setPublishSuccess(false);
     setSaveSuccess(false);
 
-    setTimeout(() => {
-      setResult(config.mockResult);
+    try {
+      const response = await fetch(`/api/brand/ai/${tool}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(inputs)
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setResult(data.result);
+        refreshUsage();
+      } else {
+        alert(data.message || data.error || "Generation failed.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error calling AI generation API.");
+    } finally {
       setIsGenerating(false);
-      incrementUsage(tool);
-    }, 800);
+    }
   };
 
   const handlePublish = () => {

@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
-import { X, Sparkles, AlertCircle, ExternalLink } from "lucide-react";
+import { X, Sparkles, AlertCircle, ExternalLink, Camera, Loader2 } from "lucide-react";
 
 export default function ProductFormModal({ product, onClose, onSave }) {
   const [formData, setFormData] = useState(
@@ -14,12 +14,42 @@ export default function ProductFormModal({ product, onClose, onSave }) {
       category: "",
       description: "",
       buyLink: "",
-      inStock: true
+      inStock: true,
+      image: ""
     }
   );
   
   const router = useRouter();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const form = new FormData();
+    form.append("file", file);
+
+    try {
+      const res = await fetch("/api/brand/products/upload", {
+        method: "POST",
+        body: form
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setFormData(prev => ({ ...prev, image: data.imageUrl }));
+      } else {
+        alert(data.error || "Failed to upload image.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error uploading image.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -70,6 +100,38 @@ export default function ProductFormModal({ product, onClose, onSave }) {
         <div className="p-6 overflow-y-auto">
           <form id="productForm" onSubmit={handleSubmit} className="space-y-4">
             
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-bold text-brand-dark uppercase tracking-wider">Product Photo</label>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleImageUpload} 
+                style={{ display: "none" }} 
+                accept="image/*" 
+              />
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="relative w-28 h-28 rounded-2xl overflow-hidden border border-brand-border bg-brand-border/10 flex flex-col items-center justify-center text-brand-muted cursor-pointer hover:bg-brand-border/20 group transition-all"
+              >
+                {isUploading ? (
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-primary" />
+                ) : formData.image ? (
+                  <>
+                    <img src={formData.image} className="w-full h-full object-cover" alt="Product" />
+                    <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Camera className="w-6 h-6 text-white mb-1" />
+                      <span className="text-[9px] text-white font-bold uppercase tracking-wider font-sans">Change</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <Camera className="w-6 h-6 text-brand-muted mb-1 opacity-70 group-hover:text-brand-dark transition-colors" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider">Upload</span>
+                  </>
+                )}
+              </div>
+            </div>
+
             <Input 
               label="Product Name" 
               name="name"

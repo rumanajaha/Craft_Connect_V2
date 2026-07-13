@@ -21,7 +21,7 @@ export function SEODescriptionForm({ onGenerate, isGenerating, products, selecte
   const [inputs, setInputs] = useState({ features: "" });
   const selectedProduct = products.find(p => p.id === selectedProductId);
 
-  const handleSubmit = (e) => { e.preventDefault(); onGenerate(inputs); };
+  const handleSubmit = (e) => { e.preventDefault(); onGenerate({ ...inputs, productId: selectedProductId }); };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">

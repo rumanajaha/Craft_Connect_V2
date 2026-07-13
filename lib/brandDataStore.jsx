@@ -79,10 +79,19 @@ export function BrandDataProvider({ children }) {
   };
 
   const brandAbout = brandInfo.description;
-  const setBrandAbout = (aboutText) => {
+  const setBrandAbout = async (aboutText) => {
     const updatedInfo = { ...brandInfo, description: aboutText };
     setBrandInfo(updatedInfo);
     addFeedUpdate("story", `Ochre Clay Studio published a new brand story focusing on ${brandInfo.category.toLowerCase()} craftsmanship.`);
+    try {
+      await fetch("/api/brand/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: aboutText })
+      });
+    } catch (err) {
+      console.error("Failed to save brand story to DB:", err);
+    }
   };
 
   
@@ -102,12 +111,21 @@ export function BrandDataProvider({ children }) {
   };
 
   
-  const updateProductDescription = (productId, description) => {
+  const updateProductDescription = async (productId, description) => {
     const nextProducts = products.map(p => p.id === productId ? { ...p, description } : p);
     setProducts(nextProducts);
     const prod = products.find(p => p.id === productId);
     const prodName = prod ? prod.name : "a product";
     addFeedUpdate("product_seo", `Ochre Clay Studio updated the SEO description for "${prodName}".`);
+    try {
+      await fetch(`/api/brand/products/${productId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description })
+      });
+    } catch (err) {
+      console.error("Failed to save product description to DB:", err);
+    }
   };
 
   return (
