@@ -2,7 +2,7 @@
 
 
 
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import { MOCK_BRANDS, MOCK_PRODUCTS } from "@/lib/mockData";
 
 
@@ -109,6 +109,27 @@ export function BrandDataProvider({ children }) {
       localStorage.setItem("cc_brand_products", JSON.stringify(newProducts));
     }
   };
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const profileRes = await fetch("/api/brand/profile");
+        if (profileRes.ok) {
+          const profileData = await profileRes.json();
+          setBrandInfoState(profileData.profile);
+        }
+        
+        const productsRes = await fetch("/api/brand/products");
+        if (productsRes.ok) {
+          const productsData = await productsRes.json();
+          setProductsState(productsData.products);
+        }
+      } catch (err) {
+        console.error("Failed to fetch brand provider data:", err);
+      }
+    }
+    loadData();
+  }, []);
 
   
   const updateProductDescription = async (productId, description) => {

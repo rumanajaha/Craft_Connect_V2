@@ -1,66 +1,102 @@
-import { NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
-import { verifyPassword, generateToken } from '@/utils/auth'
+import { NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabaseServer";
 
 export async function POST(request) {
   try {
-    const { email, password } = await request.json()
+    const { email, password } = await request.json();
 
+    // 1. Validate fields
     if (!email || !password) {
+      console.error("Login validation failure: Missing email or password");
       return NextResponse.json(
-        { error: 'Missing email or password' },
+        { error: "Missing email or password" },
         { status: 400 }
-      )
+      );
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email },
-    })
+    // 2. Call Supabase auth to sign in with password
+    const { data, error } = await supabaseAdmin.auth.signInWithPassword({
+      email,
+      password
+    });
 
-    if (!user) {
+    if (error || !data?.user) {
+      console.error("Supabase signInWithPassword failure:", error?.message || "Invalid credentials");
       return NextResponse.json(
-        { error: 'Invalid credentials' },
+        { error: error?.message || "Invalid credentials" },
         { status: 401 }
-      )
+      );
     }
 
-    const isPasswordValid = await verifyPassword(password, user.password)
-    if (!isPasswordValid) {
-      return NextResponse.json(
-        { error: 'Invalid credentials' },
-        { status: 401 }
-      )
+    const user = data.user;
+
+    // 3. Resolve the user's role
+    let mappedRole = user.user_metadata?.role;
+
+    if (!mappedRole) {
+      // Fallback checking profile tables
+      const { data: creator } = await supabaseAdmin
+        .from("CreatorProfile")
+        .select("id")
+        .eq("owner_user_id", user.id)
+        .maybeSingle();
+
+      if (creator) {
+        mappedRole = "CREATOR";
+      } else {
+        const { data: brand } = await supabaseAdmin
+          .from("BrandProfile")
+          .select("id")
+          .eq("owner_user_id", user.id)
+          .maybeSingle();
+
+        if (brand) {
+          mappedRole = "BRANDOWNER";
+        } else {
+          mappedRole = "CUSTOMER";
+        }
+      }
+    } else {
+      // Standardize metadata values
+      if (mappedRole === "brand") mappedRole = "BRANDOWNER";
+      else if (mappedRole === "creator") mappedRole = "CREATOR";
+      else if (mappedRole === "customer") mappedRole = "CUSTOMER";
     }
 
-    const token = await generateToken({
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-    })
-
+    // 4. Form the response and set authorization cookies
     const response = NextResponse.json({
-      message: 'Login successful',
+      message: "Login successful",
       user: {
         id: user.id,
         email: user.email,
-        name: user.name,
-        role: user.role,
-      },
-    })
+        role: mappedRole
+      }
+    });
 
-    response.cookies.set('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60,
-      path: '/',
-    })
+    if (data.session) {
+      response.cookies.set("sb-access-token", data.session.access_token, {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/"
+      });
+      response.cookies.set("sb-refresh-token", data.session.refresh_token, {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/"
+      });
+    }
 
-    return response
-  } catch (error) {
+    // Clear legacy Prisma token cookie to avoid credentials pollution
+    response.cookies.delete("token");
+
+    return response;
+  } catch (err) {
+    console.error("Login route internal error:", err);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal Server Error" },
       { status: 500 }
-    )
+    );
   }
 }

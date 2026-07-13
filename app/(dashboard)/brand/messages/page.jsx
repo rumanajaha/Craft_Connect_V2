@@ -3,74 +3,237 @@
 import React, { useState, useEffect, Suspense } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { MOCK_MESSAGES, MOCK_BRANDS } from "@/lib/mockData";
-import { Send, ArrowLeft, MoreHorizontal, User, UserCheck, Sparkles } from "lucide-react";
+import { Send, ArrowLeft, MoreHorizontal, User, UserCheck, Sparkles, Loader2 } from "lucide-react";
 import Button from "@/components/ui/button";
+import { supabaseBrowser } from "@/lib/supabaseClient";
 
 function BrandMessagesContent() {
   const searchParams = useSearchParams();
   const threadId = searchParams?.get("thread");
   
-  
-  const allThreads = MOCK_MESSAGES.filter(t => t.brandId === "ochre-clay");
-  
+  const [threads, setThreads] = useState([]);
   const [activeThread, setActiveThread] = useState(null);
   const [mobileView, setMobileView] = useState("list"); 
   const [inputText, setInputText] = useState("");
-  
+  const [isLoading, setIsLoading] = useState(true);
   
   const [showAnalyzer, setShowAnalyzer] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysis, setAnalysis] = useState(null);
 
+  // 1. Fetch all threads on mount
   useEffect(() => {
-    if (threadId) {
-      const thread = allThreads.find(t => t.id === threadId);
-      if (thread) {
-        setActiveThread(thread);
-        setMobileView("chat");
+    async function loadThreads() {
+      try {
+        const response = await fetch("/api/brand/messages");
+        if (response.ok) {
+          const data = await response.json();
+          setThreads(data.threads || []);
+          
+          // Select default or query thread
+          if (threadId) {
+            const thread = (data.threads || []).find(t => t.id === threadId);
+            if (thread) {
+              setActiveThread(thread);
+              setMobileView("chat");
+            }
+          } else if ((data.threads || []).length > 0) {
+            setActiveThread(data.threads[0]);
+          }
+        }
+      } catch (err) {
+        console.error("Error loading messages:", err);
+      } finally {
+        setIsLoading(false);
       }
-    } else if (allThreads.length > 0) {
-      setActiveThread(allThreads[0]);
     }
+    loadThreads();
   }, [threadId]);
+
+  // 2. Fetch active thread messages history when activeThread changes
+  useEffect(() => {
+    if (!activeThread?.id) return;
+    
+    // Check if messages are already fetched (or fetch fresh history)
+    async function loadMessages() {
+      try {
+        const res = await fetch(`/api/brand/messages/${activeThread.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setActiveThread(prev => {
+            if (prev && prev.id === activeThread.id) {
+              return { ...prev, messages: data.messages };
+            }
+            return prev;
+          });
+        }
+      } catch (err) {
+        console.error("Error loading message history:", err);
+      }
+    }
+    
+    if (!activeThread.messages) {
+      loadMessages();
+    }
+  }, [activeThread?.id]);
+
+  // 3. Supabase Realtime message subscription
+  useEffect(() => {
+    if (!activeThread?.id) return;
+
+    const channel = supabaseBrowser
+      .channel(`chat-${activeThread.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "Message",
+          filter: `thread_id=eq.${activeThread.id}`
+        },
+        async (payload) => {
+          const newMsg = payload.new;
+
+          // Check if sender is current user
+          const { data: { session } } = await supabaseBrowser.auth.getSession();
+          const currentUserId = session?.user?.id;
+          if (newMsg.sender_id === currentUserId) return;
+
+          const formatted = {
+            id: newMsg.id,
+            sender: activeThread.isCreatorThread ? "creator" : "customer",
+            text: newMsg.body,
+            image: newMsg.attachment_url,
+            timestamp: newMsg.created_at
+          };
+
+          setActiveThread(prev => {
+            if (prev && prev.id === newMsg.thread_id) {
+              if (prev.messages?.some(m => m.id === newMsg.id)) return prev;
+              return {
+                ...prev,
+                messages: [...(prev.messages || []), formatted]
+              };
+            }
+            return prev;
+          });
+
+          // Update last message in thread list
+          setThreads(prevThreads =>
+            prevThreads.map(t => {
+              if (t.id === newMsg.thread_id) {
+                return {
+                  ...t,
+                  lastMessageText: newMsg.body,
+                  lastMessageTime: "Just now",
+                  unread: true
+                };
+              }
+              return t;
+            })
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabaseBrowser.removeChannel(channel);
+    };
+  }, [activeThread?.id, activeThread?.isCreatorThread]);
 
   const handleThreadSelect = (thread) => {
     setActiveThread(thread);
     setMobileView("chat");
     setShowAnalyzer(false);
+    setAnalysis(null);
   };
 
   const handleBackToList = () => {
     setMobileView("list");
   };
 
-  const handleSendMessage = (e) => {
+  const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!inputText.trim()) return;
+    if (!inputText.trim() || !activeThread?.id) return;
     
-    
-    const newMessage = {
-      id: Date.now().toString(),
+    const textToSend = inputText;
+    setInputText("");
+
+    // optimistic update locally
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMsg = {
+      id: tempId,
       sender: "brand",
-      text: inputText,
+      text: textToSend,
       timestamp: new Date().toISOString()
     };
-    
-    
+
     setActiveThread(prev => ({
       ...prev,
-      messages: [...prev.messages, newMessage]
+      messages: [...(prev.messages || []), optimisticMsg]
     }));
-    
-    setInputText("");
+
+    try {
+      const response = await fetch(`/api/brand/messages/${activeThread.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: textToSend })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        // Replace optimistic msg with real one
+        setActiveThread(prev => ({
+          ...prev,
+          messages: (prev.messages || []).map(m => m.id === tempId ? data.message : m)
+        }));
+
+        // Update last message preview in list
+        setThreads(prevThreads =>
+          prevThreads.map(t => {
+            if (t.id === activeThread.id) {
+              return {
+                ...t,
+                lastMessageText: textToSend,
+                lastMessageTime: "Just now",
+                unread: false
+              };
+            }
+            return t;
+          })
+        );
+      } else {
+        alert("Failed to send message.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error sending message.");
+    }
   };
 
-  const handleAnalyzeChat = () => {
+  const handleAnalyzeChat = async () => {
+    if (!activeThread?.id) return;
     setShowAnalyzer(true);
     setIsAnalyzing(true);
-    setTimeout(() => {
+    setAnalysis(null);
+
+    try {
+      const response = await fetch(`/api/brand/messages/${activeThread.id}/analyze`, {
+        method: "POST"
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setAnalysis(data.result);
+      } else {
+        alert(data.message || data.error || "Chat analysis failed.");
+        setShowAnalyzer(false);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error running chat analyzer.");
+      setShowAnalyzer(false);
+    } finally {
       setIsAnalyzing(false);
-    }, 1500);
+    }
   };
 
   
@@ -90,7 +253,26 @@ function BrandMessagesContent() {
     };
   };
 
-  if (!activeThread) return null;
+  if (isLoading) {
+    return (
+      <div className="bg-white border border-brand-border/50 rounded-2xl shadow-sm overflow-hidden h-[calc(100vh-140px)] flex items-center justify-center">
+        <div className="text-center space-y-2">
+          <Loader2 className="w-8 h-8 animate-spin text-brand-primary mx-auto" />
+          <p className="text-sm text-brand-muted font-sans font-semibold">Loading your conversations...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!activeThread) {
+    return (
+      <div className="bg-white border border-brand-border/50 rounded-2xl shadow-sm overflow-hidden h-[calc(100vh-140px)] flex items-center justify-center">
+        <div className="text-center space-y-2">
+          <p className="text-sm text-brand-muted">No conversations found.</p>
+        </div>
+      </div>
+    );
+  }
 
   const contactInfo = getThreadContactInfo(activeThread);
 
@@ -105,11 +287,11 @@ function BrandMessagesContent() {
         </div>
         
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
-          {allThreads.length === 0 ? (
+          {threads.length === 0 ? (
             <div className="p-8 text-center text-brand-muted text-sm">No messages found.</div>
           ) : (
             <ul className="divide-y divide-brand-border/40">
-              {allThreads.map(thread => {
+              {threads.map(thread => {
                 const info = getThreadContactInfo(thread);
                 const isSelected = activeThread.id === thread.id;
                 
@@ -241,18 +423,22 @@ function BrandMessagesContent() {
                   Analyzing context and intent...
                 </div>
               ) : (
-                <div className="space-y-3">
+                 <div className="space-y-3">
                   
                   <div className="bg-brand-border/20 p-3 rounded-xl border border-brand-border/40">
                     <p className="text-xs font-bold uppercase tracking-wider text-brand-muted mb-1">Intent</p>
                     <p className="text-sm text-brand-dark">
-                      {contactInfo.type === "creator" ? "Product seeding / collaboration feature." : "Custom product commission."}
+                      {analysis?.intent || (contactInfo.type === "creator" ? "Product seeding / collaboration feature." : "Custom product commission.")}
                     </p>
                   </div>
                   <div className="bg-brand-border/20 p-3 rounded-xl border border-brand-border/40">
                     <p className="text-xs font-bold uppercase tracking-wider text-brand-muted mb-1">Key Details</p>
                     <ul className="list-disc list-inside text-sm text-brand-dark space-y-1">
-                      {contactInfo.type === "creator" ? (
+                      {analysis?.details ? (
+                        analysis.details.map((detail, dIdx) => (
+                          <li key={dIdx}>{detail}</li>
+                        ))
+                      ) : contactInfo.type === "creator" ? (
                         <>
                           <li>Interest: Minimalist style mugs</li>
                           <li>Channel: Morning routine vlog (YouTube/TikTok)</li>
@@ -272,18 +458,32 @@ function BrandMessagesContent() {
                   <div className="mt-4 pt-4 border-t border-brand-border/40">
                     <p className="text-xs font-bold uppercase tracking-wider text-brand-muted mb-2">Suggested Replies</p>
                     <div className="flex flex-col gap-2">
-                      <button 
-                        onClick={() => setInputText(contactInfo.type === "creator" ? "Hi there! We'd love to collaborate on a morning routine video. What are your typical rates?" : "Hello! We can certainly do that. The structural integrity is fine with a slightly thinner handle. I'll send over a sketch shortly.")}
-                        className="text-left text-sm text-brand-dark bg-white border border-brand-border/50 p-2.5 rounded-xl hover:border-brand-primary/40 hover:bg-brand-primary/5 transition-colors"
-                      >
-                        {contactInfo.type === "creator" ? "Suggest collaboration & ask rates" : "Confirm request & offer sketch"}
-                      </button>
-                      <button 
-                        onClick={() => setInputText(contactInfo.type === "creator" ? "Thanks for reaching out! Could you share your media kit before we proceed?" : "Hi! We'd love to make this custom pitcher for you. Our typical turnaround is 3-4 weeks. Does that timeline work?")}
-                        className="text-left text-sm text-brand-dark bg-white border border-brand-border/50 p-2.5 rounded-xl hover:border-brand-primary/40 hover:bg-brand-primary/5 transition-colors"
-                      >
-                        {contactInfo.type === "creator" ? "Request media kit" : "Confirm request & state timeline"}
-                      </button>
+                      {analysis?.suggestions ? (
+                        analysis.suggestions.map((suggestion, sIdx) => (
+                          <button 
+                            key={sIdx}
+                            onClick={() => setInputText(suggestion)}
+                            className="text-left text-sm text-brand-dark bg-white border border-brand-border/50 p-2.5 rounded-xl hover:border-brand-primary/40 hover:bg-brand-primary/5 transition-colors font-sans"
+                          >
+                            {suggestion}
+                          </button>
+                        ))
+                      ) : (
+                        <>
+                          <button 
+                            onClick={() => setInputText(contactInfo.type === "creator" ? "Hi there! We'd love to collaborate on a morning routine video. What are your typical rates?" : "Hello! We can certainly do that. The structural integrity is fine with a slightly thinner handle. I'll send over a sketch shortly.")}
+                            className="text-left text-sm text-brand-dark bg-white border border-brand-border/50 p-2.5 rounded-xl hover:border-brand-primary/40 hover:bg-brand-primary/5 transition-colors"
+                          >
+                            {contactInfo.type === "creator" ? "Suggest collaboration & ask rates" : "Confirm request & offer sketch"}
+                          </button>
+                          <button 
+                            onClick={() => setInputText(contactInfo.type === "creator" ? "Thanks for reaching out! Could you share your media kit before we proceed?" : "Hi! We'd love to make this custom pitcher for you. Our typical turnaround is 3-4 weeks. Does that timeline work?")}
+                            className="text-left text-sm text-brand-dark bg-white border border-brand-border/50 p-2.5 rounded-xl hover:border-brand-primary/40 hover:bg-brand-primary/5 transition-colors"
+                          >
+                            {contactInfo.type === "creator" ? "Request media kit" : "Confirm request & state timeline"}
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
