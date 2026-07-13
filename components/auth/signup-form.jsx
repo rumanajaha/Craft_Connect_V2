@@ -101,14 +101,7 @@ export default function SignupForm() {
         sessionStorage.setItem("cc_display_name", fullName.trim().split(" ")[0]);
       }
 
-      const roleMap = {
-        CREATOR: "creator",
-        BRANDOWNER: "brand",
-        CUSTOMER: "customer",
-      };
-
-      const finalRole = roleMap[data.user.role] || role;
-      router.push(`/welcome?to=/${finalRole}`);
+      router.push(`/confirm-email?email=${encodeURIComponent(email)}`);
     } catch (err) {
       setSubmitError("An unexpected error occurred");
       setIsLoading(false);

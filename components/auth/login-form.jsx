@@ -32,7 +32,11 @@ export default function LoginForm() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Login failed");
+        if (data.error === "EMAIL_NOT_CONFIRMED") {
+          setError("Please confirm your email first. Check your inbox for the verification link.");
+        } else {
+          setError(data.error || "Login failed");
+        }
         setIsLoading(false);
         return;
       }

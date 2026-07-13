@@ -1,35 +1,35 @@
 "use client";
 import React, { useState } from "react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+
 export default function ForgotForm() {
+    const supabase = createClient();
     const [email, setEmail] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
         setError("");
         setSuccess("");
         try {
-            const response = await fetch("/api/auth/forgot-password", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email }),
+            const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: "https://craft-connect-v2.vercel.app/reset-password",
             });
-            const data = await response.json();
-            if (!response.ok) {
-                setError(data.error || "Failed to process request");
-                setIsLoading(false);
-                return;
+            if (resetError) {
+                console.error("Supabase resetPasswordForEmail error:", resetError);
             }
-            setSuccess(data.message || "Reset link has been sent!");
+            setSuccess("If an account exists for this email, a reset link has been sent.");
             setEmail("");
             setIsLoading(false);
         } catch (err) {
+            console.error("Forgot password unexpected error:", err);
             setError("An unexpected error occurred");
             setIsLoading(false);
         }

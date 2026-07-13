@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseServer";
+import { getSupabaseRouteClient } from "@/lib/supabaseRouteHandler";
 
 export async function POST(request) {
   let createdUser = null;
@@ -40,13 +41,15 @@ export async function POST(request) {
     const metadataRole = role === "brand" ? "BRANDOWNER" : role === "creator" ? "CREATOR" : "CUSTOMER";
 
 
-    const { data, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
+    const supabase = getSupabaseRouteClient();
+    const { data, error: createUserError } = await supabase.auth.signUp({
       email,
       password,
-      email_confirm: true,
-      user_metadata: {
-        role: metadataRole,
-        display_name: nameToUse
+      options: {
+        data: {
+          role: metadataRole,
+          display_name: nameToUse
+        }
       }
     });
 
