@@ -4,15 +4,27 @@ import { supabaseAdmin } from "@/lib/supabaseServer";
 export async function POST(request) {
   let createdUser = null;
   try {
-    const body = await request.json();
+
+    let body;
+    try {
+      body = await request.json();
+    } catch (err) {
+      console.error("Malformed request JSON:", err);
+      return NextResponse.json({ error: "Invalid JSON body in request." }, { status: 400 });
+    }
+
     const { email, password, role, displayName, name } = body;
     const nameToUse = displayName || name || "";
 
-    // 1. Parse and validate the request body
+
     if (!email || !password || !role) {
-      console.error("Signup validation failure: Missing required fields");
+      const missing = [];
+      if (!email) missing.push("email");
+      if (!password) missing.push("password");
+      if (!role) missing.push("role");
+      console.error(`Signup validation failure: Missing required fields: ${missing.join(", ")}`);
       return NextResponse.json(
-        { error: "Missing required fields: email, password, and role are required." },
+        { error: `Missing required fields: ${missing.join(", ")} are required.` },
         { status: 400 }
       );
     }
@@ -27,7 +39,7 @@ export async function POST(request) {
 
     const metadataRole = role === "brand" ? "BRANDOWNER" : role === "creator" ? "CREATOR" : "CUSTOMER";
 
-    // 2. Use supabaseAdmin to create the auth user
+
     const { data, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -39,16 +51,24 @@ export async function POST(request) {
     });
 
     if (createUserError || !data?.user) {
-      console.error("Supabase createUser failure:", createUserError?.message || "User creation failed");
+      const errMsg = createUserError?.message || "User creation failed";
+      console.error("Supabase createUser failure:", errMsg);
+
+      let status = 400;
+      if (createUserError?.status) {
+        status = createUserError.status;
+      } else if (errMsg.toLowerCase().includes("already") || errMsg.toLowerCase().includes("exists") || errMsg.toLowerCase().includes("registered")) {
+        status = 409;
+      }
+
       return NextResponse.json(
-        { error: createUserError?.message || "User registration failed." },
-        { status: 400 }
+        { error: errMsg },
+        { status }
       );
     }
 
     createdUser = data.user;
 
-    // 3. On success, insert one row into the correct profile table based on role
     let profileError = null;
 
     if (role === "brand") {
@@ -83,30 +103,30 @@ export async function POST(request) {
       profileError = error;
     }
 
-    // 4. If the profile insert fails, delete the auth user before returning the error
     if (profileError) {
       console.error(`Profile insert failure for role "${role}":`, profileError.message);
-      
+
       const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(createdUser.id);
       if (deleteError) {
         console.error("Cleanup failure: Failed to delete orphaned auth user:", deleteError.message);
       }
-      
+
       return NextResponse.json(
         { error: `Failed to create profile: ${profileError.message}` },
         { status: 500 }
       );
     }
 
-    // 5. Return success response
-    return NextResponse.json({
-      userId: createdUser.id,
-      role: metadataRole
-    });
+    return NextResponse.json(
+      {
+        userId: createdUser.id,
+        role: metadataRole
+      },
+      { status: 200 }
+    );
   } catch (err) {
     console.error("Signup internal error:", err);
-    
-    // Cleanup if user was created before error threw
+
     if (createdUser?.id) {
       await supabaseAdmin.auth.admin.deleteUser(createdUser.id).catch((e) => {
         console.error("Cleanup failure in catch block:", e.message);
