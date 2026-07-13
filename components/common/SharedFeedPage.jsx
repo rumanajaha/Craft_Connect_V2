@@ -5,7 +5,7 @@ import { Search, Sparkles } from "lucide-react";
 import FeedTile from "@/components/common/FeedTile";
 import { getFeedItems, rankFeed } from "@/lib/feedRanking";
 
-const PAGE_SIZE = 12; 
+const PAGE_SIZE = 12;
 
 
 function SkeletonTile({ isWide }) {
@@ -25,70 +25,124 @@ function isWideTile(globalIndex) {
 
 export default function SharedFeedPage({ role, userTags = [], heading, subheading, emptyStatePrompt }) {
   const [isLoading, setIsLoading] = useState(true);
-  const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
   const [searchQuery, setSearchQuery] = useState("");
   const loaderRef = useRef(null);
 
-  
-  
-  const rawItems = useMemo(() => getFeedItems(), []);
+  // Brand Owner Server-side state
+  const [items, setItems] = useState([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [isMoreLoading, setIsMoreLoading] = useState(false);
 
-  
-  
-  const itemsWithPinnedDiversity = useMemo(
-    () => rawItems.map(item => ({ ...item, diversityBonus: Math.random() * 0.1 })),
-    [rawItems] 
+  // Fetch logic for brand role
+  useEffect(() => {
+    if (role !== "brand") return;
+
+    let active = true;
+    const fetchFeed = async () => {
+      try {
+        setIsLoading(page === 1);
+        setIsMoreLoading(page > 1);
+
+        const endpoint = searchQuery.trim()
+          ? `/api/brand/feed/search?q=${encodeURIComponent(searchQuery)}&page=${page}&limit=${PAGE_SIZE}`
+          : `/api/brand/feed?page=${page}&limit=${PAGE_SIZE}`;
+
+        const res = await fetch(endpoint);
+        if (!res.ok) throw new Error("Failed to fetch feed");
+        const data = await res.json();
+
+        if (active) {
+          if (page === 1) {
+            setItems(data.items || []);
+          } else {
+            setItems(prev => [...prev, ...(data.items || [])]);
+          }
+          setHasMore(data.hasMore || false);
+        }
+      } catch (err) {
+        console.error("Error loading feed:", err);
+      } finally {
+        if (active) {
+          setIsLoading(false);
+          setIsMoreLoading(false);
+        }
+      }
+    };
+
+    fetchFeed();
+    return () => { active = false; };
+  }, [role, page, searchQuery]);
+
+  useEffect(() => {
+    if (role === "brand") {
+      setPage(1);
+    }
+  }, [searchQuery, role]);
+
+  const clientRawItems = useMemo(() => getFeedItems(), []);
+  const clientItemsWithPinnedDiversity = useMemo(
+    () => clientRawItems.map(item => ({ ...item, diversityBonus: Math.random() * 0.1 })),
+    [clientRawItems]
   );
-
-  
-  const rankedItems = useMemo(
-    () => rankFeed(itemsWithPinnedDiversity, role, userTags),
-    [itemsWithPinnedDiversity, role] 
+  const clientRankedItems = useMemo(
+    () => rankFeed(clientItemsWithPinnedDiversity, role, userTags),
+    [clientItemsWithPinnedDiversity, role, userTags]
   );
-
-  
-  
-  const filteredItems = useMemo(() => {
+  const clientFilteredItems = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return rankedItems;
-    return rankedItems.filter(item => {
+    if (!q) return clientRankedItems;
+    return clientRankedItems.filter(item => {
       const name = (item.name || item.updateText || item.caption || "").toLowerCase();
       const brand = (item.brandName || item.creatorName || "").toLowerCase();
       const tags = (item.ai_tags || []).join(" ").toLowerCase();
       return name.includes(q) || brand.includes(q) || tags.includes(q);
     });
-  }, [rankedItems, searchQuery]);
+  }, [clientRankedItems, searchQuery]);
 
-  
-  useEffect(() => { setDisplayCount(PAGE_SIZE); }, [searchQuery]);
+  const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
 
-  
   useEffect(() => {
-    const t = setTimeout(() => setIsLoading(false), 600);
-    return () => clearTimeout(t);
-  }, []);
-
-  
-  const handleObserver = useCallback((entries) => {
-    if (entries[0].isIntersecting && displayCount < filteredItems.length) {
-      setDisplayCount(prev => Math.min(prev + PAGE_SIZE, filteredItems.length));
+    if (role !== "brand") {
+      setDisplayCount(PAGE_SIZE);
     }
-  }, [displayCount, filteredItems.length]);
+  }, [searchQuery, role]);
 
   useEffect(() => {
-    const observer = new IntersectionObserver(handleObserver, { threshold: 0.3 });
+    if (role !== "brand") {
+      setIsLoading(true);
+      const t = setTimeout(() => setIsLoading(false), 400);
+      return () => clearTimeout(t);
+    }
+  }, [role]);
+
+  const visibleItems = role === "brand" ? items : clientFilteredItems.slice(0, displayCount);
+  const showLoader = role === "brand" ? hasMore : displayCount < clientFilteredItems.length;
+
+  const handleObserver = useCallback((entries) => {
+    if (entries[0].isIntersecting) {
+      if (role === "brand") {
+        if (hasMore && !isMoreLoading) {
+          setPage(prev => prev + 1);
+        }
+      } else {
+        if (displayCount < clientFilteredItems.length) {
+          setDisplayCount(prev => Math.min(prev + PAGE_SIZE, clientFilteredItems.length));
+        }
+      }
+    }
+  }, [role, hasMore, isMoreLoading, displayCount, clientFilteredItems.length]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(handleObserver, { threshold: 0.1 });
     const el = loaderRef.current;
     if (el) observer.observe(el);
     return () => { if (el) observer.unobserve(el); };
   }, [handleObserver]);
 
-  const visibleItems = filteredItems.slice(0, displayCount);
-  const hasMore = displayCount < filteredItems.length;
-
-  
   return (
     <div className="max-w-6xl mx-auto">
-      
+
       <div className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
@@ -98,7 +152,7 @@ export default function SharedFeedPage({ role, userTags = [], heading, subheadin
           <p className="text-brand-muted text-xs mt-1 max-w-xl">{subheading}</p>
         </div>
 
-        
+
         <div className="relative w-full sm:w-72 shrink-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted pointer-events-none" />
           <input
@@ -111,14 +165,14 @@ export default function SharedFeedPage({ role, userTags = [], heading, subheadin
         </div>
       </div>
 
-      
+
       {isLoading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-[3px]">
           {Array.from({ length: PAGE_SIZE }).map((_, i) => (
             <SkeletonTile key={i} isWide={isWideTile(i)} />
           ))}
         </div>
-      ) : filteredItems.length === 0 ? (
+      ) : visibleItems.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <Sparkles className="w-10 h-10 text-brand-primary/20 mb-4" />
           <h3 className="font-serif text-lg font-bold text-brand-dark mb-2">
@@ -132,7 +186,7 @@ export default function SharedFeedPage({ role, userTags = [], heading, subheadin
         </div>
       ) : (
         <>
-          
+
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-[3px]">
             {visibleItems.map((item, index) => (
               <FeedTile
@@ -144,16 +198,16 @@ export default function SharedFeedPage({ role, userTags = [], heading, subheadin
             ))}
           </div>
 
-          
+
           <div ref={loaderRef} className="h-16 flex items-center justify-center">
-            {hasMore && (
+            {showLoader && (
               <div className="flex gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-brand-primary/40 animate-bounce" style={{ animationDelay: "0ms" }} />
                 <span className="w-1.5 h-1.5 rounded-full bg-brand-primary/40 animate-bounce" style={{ animationDelay: "150ms" }} />
                 <span className="w-1.5 h-1.5 rounded-full bg-brand-primary/40 animate-bounce" style={{ animationDelay: "300ms" }} />
               </div>
             )}
-            {!hasMore && visibleItems.length > 0 && (
+            {!showLoader && visibleItems.length > 0 && (
               <p className="text-[10px] text-brand-muted/50 font-medium tracking-widest uppercase">
                 ✦ &nbsp; All caught up &nbsp; ✦
               </p>
