@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { authenticate } from '@/middleware/auth';
-import { supabaseAdmin } from '@/lib/supabaseServer';
+import { getSupabaseRouteClient } from '@/lib/supabaseRouteHandler';
 
 export async function PATCH(request, { params }) {
   try {
@@ -12,7 +12,8 @@ export async function PATCH(request, { params }) {
 
     const { id } = params;
 
-    const { data: brand, error: brandError } = await supabaseAdmin
+    const supabase = getSupabaseRouteClient();
+    const { data: brand, error: brandError } = await supabase
       .from('BrandProfile')
       .select('id')
       .eq('owner_user_id', user.id)
@@ -23,7 +24,7 @@ export async function PATCH(request, { params }) {
     }
 
     // Scoped ownership validation: fetch target product first
-    const { data: existingProduct, error: fetchError } = await supabaseAdmin
+    const { data: existingProduct, error: fetchError } = await supabase
       .from('Product')
       .select('*')
       .eq('id', id)
@@ -68,7 +69,7 @@ export async function PATCH(request, { params }) {
       updateData.status = body.inStock ? 'in_stock' : 'out_of_stock';
     }
 
-    const { data: updatedProd, error: updateError } = await supabaseAdmin
+    const { data: updatedProd, error: updateError } = await supabase
       .from('Product')
       .update(updateData)
       .eq('id', id)
@@ -84,7 +85,7 @@ export async function PATCH(request, { params }) {
     const oldStatus = existingProduct.status;
     const newStatus = updatedProd.status;
     if (newStatus !== oldStatus && (newStatus === 'out_of_stock' || newStatus === 'sold_out')) {
-      const { error: notifError } = await supabaseAdmin
+      const { error: notifError } = await supabase
         .from('Notification')
         .insert({
           user_id: user.id,
@@ -131,7 +132,8 @@ export async function DELETE(request, { params }) {
 
     const { id } = params;
 
-    const { data: brand, error: brandError } = await supabaseAdmin
+    const supabase = getSupabaseRouteClient();
+    const { data: brand, error: brandError } = await supabase
       .from('BrandProfile')
       .select('id')
       .eq('owner_user_id', user.id)
@@ -142,7 +144,7 @@ export async function DELETE(request, { params }) {
     }
 
     // Scoped ownership check: fetch target product first
-    const { data: existingProduct, error: fetchError } = await supabaseAdmin
+    const { data: existingProduct, error: fetchError } = await supabase
       .from('Product')
       .select('brand_id')
       .eq('id', id)
@@ -156,7 +158,7 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: 'Forbidden: You do not own this product' }, { status: 403 });
     }
 
-    const { error: deleteError } = await supabaseAdmin
+    const { error: deleteError } = await supabase
       .from('Product')
       .delete()
       .eq('id', id);

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { authenticate } from '@/middleware/auth';
-import { supabaseAdmin } from '@/lib/supabaseServer';
+import { getSupabaseRouteClient } from '@/lib/supabaseRouteHandler';
 
 // Helper to parse pgvector format
 function parseVector(val) {
@@ -38,8 +38,10 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const supabase = getSupabaseRouteClient();
+
     // Get BrandProfile
-    const { data: brand, error: brandError } = await supabaseAdmin
+    const { data: brand, error: brandError } = await supabase
       .from('BrandProfile')
       .select('*')
       .eq('owner_user_id', user.id)
@@ -50,7 +52,7 @@ export async function GET(request) {
     }
 
     // 1. Get active products count (status != 'sold_out')
-    const { data: products } = await supabaseAdmin
+    const { data: products } = await supabase
       .from('Product')
       .select('id')
       .eq('brand_id', brand.id)
@@ -59,7 +61,7 @@ export async function GET(request) {
     const activeProducts = products ? products.length : 0;
 
     // 2. Get pending requests count (brand_id = brand.id, status = 'pending', direction = 'incoming')
-    const { data: pendingRequestsData } = await supabaseAdmin
+    const { data: pendingRequestsData } = await supabase
       .from('CollabRequest')
       .select('id')
       .eq('brand_id', brand.id)
@@ -69,7 +71,7 @@ export async function GET(request) {
     const pendingRequests = pendingRequestsData ? pendingRequestsData.length : 0;
 
     // 3. Get all creators to calculate similarity and recommendation
-    const { data: creators } = await supabaseAdmin
+    const { data: creators } = await supabase
       .from('CreatorProfile')
       .select('*');
 
@@ -106,7 +108,7 @@ export async function GET(request) {
     const creatorUserIds = creatorsWithCompatibility.map(c => c.owner_user_id).filter(Boolean);
     let customerProfiles = [];
     if (creatorUserIds.length > 0) {
-      const { data: custProfiles } = await supabaseAdmin
+      const { data: custProfiles } = await supabase
         .from('CustomerProfile')
         .select('owner_user_id, avatar_url')
         .in('owner_user_id', creatorUserIds);
@@ -124,13 +126,13 @@ export async function GET(request) {
     });
 
     // Update last_viewed_matches_at to now
-    await supabaseAdmin
+    await supabase
       .from('BrandProfile')
       .update({ last_viewed_matches_at: new Date().toISOString() })
       .eq('id', brand.id);
 
     // 4. Fetch incoming pitches
-    const { data: pitchesData } = await supabaseAdmin
+    const { data: pitchesData } = await supabase
       .from('CollabRequest')
       .select('id, creator_id, compensation_type, pitch_message, created_at, status')
       .eq('brand_id', brand.id)
@@ -142,7 +144,7 @@ export async function GET(request) {
     const formattedPitches = [];
     if (pitchesData && pitchesData.length > 0) {
       const pitchCreatorIds = pitchesData.map(p => p.creator_id).filter(Boolean);
-      const { data: pitchCreators } = await supabaseAdmin
+      const { data: pitchCreators } = await supabase
         .from('CreatorProfile')
         .select('id, owner_user_id, display_name')
         .in('id', pitchCreatorIds);

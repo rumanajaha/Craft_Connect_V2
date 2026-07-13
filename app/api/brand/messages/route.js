@@ -1,34 +1,16 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseServer";
+import { getSupabaseRouteClient } from "@/lib/supabaseRouteHandler";
 
 export async function GET(request) {
   try {
-    // 1. Authenticate user using JWT from Authorization or cookies
-    const authHeader = request.headers.get("Authorization");
-    let token = "";
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      token = authHeader.substring(7);
-    } else {
-      const cookieHeader = request.headers.get("cookie") || "";
-      const tokenCookie = cookieHeader
-        .split(";")
-        .find((c) => c.trim().startsWith("sb-access-token="));
-      if (tokenCookie) {
-        token = tokenCookie.split("=")[1];
-      }
-    }
-
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const supabase = getSupabaseRouteClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 2. Fetch all message threads for the logged-in brand owner
-    const { data: threads, error: threadsError } = await supabaseAdmin
+    // Fetch all message threads for the logged-in brand owner
+    const { data: threads, error: threadsError } = await supabase
       .from("MessageThread")
       .select("*")
       .or(`participant_a_id.eq.${user.id},participant_b_id.eq.${user.id}`)
@@ -50,7 +32,7 @@ export async function GET(request) {
       let creatorAvatar = "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80";
 
       // Check Creator Profile first
-      const { data: creatorProfile } = await supabaseAdmin
+      const { data: creatorProfile } = await supabase
         .from("CreatorProfile")
         .select("display_name")
         .eq("owner_user_id", otherId)
@@ -61,7 +43,7 @@ export async function GET(request) {
         creatorName = creatorProfile.display_name;
 
         // Fetch Creator's Avatar from CustomerProfile
-        const { data: customerProfile } = await supabaseAdmin
+        const { data: customerProfile } = await supabase
           .from("CustomerProfile")
           .select("avatar_url")
           .eq("owner_user_id", otherId)
@@ -72,7 +54,7 @@ export async function GET(request) {
         }
       } else {
         // Check Brand Profile next
-        const { data: brandProfile } = await supabaseAdmin
+        const { data: brandProfile } = await supabase
           .from("BrandProfile")
           .select("brand_name, logo_url")
           .eq("owner_user_id", otherId)
@@ -85,7 +67,7 @@ export async function GET(request) {
           }
         } else {
           // Check Customer Profile
-          const { data: customerProfile } = await supabaseAdmin
+          const { data: customerProfile } = await supabase
             .from("CustomerProfile")
             .select("display_name, avatar_url")
             .eq("owner_user_id", otherId)
@@ -101,7 +83,7 @@ export async function GET(request) {
       }
 
       // Fetch the last message in this thread
-      const { data: lastMsg } = await supabaseAdmin
+      const { data: lastMsg } = await supabase
         .from("Message")
         .select("*")
         .eq("thread_id", thread.id)

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseServer";
+import { getSupabaseRouteClient } from "@/lib/supabaseRouteHandler";
 import { getGeminiModel } from "@/lib/gemini";
 import { checkQuota } from "@/lib/quotaHelper";
 
@@ -7,32 +7,14 @@ export async function POST(request, { params }) {
   try {
     const { id } = params;
 
-    // 1. Authenticate user using JWT from Authorization or cookies
-    const authHeader = request.headers.get("Authorization");
-    let token = "";
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      token = authHeader.substring(7);
-    } else {
-      const cookieHeader = request.headers.get("cookie") || "";
-      const tokenCookie = cookieHeader
-        .split(";")
-        .find((c) => c.trim().startsWith("sb-access-token="));
-      if (tokenCookie) {
-        token = tokenCookie.split("=")[1];
-      }
-    }
-
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const supabase = getSupabaseRouteClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 2. Fetch the thread and verify ownership
-    const { data: thread, error: threadError } = await supabaseAdmin
+    // Fetch the thread and verify ownership
+    const { data: thread, error: threadError } = await supabase
       .from("MessageThread")
       .select("*")
       .eq("id", id)
@@ -46,8 +28,8 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // 3. Fetch the brand profile for quota limits checking
-    const { data: brand } = await supabaseAdmin
+    // Fetch the brand profile for quota limits checking
+    const { data: brand } = await supabase
       .from("BrandProfile")
       .select("id")
       .eq("owner_user_id", user.id)
@@ -57,7 +39,7 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: "Only Brand Owners can analyze threads" }, { status: 400 });
     }
 
-    // 4. Perform quota limits check
+    // Perform quota limits check
     const quota = await checkQuota(brand.id, "chat-analyzer");
     if (quota.exceeded) {
       return NextResponse.json({
@@ -66,8 +48,8 @@ export async function POST(request, { params }) {
       }, { status: 429 });
     }
 
-    // 5. Fetch all messages in this thread
-    const { data: messages, error: messagesError } = await supabaseAdmin
+    // Fetch all messages in this thread
+    const { data: messages, error: messagesError } = await supabase
       .from("Message")
       .select("*")
       .eq("thread_id", id)
@@ -77,7 +59,7 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: "No messages to analyze" }, { status: 400 });
     }
 
-    // 6. Build the transcript
+    // Build the transcript
     const transcript = messages
       .map((m) => `${m.sender_id === user.id ? "Brand Owner" : "Participant"}: ${m.body}`)
       .join("\n");

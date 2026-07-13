@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { authenticate } from '@/middleware/auth';
-import { supabaseAdmin } from '@/lib/supabaseServer';
+import { getSupabaseRouteClient } from '@/lib/supabaseRouteHandler';
 
 export async function GET(request) {
   try {
@@ -10,7 +10,8 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: notifications, error } = await supabaseAdmin
+    const supabase = getSupabaseRouteClient();
+    const { data: notifications, error } = await supabase
       .from('Notification')
       .select('*')
       .eq('user_id', user.id)
@@ -37,7 +38,8 @@ export async function PATCH(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { error } = await supabaseAdmin
+    const supabase = getSupabaseRouteClient();
+    const { error } = await supabase
       .from('Notification')
       .update({ is_read: true })
       .eq('user_id', user.id);

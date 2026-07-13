@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseServer";
+import { getSupabaseRouteClient } from "@/lib/supabaseRouteHandler";
 
 export async function POST(request) {
   try {
@@ -15,7 +16,8 @@ export async function POST(request) {
     }
 
     // 2. Call Supabase auth to sign in with password
-    const { data, error } = await supabaseAdmin.auth.signInWithPassword({
+    const supabase = getSupabaseRouteClient();
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
     });

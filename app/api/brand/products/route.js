@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { authenticate } from '@/middleware/auth';
-import { supabaseAdmin } from '@/lib/supabaseServer';
+import { getSupabaseRouteClient } from '@/lib/supabaseRouteHandler';
 
 export async function GET(request) {
   try {
@@ -10,7 +10,8 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: brand, error: brandError } = await supabaseAdmin
+    const supabase = getSupabaseRouteClient();
+    const { data: brand, error: brandError } = await supabase
       .from('BrandProfile')
       .select('id')
       .eq('owner_user_id', user.id)
@@ -20,7 +21,7 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Brand profile not found' }, { status: 404 });
     }
 
-    const { data: products, error: productsError } = await supabaseAdmin
+    const { data: products, error: productsError } = await supabase
       .from('Product')
       .select('*')
       .eq('brand_id', brand.id)
@@ -59,7 +60,8 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: brand, error: brandError } = await supabaseAdmin
+    const supabase = getSupabaseRouteClient();
+    const { data: brand, error: brandError } = await supabase
       .from('BrandProfile')
       .select('id')
       .eq('owner_user_id', user.id)
@@ -87,7 +89,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Invalid product status' }, { status: 400 });
     }
 
-    const { data: newProd, error: insertError } = await supabaseAdmin
+    const { data: newProd, error: insertError } = await supabase
       .from('Product')
       .insert({
         brand_id: brand.id,

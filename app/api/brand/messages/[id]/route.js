@@ -1,37 +1,19 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseServer";
+import { getSupabaseRouteClient } from "@/lib/supabaseRouteHandler";
 
 // GET /api/brand/messages/[id] - Fetch full thread message history
 export async function GET(request, { params }) {
   try {
     const { id } = params;
 
-    // 1. Authenticate user using JWT from Authorization or cookies
-    const authHeader = request.headers.get("Authorization");
-    let token = "";
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      token = authHeader.substring(7);
-    } else {
-      const cookieHeader = request.headers.get("cookie") || "";
-      const tokenCookie = cookieHeader
-        .split(";")
-        .find((c) => c.trim().startsWith("sb-access-token="));
-      if (tokenCookie) {
-        token = tokenCookie.split("=")[1];
-      }
-    }
-
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const supabase = getSupabaseRouteClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 2. Fetch the thread and verify ownership
-    const { data: thread, error: threadError } = await supabaseAdmin
+    // Fetch the thread and verify ownership
+    const { data: thread, error: threadError } = await supabase
       .from("MessageThread")
       .select("*")
       .eq("id", id)
@@ -48,7 +30,7 @@ export async function GET(request, { params }) {
     const otherId = thread.participant_a_id === user.id ? thread.participant_b_id : thread.participant_a_id;
 
     // Check if the other participant is a Creator
-    const { data: creatorProfile } = await supabaseAdmin
+    const { data: creatorProfile } = await supabase
       .from("CreatorProfile")
       .select("id")
       .eq("owner_user_id", otherId)
@@ -56,8 +38,8 @@ export async function GET(request, { params }) {
 
     const isCreatorThread = !!creatorProfile;
 
-    // 3. Fetch all messages in this thread ordered by created_at ascending
-    const { data: messages, error: messagesError } = await supabaseAdmin
+    // Fetch all messages in this thread ordered by created_at ascending
+    const { data: messages, error: messagesError } = await supabase
       .from("Message")
       .select("*")
       .eq("thread_id", id)
@@ -101,32 +83,14 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: "Message text is required" }, { status: 400 });
     }
 
-    // 1. Authenticate user using JWT from Authorization or cookies
-    const authHeader = request.headers.get("Authorization");
-    let token = "";
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      token = authHeader.substring(7);
-    } else {
-      const cookieHeader = request.headers.get("cookie") || "";
-      const tokenCookie = cookieHeader
-        .split(";")
-        .find((c) => c.trim().startsWith("sb-access-token="));
-      if (tokenCookie) {
-        token = tokenCookie.split("=")[1];
-      }
-    }
-
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const supabase = getSupabaseRouteClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 2. Fetch the thread and verify ownership
-    const { data: thread, error: threadError } = await supabaseAdmin
+    // Fetch the thread and verify ownership
+    const { data: thread, error: threadError } = await supabase
       .from("MessageThread")
       .select("*")
       .eq("id", id)
@@ -142,8 +106,8 @@ export async function POST(request, { params }) {
 
     const otherId = thread.participant_a_id === user.id ? thread.participant_b_id : thread.participant_a_id;
 
-    // 3. Insert the message row
-    const { data: newMsg, error: insertError } = await supabaseAdmin
+    // Insert the message row
+    const { data: newMsg, error: insertError } = await supabase
       .from("Message")
       .insert({
         thread_id: id,
@@ -159,15 +123,15 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: "Database error" }, { status: 500 });
     }
 
-    // 4. Update the thread's last_message_at timestamp
-    await supabaseAdmin
+    // Update the thread's last_message_at timestamp
+    await supabase
       .from("MessageThread")
       .update({ last_message_at: new Date().toISOString() })
       .eq("id", id);
 
-    // 5. Send an in-app notification to the recipient
+    // Send an in-app notification to the recipient
     const bodyText = text.length > 80 ? text.substring(0, 77) + "..." : text;
-    await supabaseAdmin
+    await supabase
       .from("Notification")
       .insert({
         user_id: otherId,

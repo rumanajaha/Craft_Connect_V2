@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { authenticate } from '@/middleware/auth';
-import { supabaseAdmin } from '@/lib/supabaseServer';
+import { getSupabaseRouteClient } from '@/lib/supabaseRouteHandler';
 
 export async function GET(request) {
   try {
@@ -10,7 +10,8 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: brand, error: brandError } = await supabaseAdmin
+    const supabase = getSupabaseRouteClient();
+    const { data: brand, error: brandError } = await supabase
       .from('BrandProfile')
       .select('id')
       .eq('owner_user_id', user.id)
@@ -25,7 +26,7 @@ export async function GET(request) {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
     // Retrieve counts for each tool from the AIGeneration table for the current month
-    const { data: usageData, error: usageError } = await supabaseAdmin
+    const { data: usageData, error: usageError } = await supabase
       .from('AIGeneration')
       .select('tool_name')
       .eq('brand_id', brand.id)

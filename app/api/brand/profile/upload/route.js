@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { authenticate } from '@/middleware/auth';
-import { supabaseAdmin } from '@/lib/supabaseServer';
+import { getSupabaseRouteClient } from '@/lib/supabaseRouteHandler';
 
 export async function POST(request) {
   try {
@@ -24,7 +24,8 @@ export async function POST(request) {
     const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
     const filePath = `${user.id}/${fileName}`;
 
-    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+    const supabase = getSupabaseRouteClient();
+    const { data: uploadData, error: uploadError } = await supabase.storage
       .from('brand-logos')
       .upload(filePath, buffer, {
         contentType: file.type || 'image/jpeg',
@@ -37,7 +38,7 @@ export async function POST(request) {
     }
 
     // Retrieve public URL
-    const { data: urlData } = supabaseAdmin.storage
+    const { data: urlData } = supabase.storage
       .from('brand-logos')
       .getPublicUrl(filePath);
 

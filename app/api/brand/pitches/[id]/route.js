@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { authenticate } from '@/middleware/auth';
-import { supabaseAdmin } from '@/lib/supabaseServer';
+import { getSupabaseRouteClient } from '@/lib/supabaseRouteHandler';
 
 export async function PATCH(request, { params }) {
   try {
@@ -18,7 +18,8 @@ export async function PATCH(request, { params }) {
     }
 
     // Get BrandProfile
-    const { data: brand, error: brandError } = await supabaseAdmin
+    const supabase = getSupabaseRouteClient();
+    const { data: brand, error: brandError } = await supabase
       .from('BrandProfile')
       .select('id, brand_name')
       .eq('owner_user_id', user.id)
@@ -29,7 +30,7 @@ export async function PATCH(request, { params }) {
     }
 
     // Get CollabRequest
-    const { data: collabRequest, error: collabError } = await supabaseAdmin
+    const { data: collabRequest, error: collabError } = await supabase
       .from('CollabRequest')
       .select('*')
       .eq('id', id)
@@ -46,7 +47,7 @@ export async function PATCH(request, { params }) {
     }
 
     // Update CollabRequest
-    const { data: updatedRequest, error: updateError } = await supabaseAdmin
+    const { data: updatedRequest, error: updateError } = await supabase
       .from('CollabRequest')
       .update({ status: dbStatus })
       .eq('id', id)
@@ -58,7 +59,7 @@ export async function PATCH(request, { params }) {
     }
 
     // Query CreatorProfile to get creator's owner_user_id
-    const { data: creator, error: creatorError } = await supabaseAdmin
+    const { data: creator, error: creatorError } = await supabase
       .from('CreatorProfile')
       .select('owner_user_id')
       .eq('id', collabRequest.creator_id)
@@ -69,7 +70,7 @@ export async function PATCH(request, { params }) {
       const actionText = dbStatus === 'accepted' ? 'accepted' : 'declined';
       
       // Insert Notification
-      await supabaseAdmin.from('Notification').insert({
+      await supabase.from('Notification').insert({
         user_id: creator.owner_user_id,
         type: 'collab_status',
         title: `Collaboration ${dbStatus === 'accepted' ? 'Accepted' : 'Declined'}`,
