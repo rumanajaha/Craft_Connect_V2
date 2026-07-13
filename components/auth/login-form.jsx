@@ -42,13 +42,16 @@ export default function LoginForm() {
       }
 
       const roleMap = {
-        CREATOR: "creator",
-        BRANDOWNER: "brand",
-        CUSTOMER: "customer",
+        CREATOR: "/creator",
+        BRANDOWNER: "/brand",
+        CUSTOMER: "/customer",
+        creator: "/creator",
+        brand: "/brand",
+        customer: "/customer"
       };
 
-      const role = roleMap[data.user.role] || "creator";
-      router.push(`/welcome?to=/${role}`);
+      const route = roleMap[data.user.role] || "/login";
+      router.push(`/welcome?to=${encodeURIComponent(route)}`);
     } catch (err) {
       setError("An unexpected error occurred");
       setIsLoading(false);

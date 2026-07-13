@@ -38,7 +38,7 @@ export async function POST(request) {
       );
     }
 
-    const metadataRole = role === "brand" ? "BRANDOWNER" : role === "creator" ? "CREATOR" : "CUSTOMER";
+    const metadataRole = role;
 
 
     const supabase = getSupabaseRouteClient();

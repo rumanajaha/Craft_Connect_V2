@@ -22,15 +22,28 @@ function WelcomeTransition() {
         const { data } = await supabase.auth.getUser();
         const role = data?.user?.user_metadata?.role;
         
+        const ROLE_ROUTES = {
+          brand: '/brand',
+          creator: '/creator',
+          customer: '/customer',
+          BRANDOWNER: '/brand',
+          CREATOR: '/creator',
+          CUSTOMER: '/customer',
+        };
+
         if (role) {
-          
           if (queryDest && queryDest.includes("onboarding")) {
             setDestination(queryDest);
           } else {
-            setDestination(`/${role}`);
+            setDestination(ROLE_ROUTES[role] || "/login");
           }
         } else if (queryDest) {
-          setDestination(queryDest);
+          const normalizedDest = queryDest.startsWith('/') ? queryDest.substring(1) : queryDest;
+          if (ROLE_ROUTES[normalizedDest]) {
+            setDestination(ROLE_ROUTES[normalizedDest]);
+          } else {
+            setDestination(queryDest);
+          }
         } else {
           setDestination("/login");
         }
