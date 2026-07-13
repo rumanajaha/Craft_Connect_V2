@@ -1,94 +1,121 @@
-import { NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
-import { hashPassword, generateToken } from '@/utils/auth'
+import { NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabaseServer";
 
 export async function POST(request) {
+  let createdUser = null;
   try {
-    const { email, password, name, role } = await request.json()
+    const body = await request.json();
+    const { email, password, role, displayName, name } = body;
+    const nameToUse = displayName || name || "";
 
+    // 1. Parse and validate the request body
     if (!email || !password || !role) {
+      console.error("Signup validation failure: Missing required fields");
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: "Missing required fields: email, password, and role are required." },
         { status: 400 }
-      )
+      );
     }
 
-    let normalizedRole = role.toUpperCase()
-    if (normalizedRole === 'BRAND') {
-      normalizedRole = 'BRANDOWNER'
-    }
-
-    if (!['CREATOR', 'BRANDOWNER', 'CUSTOMER'].includes(normalizedRole)) {
+    if (!["brand", "creator", "customer"].includes(role)) {
+      console.error(`Signup validation failure: Invalid role "${role}"`);
       return NextResponse.json(
-        { error: 'Invalid role' },
+        { error: "Invalid role. Role must be one of 'brand', 'creator', or 'customer'." },
         { status: 400 }
-      )
+      );
     }
 
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    })
+    const metadataRole = role === "brand" ? "BRANDOWNER" : role === "creator" ? "CREATOR" : "CUSTOMER";
 
-    if (existingUser) {
+    // 2. Use supabaseAdmin to create the auth user
+    const { data, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        role: metadataRole,
+        display_name: nameToUse
+      }
+    });
+
+    if (createUserError || !data?.user) {
+      console.error("Supabase createUser failure:", createUserError?.message || "User creation failed");
       return NextResponse.json(
-        { error: 'User already exists' },
-        { status: 409 }
-      )
+        { error: createUserError?.message || "User registration failed." },
+        { status: 400 }
+      );
     }
 
-    const hashedPassword = await hashPassword(password)
+    createdUser = data.user;
 
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        name,
-        role: normalizedRole,
-        brand: normalizedRole === 'BRANDOWNER' ? {
-          create: {
-            name: name || 'My Brand',
-          }
-        } : undefined,
-        creator: normalizedRole === 'CREATOR' ? {
-          create: {
-            name: name || 'My Creator Profile',
-          }
-        } : undefined,
-      },
-    })
+    // 3. On success, insert one row into the correct profile table based on role
+    let profileError = null;
 
-    const token = await generateToken({
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-    })
+    if (role === "brand") {
+      const { error } = await supabaseAdmin
+        .from("BrandProfile")
+        .insert({
+          owner_user_id: createdUser.id,
+          brand_name: nameToUse || "My Brand",
+          trust_score: 98,
+          rating_avg: 4.9,
+          review_count: 42
+        });
+      profileError = error;
+    } else if (role === "creator") {
+      const { error } = await supabaseAdmin
+        .from("CreatorProfile")
+        .insert({
+          owner_user_id: createdUser.id,
+          display_name: nameToUse || "My Profile",
+          niches: [],
+          follower_count: 0,
+          engagement_rate: 0
+        });
+      profileError = error;
+    } else if (role === "customer") {
+      const { error } = await supabaseAdmin
+        .from("CustomerProfile")
+        .insert({
+          owner_user_id: createdUser.id,
+          display_name: nameToUse || "Customer User"
+        });
+      profileError = error;
+    }
 
-    const response = NextResponse.json(
-      {
-        message: 'Registration successful',
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-        },
-      },
-      { status: 201 }
-    )
+    // 4. If the profile insert fails, delete the auth user before returning the error
+    if (profileError) {
+      console.error(`Profile insert failure for role "${role}":`, profileError.message);
+      
+      const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(createdUser.id);
+      if (deleteError) {
+        console.error("Cleanup failure: Failed to delete orphaned auth user:", deleteError.message);
+      }
+      
+      return NextResponse.json(
+        { error: `Failed to create profile: ${profileError.message}` },
+        { status: 500 }
+      );
+    }
 
-    response.cookies.set('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60,
-      path: '/',
-    })
+    // 5. Return success response
+    return NextResponse.json({
+      userId: createdUser.id,
+      role: metadataRole
+    });
+  } catch (err) {
+    console.error("Signup internal error:", err);
+    
+    // Cleanup if user was created before error threw
+    if (createdUser?.id) {
+      await supabaseAdmin.auth.admin.deleteUser(createdUser.id).catch((e) => {
+        console.error("Cleanup failure in catch block:", e.message);
+      });
+    }
 
-    return response
-  } catch (error) {
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal Server Error" },
       { status: 500 }
-    )
+    );
   }
 }
