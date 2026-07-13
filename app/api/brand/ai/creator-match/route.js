@@ -67,6 +67,20 @@ export async function POST(request) {
         output_text: report
       });
 
+    // Send a notification if matches found
+    if (topMatches.length > 0) {
+      await supabaseAdmin
+        .from('Notification')
+        .insert({
+          user_id: user.id,
+          type: 'ai_match',
+          title: 'New AI Creator Matches',
+          body: `We found ${topMatches.length} new creators with a 90%+ compatibility score for your brand.`,
+          is_read: false,
+          related_entity_id: brand.id
+        });
+    }
+
     return NextResponse.json({
       success: true,
       result: report,

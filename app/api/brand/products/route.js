@@ -109,6 +109,19 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Failed to create product' }, { status: 500 });
     }
 
+    if (finalStatus === 'out_of_stock' || finalStatus === 'sold_out') {
+      await supabase
+        .from('Notification')
+        .insert({
+          user_id: user.id,
+          type: 'product',
+          title: 'Product Marked Sold Out',
+          body: `"${newProd.name}" automatically flagged as sold out.`,
+          is_read: false,
+          related_entity_id: newProd.id
+        });
+    }
+
     const formattedProduct = {
       id: newProd.id,
       brandId: newProd.brand_id,

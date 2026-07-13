@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Compass, MessageCircle, Bookmark, Settings, LogOut, Menu, X, Bell, Sparkles } from "lucide-react";
+import { useUnreadNotifications } from "@/hooks/use-notifications";
 
 const NAV_ITEMS = [
   { label: "Dashboard",    href: "/customer",          icon: LayoutDashboard },
@@ -89,6 +90,7 @@ export default function CustomerLayout({ children }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const pageTitle = getPageTitle(pathname);
+  const unreadCount = useUnreadNotifications();
 
   return (
     <div className="min-h-screen bg-[#FAF7F0] flex">
@@ -140,9 +142,11 @@ export default function CustomerLayout({ children }) {
               >
                 <Bell className="w-4.5 h-4.5" />
                 
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-brand-primary text-white text-[10px] font-bold flex items-center justify-center rounded-full border border-white">
-                  3
-                </span>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-brand-primary text-white text-[10px] font-bold flex items-center justify-center rounded-full border border-white">
+                    {unreadCount}
+                  </span>
+                )}
               </Link>
 
               

@@ -227,6 +227,24 @@ export default function BrandNotificationsPage() {
     }
   };
 
+  const markAsRead = async (id) => {
+    try {
+      const isDbNotif = typeof id === "string";
+      if (isDbNotif) {
+        await fetch("/api/brand/notifications", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id })
+        });
+        setDbNotifications(prev =>
+          prev.map(n => (n.id === id ? { ...n, is_read: true } : n))
+        );
+      }
+    } catch (err) {
+      console.error("Failed to mark notification as read:", err);
+    }
+  };
+
   const grouped = mergedNotifications.reduce((acc, notif) => {
     if (!acc[notif.dateGroup]) acc[notif.dateGroup] = [];
     acc[notif.dateGroup].push(notif);
@@ -306,6 +324,7 @@ export default function BrandNotificationsPage() {
                     
                     <Link
                       href={notif.link}
+                      onClick={() => markAsRead(notif.id)}
                       className="text-xs font-bold text-brand-primary hover:text-brand-secondary transition-colors shrink-0 px-3 py-1.5 tracking-wide"
                     >
                       View

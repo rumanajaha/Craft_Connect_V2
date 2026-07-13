@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { BrandDataProvider } from "@/lib/brandDataStore";
 import { AIUsageProvider, useAIUsage } from "@/lib/aiUsageStore";
 import UpgradeModal from "@/components/brand/UpgradeModal";
+import { useUnreadNotifications } from "@/hooks/use-notifications";
 import { 
   LayoutDashboard, 
   Settings, 
@@ -116,6 +117,7 @@ function BrandLayoutInner({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pageTitle = getPageTitle(pathname);
   const { showUpgradeModal, setShowUpgradeModal } = useAIUsage();
+  const unreadCount = useUnreadNotifications();
 
   return (
     <div className="min-h-screen bg-[#FAF7F0] flex">
@@ -167,9 +169,11 @@ function BrandLayoutInner({ children }) {
               >
                 <Bell className="w-4.5 h-4.5" />
                 
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-brand-primary text-white text-[10px] font-bold flex items-center justify-center rounded-full border border-white">
-                  3
-                </span>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-brand-primary text-white text-[10px] font-bold flex items-center justify-center rounded-full border border-white">
+                    {unreadCount}
+                  </span>
+                )}
               </Link>
 
               <Link href="/brand/profile" title="View public profile">

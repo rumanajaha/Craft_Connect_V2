@@ -72,7 +72,7 @@ export async function PATCH(request, { params }) {
       // Insert Notification
       await supabase.from('Notification').insert({
         user_id: creator.owner_user_id,
-        type: 'collab_status',
+        type: 'pitch_status',
         title: `Collaboration ${dbStatus === 'accepted' ? 'Accepted' : 'Declined'}`,
         body: `${brandName} has ${actionText} your collaboration request.`,
         is_read: false,
