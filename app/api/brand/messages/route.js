@@ -135,3 +135,50 @@ export async function GET(request) {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
+
+export async function POST(request) {
+  try {
+    const supabase = getSupabaseRouteClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { recipientId } = await request.json();
+    if (!recipientId) {
+      return NextResponse.json({ error: "recipientId is required" }, { status: 400 });
+    }
+
+    // Check if a thread already exists between these participants in either order
+    const { data: existingThread, error: findError } = await supabase
+      .from("MessageThread")
+      .select("id")
+      .or(`and(participant_a_id.eq.${user.id},participant_b_id.eq.${recipientId}),and(participant_a_id.eq.${recipientId},participant_b_id.eq.${user.id})`)
+      .maybeSingle();
+
+    if (existingThread) {
+      return NextResponse.json({ success: true, threadId: existingThread.id });
+    }
+
+    // Insert a new MessageThread
+    const { data: newThread, error: createError } = await supabase
+      .from("MessageThread")
+      .insert({
+        participant_a_id: user.id,
+        participant_b_id: recipientId,
+        last_message_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (createError) {
+      console.error("Error creating MessageThread:", createError);
+      return NextResponse.json({ error: "Failed to create message thread" }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, threadId: newThread.id });
+  } catch (err) {
+    console.error("POST /api/brand/messages error:", err);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}

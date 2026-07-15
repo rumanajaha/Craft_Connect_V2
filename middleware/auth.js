@@ -1,9 +1,22 @@
 import { getSupabaseRouteClient } from "../lib/supabaseRouteHandler";
+import { supabaseAdmin } from "../lib/supabaseServer";
 
 export async function authenticate(request) {
   try {
     const supabase = getSupabaseRouteClient();
-    const { data: { user }, error } = await supabase.auth.getUser();
+    let { data: { user }, error } = await supabase.auth.getUser();
+
+    if (!user) {
+      const token = request?.cookies?.get?.("sb-access-token")?.value || 
+                    request?.headers?.get?.("cookie")?.split("; ")?.find(c => c.startsWith("sb-access-token="))?.split("=")[1];
+      if (token) {
+        const { data: adminData } = await supabaseAdmin.auth.getUser(token);
+        if (adminData?.user) {
+          user = adminData.user;
+          error = null;
+        }
+      }
+    }
 
     if (error || !user) {
       console.error("Auth middleware check failed:", error?.message);

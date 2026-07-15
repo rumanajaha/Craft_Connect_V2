@@ -113,16 +113,29 @@ export function BrandDataProvider({ children }) {
   useEffect(() => {
     async function loadData() {
       try {
-        const profileRes = await fetch("/api/brand/profile");
+        const [profileRes, productsRes] = await Promise.all([
+          fetch("/api/brand/profile"),
+          fetch("/api/brand/products")
+        ]);
+
         if (profileRes.ok) {
           const profileData = await profileRes.json();
           setBrandInfoState(profileData.profile);
+        } else if (profileRes.status === 401) {
+          if (typeof window !== "undefined") {
+            window.location.href = "/login";
+          }
+          return;
         }
         
-        const productsRes = await fetch("/api/brand/products");
         if (productsRes.ok) {
           const productsData = await productsRes.json();
           setProductsState(productsData.products);
+        } else if (productsRes.status === 401) {
+          if (typeof window !== "undefined") {
+            window.location.href = "/login";
+          }
+          return;
         }
       } catch (err) {
         console.error("Failed to fetch brand provider data:", err);

@@ -21,6 +21,51 @@ function BrandMessagesContent() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState(null);
 
+  const [creators, setCreators] = useState([]);
+
+  useEffect(() => {
+    async function loadCreators() {
+      try {
+        const response = await fetch("/api/brand/dashboard");
+        if (response.ok) {
+          const data = await response.json();
+          setCreators(data.creatorMatches || []);
+        }
+      } catch (err) {
+        console.error("Error loading creators for messages:", err);
+      }
+    }
+    loadCreators();
+  }, []);
+
+  const startChat = async (recipientId) => {
+    try {
+      setIsLoading(true);
+      const res = await fetch("/api/brand/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recipientId })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const response = await fetch("/api/brand/messages");
+        if (response.ok) {
+          const tData = await response.json();
+          setThreads(tData.threads || []);
+          const found = (tData.threads || []).find(t => t.id === data.threadId);
+          if (found) {
+            setActiveThread(found);
+            setMobileView("chat");
+          }
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // 1. Fetch all threads on mount
   useEffect(() => {
     async function loadThreads() {
@@ -264,17 +309,7 @@ function BrandMessagesContent() {
     );
   }
 
-  if (!activeThread) {
-    return (
-      <div className="bg-white border border-brand-border/50 rounded-2xl shadow-sm overflow-hidden h-[calc(100vh-140px)] flex items-center justify-center">
-        <div className="text-center space-y-2">
-          <p className="text-sm text-brand-muted">No conversations found.</p>
-        </div>
-      </div>
-    );
-  }
-
-  const contactInfo = getThreadContactInfo(activeThread);
+  const contactInfo = activeThread ? getThreadContactInfo(activeThread) : null;
 
   return (
     <div className="bg-white border border-brand-border/50 rounded-2xl shadow-sm overflow-hidden h-[calc(100vh-140px)] flex">
@@ -356,7 +391,53 @@ function BrandMessagesContent() {
       </div>
 
       
-      <div className={`flex-1 flex flex-col min-w-0 bg-white relative ${mobileView === 'list' ? 'hidden md:flex' : 'flex'}`}>
+      {!activeThread ? (
+        <div className={`flex-1 flex flex-col bg-[#FAF7F0] overflow-y-auto p-8 justify-center items-center ${mobileView === 'list' ? 'hidden md:flex' : 'flex'}`}>
+          <div className="max-w-xl text-center space-y-6">
+            <div>
+              <h3 className="font-serif text-2xl font-bold text-[#2A2A2A]">Start a Conversation</h3>
+              <p className="text-sm text-brand-muted mt-2">
+                Select one of your matched creators below to begin messaging and collaborate.
+              </p>
+            </div>
+            
+            {creators.length === 0 ? (
+              <div className="p-6 bg-white rounded-2xl border border-brand-border/40 text-brand-muted text-sm font-semibold">
+                No matching creators found. Go to Dashboard to discover matches!
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+                {creators.map(creator => (
+                  <div key={creator.id} className="p-4 bg-white rounded-2xl border border-brand-border/40 flex flex-col justify-between hover:border-brand-primary/30 transition-all shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="relative w-10 h-10 rounded-full overflow-hidden border border-brand-border/40 shrink-0 bg-brand-border/20">
+                        {creator.avatar ? (
+                          <img src={creator.avatar} alt={creator.name} className="object-cover w-full h-full" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-brand-muted font-bold text-xs uppercase bg-brand-border/20">
+                            {creator.name?.charAt(0)}
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-[#2A2A2A] truncate">{creator.name}</p>
+                        <p className="text-xs text-brand-muted font-medium">{creator.followers} followers</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => startChat(creator.owner_user_id)}
+                      className="mt-4 w-full bg-brand-primary hover:bg-brand-secondary text-white text-xs font-bold py-2 rounded-xl transition-all cursor-pointer shadow-sm"
+                    >
+                      Chat Now
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className={`flex-1 flex flex-col min-w-0 bg-white relative ${mobileView === 'list' ? 'hidden md:flex' : 'flex'}`}>
         
         
         <div className="px-5 py-4 border-b border-brand-border/50 flex items-center justify-between bg-white z-10 shrink-0">
@@ -534,6 +615,7 @@ function BrandMessagesContent() {
           </form>
         </div>
       </div>
+      )}
     </div>
   );
 }

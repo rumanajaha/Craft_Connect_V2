@@ -61,6 +61,8 @@ export default function BrandSettingsPage() {
         if (response.ok) {
           const data = await response.json();
           setProfile(data.profile);
+        } else if (response.status === 401) {
+          router.push("/login");
         }
       } catch (err) {
         console.error("Failed to load profile settings:", err);

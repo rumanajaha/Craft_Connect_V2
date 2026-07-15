@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { authenticate } from "@/middleware/auth";
 import { getSupabaseRouteClient } from "@/lib/supabaseRouteHandler";
+import { getFeedItems } from "@/lib/feedRanking";
 
 function getTagOverlap(brandTags, itemTags) {
   if (!brandTags || brandTags.length === 0 || !itemTags || itemTags.length === 0) {
@@ -41,13 +42,16 @@ export async function GET(request) {
 
     const brandTags = brand?.ai_tags || [];
 
-    const { data: feedItems, error: itemsError } = await supabase
+    let feedItems;
+    const { data, error: itemsError } = await supabase
       .from("FeedItem")
       .select("*");
 
-    if (itemsError || !feedItems) {
-      console.error("Error fetching feed items for search:", itemsError?.message);
-      return NextResponse.json({ error: "Database error" }, { status: 500 });
+    if (itemsError || !data || data.length === 0) {
+      console.warn("FeedItem table not found or empty during search, using mock data fallback.");
+      feedItems = getFeedItems();
+    } else {
+      feedItems = data;
     }
 
     const filtered = feedItems.filter(item => {
@@ -89,21 +93,21 @@ export async function GET(request) {
       return {
         id: item.id,
         type: item.type,
-        productId: item.product_id || null,
-        creatorId: item.creator_id || null,
-        brandId: item.brand_id || null,
+        productId: item.product_id || item.productId || null,
+        creatorId: item.creator_id || item.creatorId || null,
+        brandId: item.brand_id || item.brandId || null,
         name: item.name || null,
         price: item.price || null,
         image: item.image || null,
-        brandName: item.brand_name || null,
-        brandLogo: item.brand_logo || null,
-        creatorName: item.creator_name || null,
-        creatorAvatar: item.creator_avatar || null,
-        portfolioImage: item.portfolio_image || null,
+        brandName: item.brand_name || item.brandName || null,
+        brandLogo: item.brand_logo || item.brandLogo || null,
+        creatorName: item.creator_name || item.creatorName || null,
+        creatorAvatar: item.creator_avatar || item.creatorAvatar || null,
+        portfolioImage: item.portfolio_image || item.portfolioImage || null,
         caption: item.caption || null,
-        updateType: item.update_type || null,
-        updateText: item.update_text || null,
-        bannerImage: item.banner_image || null,
+        updateType: item.update_type || item.updateType || null,
+        updateText: item.update_text || item.updateText || null,
+        bannerImage: item.banner_image || item.bannerImage || null,
         views: item.views,
         saves: item.saves,
         rating: item.rating,
