@@ -34,8 +34,8 @@ export async function GET(request) {
       videoUrl: brand.banner_video_url || '',
       description: brand.description || '',
       tags: brand.ai_tags ? brand.ai_tags.join(', ') : '',
-      instagram: brand.notification_prefs?.instagram || '',
-      tiktok: brand.notification_prefs?.tiktok || '',
+      instagram: brand.instagram_url || '',
+      tiktok: brand.tiktok_url || '',
       rating: brand.rating_avg !== null ? Number(brand.rating_avg) : 4.9,
       reviews: brand.review_count !== null ? Number(brand.review_count) : 42,
       notification_prefs: brand.notification_prefs || {
@@ -64,7 +64,7 @@ export async function PATCH(request) {
     const supabase = getSupabaseRouteClient();
     const { data: brand, error: brandError } = await supabase
       .from('BrandProfile')
-      .select('id, notification_prefs')
+      .select('id')
       .eq('owner_user_id', user.id)
       .single();
 
@@ -83,23 +83,11 @@ export async function PATCH(request) {
     if (body.website !== undefined) updateData.website_url = body.website;
     if (body.videoUrl !== undefined) updateData.banner_video_url = body.videoUrl;
     if (body.description !== undefined) updateData.description = body.description;
+    if (body.instagram !== undefined) updateData.instagram_url = body.instagram;
+    if (body.tiktok !== undefined) updateData.tiktok_url = body.tiktok;
     if (body.logo !== undefined) updateData.logo_url = body.logo;
     if (body.logoUrl !== undefined) updateData.logo_url = body.logoUrl;
-
-    // Store instagram and tiktok handles in notification_prefs to avoid schema column errors
-    const currentPrefs = brand.notification_prefs || {
-      newPitch: { email: true, desktop: true },
-      newRequest: { email: true, desktop: true },
-      aiMatch: { email: false, desktop: true },
-      messages: { email: true, desktop: true }
-    };
-    const updatedPrefs = { ...currentPrefs };
-    if (body.notification_prefs !== undefined) {
-      Object.assign(updatedPrefs, body.notification_prefs);
-    }
-    if (body.instagram !== undefined) updatedPrefs.instagram = body.instagram;
-    if (body.tiktok !== undefined) updatedPrefs.tiktok = body.tiktok;
-    updateData.notification_prefs = updatedPrefs;
+    if (body.notification_prefs !== undefined) updateData.notification_prefs = body.notification_prefs;
 
     if (body.tags !== undefined) {
       updateData.ai_tags = body.tags
@@ -131,8 +119,8 @@ export async function PATCH(request) {
       videoUrl: updatedBrand.banner_video_url || '',
       description: updatedBrand.description || '',
       tags: updatedBrand.ai_tags ? updatedBrand.ai_tags.join(', ') : '',
-      instagram: updatedBrand.notification_prefs?.instagram || '',
-      tiktok: updatedBrand.notification_prefs?.tiktok || '',
+      instagram: updatedBrand.instagram_url || '',
+      tiktok: updatedBrand.tiktok_url || '',
       rating: updatedBrand.rating_avg !== null ? Number(updatedBrand.rating_avg) : 4.9,
       reviews: updatedBrand.review_count !== null ? Number(updatedBrand.review_count) : 42,
       notification_prefs: updatedBrand.notification_prefs

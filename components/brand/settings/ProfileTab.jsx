@@ -453,11 +453,7 @@ export default function ProfileTab({ profile, setProfile, setIsDirty }) {
                 src={profile.logoUrl || profile.logo || "https://images.unsplash.com/photo-1612196808214-b8e1d6145a8c?w=400&auto=format&fit=crop&q=80"} 
                 alt="Brand Logo" 
                 fill 
-                className="object-cover"
-                onError={(e) => {
-                  e.currentTarget.src = "https://images.unsplash.com/photo-1612196808214-b8e1d6145a8c?w=400&auto=format&fit=crop&q=80";
-                  e.currentTarget.srcset = "";
-                }}
+                className="object-cover" 
               />
               <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                 <Camera className="w-6 h-6 text-white mb-1" />

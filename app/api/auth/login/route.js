@@ -25,14 +25,14 @@ export async function POST(request) {
     if (error || !data?.user) {
       const errMsg = error?.message || "Invalid credentials";
       console.error("Supabase signInWithPassword failure:", errMsg);
-
+      
       if (errMsg.toLowerCase().includes("email not confirmed") || errMsg.toLowerCase().includes("email_not_confirmed") || errMsg.toLowerCase().includes("confirm your email")) {
         return NextResponse.json(
           { error: "EMAIL_NOT_CONFIRMED" },
           { status: 403 }
         );
       }
-
+      
       return NextResponse.json(
         { error: errMsg },
         { status: 401 }

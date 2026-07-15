@@ -1,6 +1,5 @@
 import { Outfit, Playfair_Display } from 'next/font/google';
 import '@/styles/globals.css';
-import { AuthGuardProvider } from '@/lib/AuthGuardProvider';
 
 const outfit = Outfit({
   subsets: ['latin'],
@@ -23,9 +22,8 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${outfit.variable} ${playfair.variable}`} suppressHydrationWarning>
       <body className="bg-cream text-brand-dark antialiased" suppressHydrationWarning>
-        <AuthGuardProvider>{children}</AuthGuardProvider>
+        {children}
       </body>
     </html>
   );
 }
-

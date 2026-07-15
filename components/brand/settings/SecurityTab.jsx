@@ -64,13 +64,9 @@ export default function SecurityTab() {
       const data = await response.json();
 
       if (response.ok) {
-        setMessage({ text: "Password updated successfully! Logging out...", type: "success" });
+        setMessage({ text: "Password updated successfully!", type: "success" });
         setNewPassword("");
         setConfirmPassword("");
-        setTimeout(async () => {
-          await supabase.auth.signOut();
-          router.push("/login?password_updated=true");
-        }, 1500);
       } else {
         setMessage({ text: data.error || "Failed to update password.", type: "error" });
       }

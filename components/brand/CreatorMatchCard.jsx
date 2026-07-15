@@ -47,34 +47,12 @@ export default function CreatorMatchCard({ creator }) {
           <span className="text-xs font-bold">{creator.compatibility}% Match</span>
         </div>
         
-        <button 
-          onClick={async (e) => {
-            e.preventDefault();
-            if (!creator.owner_user_id) {
-              alert("No user ID associated with this creator profile.");
-              return;
-            }
-            try {
-              const res = await fetch("/api/brand/messages", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ recipientId: creator.owner_user_id })
-              });
-              if (res.ok) {
-                const data = await res.json();
-                window.location.href = `/brand/messages?thread=${data.threadId}`;
-              } else {
-                alert("Failed to start message thread.");
-              }
-            } catch (err) {
-              console.error(err);
-              alert("Error initiating chat.");
-            }
-          }}
-          className="flex items-center gap-1.5 text-xs font-bold text-brand-primary hover:text-brand-secondary transition-colors px-2.5 py-1.5 rounded-xl border border-brand-primary/20 hover:bg-brand-primary/5 cursor-pointer"
+        <Link 
+          href={`/brand/creator/${creator.id}`} 
+          className="flex items-center gap-1.5 text-xs font-bold text-brand-primary hover:text-brand-secondary transition-colors px-2 py-1"
         >
-          Message <ExternalLink className="w-3.5 h-3.5" />
-        </button>
+          View Profile <ExternalLink className="w-3.5 h-3.5" />
+        </Link>
       </div>
     </div>
   );
