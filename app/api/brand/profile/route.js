@@ -64,7 +64,7 @@ export async function PATCH(request) {
     const supabase = getSupabaseRouteClient();
     const { data: brand, error: brandError } = await supabase
       .from('BrandProfile')
-      .select('id')
+      .select('id, notification_prefs')
       .eq('owner_user_id', user.id)
       .single();
 

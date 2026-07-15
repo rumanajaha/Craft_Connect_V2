@@ -89,7 +89,9 @@ export default function BrandSettingsPage() {
         setBrandInfo(data.profile);
         setIsDirty(false);
       } else {
-        alert("Failed to save settings.");
+        const errData = await response.json().catch(() => ({}));
+        console.error("Save settings failed:", response.status, errData);
+        alert(`Failed to save settings: ${errData.error || response.statusText || "Unknown error"} (${response.status})`);
       }
     } catch (err) {
       console.error("Save settings error:", err);

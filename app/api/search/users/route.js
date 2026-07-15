@@ -14,10 +14,13 @@ export async function GET(request) {
     const q = searchParams.get('q') || '';
     const type = searchParams.get('type') || 'all';
 
-    const supabase = getSupabaseRouteClient();
+    const { createClient } = require('@supabase/supabase-js');
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
 
-
-    const results = await searchUsers(supabase, {
+    const results = await searchUsers(supabaseAdmin, {
       q,
       type,
       currentUserId: user.id

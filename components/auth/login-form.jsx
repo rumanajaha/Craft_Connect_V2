@@ -8,12 +8,15 @@ import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 
+import { Eye, EyeOff } from "lucide-react";
+
 export default function LoginForm() {
   const router = useRouter();
   const supabase = createClient();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -96,15 +99,25 @@ export default function LoginForm() {
                 Forgot password?
               </Link>
             </div>
-            <input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full px-4 py-3 rounded-2xl bg-white/70 border border-brand-border/80 focus:border-brand-primary focus:ring-brand-primary/20 text-brand-dark placeholder-brand-muted/70 text-sm transition-all duration-300 outline-none focus:ring-4"
-            />
+            <div className="relative w-full">
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="w-full px-4 py-3 pr-10 rounded-2xl bg-white/70 border border-brand-border/80 focus:border-brand-primary focus:ring-brand-primary/20 text-brand-dark placeholder-brand-muted/70 text-sm transition-all duration-300 outline-none focus:ring-4"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-muted hover:text-brand-dark transition-colors focus:outline-none"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
         </CardContent>
         <CardFooter className="flex flex-col gap-4 mt-2">

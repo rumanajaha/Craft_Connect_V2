@@ -63,13 +63,7 @@ export const addFeedUpdate = (updateType, details) => {
 
 export function BrandDataProvider({ children }) {
   
-  const [brandInfo, setBrandInfoState] = useState(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("cc_brand_info");
-      if (saved) return JSON.parse(saved);
-    }
-    return seedBrandInfo;
-  });
+  const [brandInfo, setBrandInfoState] = useState(seedBrandInfo);
 
   const setBrandInfo = (newInfo) => {
     setBrandInfoState(newInfo);
@@ -95,13 +89,7 @@ export function BrandDataProvider({ children }) {
   };
 
   
-  const [products, setProductsState] = useState(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("cc_brand_products");
-      if (saved) return JSON.parse(saved);
-    }
-    return seedProducts;
-  });
+  const [products, setProductsState] = useState(seedProducts);
 
   const setProducts = (newProducts) => {
     setProductsState(newProducts);
@@ -111,6 +99,18 @@ export function BrandDataProvider({ children }) {
   };
 
   useEffect(() => {
+    // Load from localStorage on mount (safe from hydration mismatch)
+    if (typeof window !== "undefined") {
+      const savedInfo = localStorage.getItem("cc_brand_info");
+      if (savedInfo) {
+        setBrandInfoState(JSON.parse(savedInfo));
+      }
+      const savedProds = localStorage.getItem("cc_brand_products");
+      if (savedProds) {
+        setProductsState(JSON.parse(savedProds));
+      }
+    }
+
     async function loadData() {
       try {
         const [profileRes, productsRes] = await Promise.all([
@@ -186,19 +186,11 @@ export function useBrandData() {
     let localBrandInfo = seedBrandInfo;
     let localProducts = seedProducts;
     
-    if (typeof window !== "undefined") {
-      const savedInfo = localStorage.getItem("cc_brand_info");
-      if (savedInfo) localBrandInfo = JSON.parse(savedInfo);
-      
-      const savedProds = localStorage.getItem("cc_brand_products");
-      if (savedProds) localProducts = JSON.parse(savedProds);
-    }
-
     return {
-      brandInfo: localBrandInfo,
-      brandAbout: localBrandInfo.description,
+      brandInfo: seedBrandInfo,
+      brandAbout: seedBrandInfo.description,
       setBrandAbout: () => {},
-      products: localProducts,
+      products: seedProducts,
       setProducts: () => {},
       updateProductDescription: () => {},
       activeBrandId: ACTIVE_BRAND_ID,
