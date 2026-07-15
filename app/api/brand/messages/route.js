@@ -123,6 +123,7 @@ export async function GET(request) {
         isCreatorThread,
         creatorName,
         creatorAvatar,
+        recipientId: otherId,
         unread,
         lastMessageTime,
         lastMessageText
