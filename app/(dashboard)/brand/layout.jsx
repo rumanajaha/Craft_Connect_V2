@@ -6,6 +6,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { BrandDataProvider, useBrandData } from "@/lib/brandDataStore";
 import { AIUsageProvider, useAIUsage } from "@/lib/aiUsageStore";
+import { CollabProvider } from "@/lib/collabStore";
 import UpgradeModal from "@/components/brand/UpgradeModal";
 import { useUnreadNotifications } from "@/hooks/use-notifications";
 import { 
@@ -103,11 +104,13 @@ function Sidebar({ pathname, onClose }) {
 
 export default function BrandLayout({ children }) {
   return (
-    <BrandDataProvider>
-      <AIUsageProvider>
-        <BrandLayoutInner>{children}</BrandLayoutInner>
-      </AIUsageProvider>
-    </BrandDataProvider>
+    <CollabProvider>
+      <BrandDataProvider>
+        <AIUsageProvider>
+          <BrandLayoutInner>{children}</BrandLayoutInner>
+        </AIUsageProvider>
+      </BrandDataProvider>
+    </CollabProvider>
   );
 }
 

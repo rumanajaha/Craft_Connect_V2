@@ -5,7 +5,7 @@
 import React, { createContext, useContext, useState } from "react";
 import { MOCK_CREATOR_PITCHES, MOCK_CREATOR_OUTGOING_PITCHES } from "@/lib/mockData";
 
-const CollabContext = createContext(null);
+export const CollabContext = createContext(null);
 
 export function CollabProvider({ children }) {
   

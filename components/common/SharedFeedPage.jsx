@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import { Search, Sparkles, Loader2, MessageSquare, X } from "lucide-react";
+import React, { useState, useMemo, useEffect, useRef, useCallback, useContext } from "react";
+import { Search, Sparkles, Loader2, MessageSquare, X, Handshake } from "lucide-react";
 import FeedTile from "@/components/common/FeedTile";
 import { getFeedItems, rankFeed } from "@/lib/feedRanking";
+import { CollabContext } from "@/lib/collabStore";
+import ProposeCollabModal from "@/components/creator/ProposeCollabModal";
 
 const PAGE_SIZE = 12;
 
@@ -23,7 +25,98 @@ function isWideTile(globalIndex) {
 }
 
 
+function ProfileSearchTile({ user, viewerRole, onStartChat, onProposeCollab }) {
+  const [hovered, setHovered] = useState(false);
+
+  const isBrand = user.profileType === "brand";
+  const label = isBrand ? "Brand" : "Creator";
+  const badgeColor = isBrand
+    ? "bg-emerald-50 text-emerald-700 border border-emerald-200/50"
+    : "bg-purple-50 text-purple-700 border border-purple-200/50";
+
+  // Show "Propose Collaboration" action for brand-to-creator or creator-to-brand contexts only.
+  const showPropose =
+    (viewerRole === "brand" && user.profileType === "creator") ||
+    (viewerRole === "creator" && user.profileType === "brand");
+
+  const avatar = user.avatar_url || user.logo_url;
+
+  return (
+    <div
+      className="relative block overflow-hidden rounded-lg bg-brand-border/20 group aspect-square select-none cursor-pointer"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* Background Image / Placeholder */}
+      {avatar ? (
+        <img
+          src={avatar}
+          alt={user.name}
+          className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
+        />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center text-brand-muted font-bold text-3xl bg-brand-border/20 uppercase">
+          {user.name?.charAt(0) || "?"}
+        </div>
+      )}
+
+      {/* Role Badge in top-left */}
+      <div className="absolute top-2.5 left-2.5 pointer-events-none z-10">
+        <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full shadow-sm ${badgeColor}`}>
+          {label}
+        </span>
+      </div>
+
+      {/* Info & Action Overlay */}
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent p-3 pt-12 flex flex-col justify-end transition-all duration-300 z-10">
+        <p className="text-white text-xs font-bold leading-snug truncate">
+          {user.name}
+        </p>
+        {(user.category || user.niche) && (
+          <p className="text-white/70 text-[9px] leading-snug truncate mt-0.5 font-medium">
+            {user.category || user.niche} {user.location ? `· ${user.location}` : ""}
+          </p>
+        )}
+
+        {/* Action Buttons overlay */}
+        <div
+          className={`flex gap-1.5 mt-2 transition-all duration-300 origin-bottom ${
+            hovered ? "opacity-100 translate-y-0 h-auto" : "opacity-0 translate-y-2 h-0 overflow-hidden"
+          }`}
+        >
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onStartChat(user);
+            }}
+            className="flex-1 py-1.5 px-2 bg-brand-primary text-white rounded-lg text-[10px] font-bold hover:bg-brand-secondary transition-colors flex items-center justify-center gap-1 shadow-sm active:scale-[0.98]"
+          >
+            <MessageSquare className="w-3 h-3" />
+            Message
+          </button>
+          {showPropose && (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onProposeCollab(user);
+              }}
+              className="flex-1 py-1.5 px-2 bg-white/95 text-brand-dark rounded-lg text-[10px] font-bold hover:bg-white hover:text-brand-primary transition-all flex items-center justify-center gap-1 border border-brand-border/40 shadow-sm active:scale-[0.98]"
+            >
+              <Handshake className="w-3 h-3 text-brand-primary" />
+              Propose
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 export default function SharedFeedPage({ role, userTags = [], heading, subheading, emptyStatePrompt }) {
+  const collabCtx = useContext(CollabContext);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const loaderRef = useRef(null);
@@ -31,8 +124,8 @@ export default function SharedFeedPage({ role, userTags = [], heading, subheadin
   const [matchedUsers, setMatchedUsers] = useState([]);
   const [isSearchingUsers, setIsSearchingUsers] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
-  const [selectedUser, setSelectedUser] = useState(null);
   const [isInitiatingChat, setIsInitiatingChat] = useState(false);
+  const [pitchTarget, setPitchTarget] = useState(null);
 
   // Brand Owner Server-side state
   const [items, setItems] = useState([]);
@@ -110,9 +203,14 @@ export default function SharedFeedPage({ role, userTags = [], heading, subheadin
 
       if (res.ok) {
         const data = await res.json();
-        const redirectUrl = currentUser.role === "BRANDOWNER"
-          ? `/brand/messages?thread=${data.threadId}`
-          : `/creator/messages?thread=${data.threadId}`;
+        let redirectUrl = "";
+        if (currentUser.role === "BRANDOWNER") {
+          redirectUrl = `/brand/messages?thread=${data.threadId}`;
+        } else if (currentUser.role === "CREATOR") {
+          redirectUrl = `/creator/messages?thread=${data.threadId}`;
+        } else {
+          redirectUrl = `/customer/messages?thread=${data.threadId}`;
+        }
         window.location.href = redirectUrl;
       } else {
         alert("Failed to start conversation.");
@@ -125,9 +223,20 @@ export default function SharedFeedPage({ role, userTags = [], heading, subheadin
     }
   };
 
+  const handleProposeCollab = (user) => {
+    setPitchTarget({
+      id: user.id,
+      name: user.name,
+      logo: user.avatar_url || user.logo_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80',
+      category: user.category || user.niche || (user.niches && user.niches[0]) || '',
+      location: user.location || 'Online',
+    });
+  };
+
   // Fetch logic for brand role
   useEffect(() => {
     if (role !== "brand") return;
+    if (searchQuery.trim()) return; // Skip feed fetching during active search
 
     let active = true;
     const fetchFeed = async () => {
@@ -135,9 +244,7 @@ export default function SharedFeedPage({ role, userTags = [], heading, subheadin
         setIsLoading(page === 1);
         setIsMoreLoading(page > 1);
 
-        const endpoint = searchQuery.trim()
-          ? `/api/brand/feed/search?q=${encodeURIComponent(searchQuery)}&page=${page}&limit=${PAGE_SIZE}`
-          : `/api/brand/feed?page=${page}&limit=${PAGE_SIZE}`;
+        const endpoint = `/api/brand/feed?page=${page}&limit=${PAGE_SIZE}`;
 
         const res = await fetch(endpoint);
         if (!res.ok) throw new Error("Failed to fetch feed");
@@ -256,208 +363,105 @@ export default function SharedFeedPage({ role, userTags = [], heading, subheadin
         </div>
       </div>
 
-      {/* Dynamic Profiles Section */}
-      {searchQuery.trim() && (matchedUsers.length > 0 || isSearchingUsers) && (
-        <div className="mb-8 bg-[#fbf9f6] border border-brand-border/50 rounded-2xl p-5 shadow-sm">
-          <h3 className="font-serif text-xs font-bold text-brand-dark uppercase tracking-wider mb-4 flex items-center justify-between">
-            <span>Matching Profiles & Accounts</span>
-            {isSearchingUsers && (
-              <span className="text-[10px] text-brand-primary lowercase animate-pulse">searching...</span>
-            )}
-          </h3>
-          {isSearchingUsers && matchedUsers.length === 0 ? (
-            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="w-56 p-4 bg-white rounded-xl border border-brand-border/30 animate-pulse flex items-center gap-3 shrink-0">
-                  <div className="w-10 h-10 bg-brand-border/20 rounded-full shrink-0" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-3.5 bg-brand-border/20 rounded w-2/3" />
-                    <div className="h-2.5 bg-brand-border/20 rounded w-1/2" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-brand-border/40 scrollbar-track-transparent">
-              {matchedUsers.map(user => (
-                <button
-                  key={user.id}
-                  onClick={() => setSelectedUser(user)}
-                  className="w-56 p-4 bg-white rounded-xl border border-brand-border/50 flex items-center gap-3 shrink-0 text-left hover:border-brand-primary/50 hover:shadow-sm transition-all focus:outline-none"
-                >
-                  <div className="relative w-10 h-10 rounded-full overflow-hidden border border-brand-border/40 shrink-0 bg-brand-border/10">
-                    {user.avatar_url || user.logo_url ? (
-                      <img src={user.avatar_url || user.logo_url} alt={user.name} className="object-cover w-full h-full" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-brand-muted font-bold text-xs bg-brand-border/20 uppercase">
-                        {user.name.charAt(0)}
-                      </div>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-brand-dark truncate">{user.name}</p>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
-                        user.profileType === 'brand' ? 'bg-emerald-50 text-emerald-700' : 'bg-purple-50 text-purple-700'
-                      }`}>
-                        {user.profileType}
-                      </span>
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Profile Details Modal */}
-      {selectedUser && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-all">
-          <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-brand-border/40 flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-brand-border/40 flex items-start justify-between bg-[#fbf9f6]">
-              <div className="flex items-center gap-4">
-                <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-white shadow-md shrink-0 bg-brand-border/20">
-                  {selectedUser.avatar_url || selectedUser.logo_url ? (
-                    <img src={selectedUser.avatar_url || selectedUser.logo_url} alt={selectedUser.name} className="object-cover w-full h-full" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-brand-muted font-bold text-xl uppercase bg-brand-border/20">
-                      {selectedUser.name.charAt(0)}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <h2 className="font-serif text-lg font-bold text-brand-dark leading-snug">{selectedUser.name}</h2>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                      selectedUser.profileType === 'brand' ? 'bg-emerald-50 text-emerald-700' : 'bg-purple-50 text-purple-700'
-                    }`}>
-                      {selectedUser.profileType}
-                    </span>
-                    {selectedUser.category && (
-                      <span className="text-[10px] text-brand-muted font-semibold">
-                        • {selectedUser.category}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={() => setSelectedUser(null)}
-                className="w-8 h-8 flex items-center justify-center rounded-full text-brand-muted hover:bg-brand-border/20 hover:text-brand-dark transition-all cursor-pointer focus:outline-none"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-5 overflow-y-auto max-h-[50vh]">
-              {selectedUser.location && (
-                <div>
-                  <h4 className="text-[10px] font-bold text-brand-dark uppercase tracking-wider mb-1">Location</h4>
-                  <p className="text-sm text-brand-dark font-medium">{selectedUser.location}</p>
-                </div>
-              )}
-
-              {(selectedUser.bio || selectedUser.description) && (
-                <div>
-                  <h4 className="text-[10px] font-bold text-brand-dark uppercase tracking-wider mb-1">About</h4>
-                  <p className="text-sm text-brand-muted leading-relaxed font-sans font-medium whitespace-pre-line">
-                    {selectedUser.bio || selectedUser.description}
-                  </p>
-                </div>
-              )}
-
-              {selectedUser.ai_tags && selectedUser.ai_tags.length > 0 && (
-                <div>
-                  <h4 className="text-[10px] font-bold text-brand-dark uppercase tracking-wider mb-2">Topic Tags</h4>
-                  <div className="flex flex-wrap gap-1.5">
-                    {selectedUser.ai_tags.map(tag => (
-                      <span key={tag} className="inline-block px-2.5 py-1 rounded-full bg-brand-border/30 text-brand-dark/80 text-[10px] font-bold uppercase tracking-wider">
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="p-6 border-t border-brand-border/40 bg-[#fbf9f6] flex gap-3">
-              <button
-                onClick={() => setSelectedUser(null)}
-                className="flex-1 py-3 px-4 rounded-xl border border-brand-border/80 text-brand-dark font-bold text-sm hover:bg-brand-border/10 transition-colors focus:outline-none cursor-pointer text-center"
-              >
-                Close
-              </button>
-              {currentUser && currentUser.id !== selectedUser.owner_user_id && (
-                <button
-                  onClick={() => handleStartChat(selectedUser)}
-                  disabled={isInitiatingChat}
-                  className="flex-1 py-3 px-4 rounded-xl bg-brand-primary text-white font-bold text-sm hover:bg-brand-secondary transition-colors focus:outline-none flex items-center justify-center gap-1.5 cursor-pointer disabled:bg-brand-primary/60 shadow-sm"
-                >
-                  {isInitiatingChat ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-white" />
-                  ) : (
-                    <>
-                      <MessageSquare className="w-4 h-4" /> Message Profile
-                    </>
-                  )}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-
-      {isLoading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-[3px]">
-          {Array.from({ length: PAGE_SIZE }).map((_, i) => (
-            <SkeletonTile key={i} isWide={isWideTile(i)} />
-          ))}
-        </div>
-      ) : visibleItems.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center">
-          <Sparkles className="w-10 h-10 text-brand-primary/20 mb-4" />
-          <h3 className="font-serif text-lg font-bold text-brand-dark mb-2">
-            {searchQuery ? "No results found" : "Your feed is empty"}
-          </h3>
-          <p className="text-sm text-brand-muted max-w-xs">
-            {searchQuery
-              ? `No items match "${searchQuery}". Try a different search.`
-              : emptyStatePrompt}
-          </p>
-        </div>
-      ) : (
-        <>
-
+      {searchQuery.trim() ? (
+        /* ═════════ SEARCH RESULTS GRID OVERLAY ═════════ */
+        isSearchingUsers && matchedUsers.length === 0 ? (
+          /* Searching state skeleton grid */
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-[3px]">
-            {visibleItems.map((item, index) => (
-              <FeedTile
-                key={item.id}
-                item={item}
-                viewerRole={role}
-                isWide={isWideTile(index)}
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div
+                key={i}
+                className="rounded-lg bg-brand-border/20 animate-pulse aspect-square"
               />
             ))}
           </div>
-
-
-          <div ref={loaderRef} className="h-16 flex items-center justify-center">
-            {showLoader && (
-              <div className="flex gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-brand-primary/40 animate-bounce" style={{ animationDelay: "0ms" }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-brand-primary/40 animate-bounce" style={{ animationDelay: "150ms" }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-brand-primary/40 animate-bounce" style={{ animationDelay: "300ms" }} />
-              </div>
-            )}
-            {!showLoader && visibleItems.length > 0 && (
-              <p className="text-[10px] text-brand-muted/50 font-medium tracking-widest uppercase">
-                ✦ &nbsp; All caught up &nbsp; ✦
-              </p>
-            )}
+        ) : matchedUsers.length === 0 ? (
+          /* Empty state */
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <Sparkles className="w-10 h-10 text-brand-primary/20 mb-4" />
+            <h3 className="font-serif text-lg font-bold text-brand-dark mb-2">
+              No profiles found
+            </h3>
+            <p className="text-sm text-brand-muted max-w-xs">
+              No brand or creator matches "{searchQuery}". Try a different term or hashtag.
+            </p>
           </div>
-        </>
+        ) : (
+          /* Search results grid */
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-[3px]">
+            {matchedUsers.map((user) => (
+              <ProfileSearchTile
+                key={user.id}
+                user={user}
+                viewerRole={role}
+                onStartChat={handleStartChat}
+                onProposeCollab={handleProposeCollab}
+              />
+            ))}
+          </div>
+        )
+      ) : (
+        /* ═════════ NORMAL TRENDING / INSIGHTS FEED ═════════ */
+        isLoading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-[3px]">
+            {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+              <SkeletonTile key={i} isWide={isWideTile(i)} />
+            ))}
+          </div>
+        ) : visibleItems.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <Sparkles className="w-10 h-10 text-brand-primary/20 mb-4" />
+            <h3 className="font-serif text-lg font-bold text-brand-dark mb-2">
+              Your feed is empty
+            </h3>
+            <p className="text-sm text-brand-muted max-w-xs">
+              {emptyStatePrompt}
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-[3px]">
+              {visibleItems.map((item, index) => (
+                <FeedTile
+                  key={item.id}
+                  item={item}
+                  viewerRole={role}
+                  isWide={isWideTile(index)}
+                />
+              ))}
+            </div>
+
+            <div ref={loaderRef} className="h-16 flex items-center justify-center">
+              {showLoader && (
+                <div className="flex gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-primary/40 animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-primary/40 animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-primary/40 animate-bounce" style={{ animationDelay: "300ms" }} />
+                </div>
+              )}
+              {!showLoader && visibleItems.length > 0 && (
+                <p className="text-[10px] text-brand-muted/50 font-medium tracking-widest uppercase">
+                  ✦ &nbsp; All caught up &nbsp; ✦
+                </p>
+              )}
+            </div>
+          </>
+        )
+      )}
+
+      {pitchTarget && (
+        <ProposeCollabModal
+          isOpen={!!pitchTarget}
+          onClose={() => setPitchTarget(null)}
+          brand={pitchTarget}
+          onSubmit={(pitch) => {
+            if (collabCtx && collabCtx.addPitch) {
+              collabCtx.addPitch(pitch);
+            }
+          }}
+        />
       )}
     </div>
   );
 }
+

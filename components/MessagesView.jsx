@@ -64,14 +64,20 @@ export default function MessagesView({ currentRole = "brand" }) {
         const loadedThreads = data.threads || [];
         setThreads(loadedThreads);
 
-        // Restore active thread from localStorage
-        const savedId = localStorage.getItem(STORAGE_KEY);
+        // Check URL params first, fallback to localStorage
+        const params = new URLSearchParams(window.location.search);
+        const urlThreadId = params.get("thread");
+        const savedId = urlThreadId || localStorage.getItem(STORAGE_KEY);
         if (savedId) {
           const found = loadedThreads.find(t => t.id === savedId);
           if (found) {
             setActiveThread(found);
             setMobileView("chat");
           }
+        }
+
+        if (urlThreadId) {
+          window.history.replaceState(null, "", window.location.pathname);
         }
       } catch (err) {
         console.error("Error loading messages:", err);
