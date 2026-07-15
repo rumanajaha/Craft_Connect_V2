@@ -72,7 +72,7 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { name, price, imageUrl, image, buyLink, status, category, description } = body;
+    const { name, price, imageUrl, buyLink, status, category, description } = body;
 
     if (!name || price === undefined || !buyLink) {
       return NextResponse.json({ error: 'Missing required product parameters' }, { status: 400 });
@@ -99,7 +99,7 @@ export async function POST(request) {
         category: category || '',
         status: finalStatus,
         buy_link: buyLink,
-        image_url: imageUrl || image || ''
+        image_url: imageUrl || ''
       })
       .select()
       .single();

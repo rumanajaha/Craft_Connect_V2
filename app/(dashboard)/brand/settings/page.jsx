@@ -61,8 +61,6 @@ export default function BrandSettingsPage() {
         if (response.ok) {
           const data = await response.json();
           setProfile(data.profile);
-        } else if (response.status === 401) {
-          router.push("/login");
         }
       } catch (err) {
         console.error("Failed to load profile settings:", err);
@@ -89,9 +87,7 @@ export default function BrandSettingsPage() {
         setBrandInfo(data.profile);
         setIsDirty(false);
       } else {
-        const errData = await response.json().catch(() => ({}));
-        console.error("Save settings failed:", response.status, errData);
-        alert(`Failed to save settings: ${errData.error || response.statusText || "Unknown error"} (${response.status})`);
+        alert("Failed to save settings.");
       }
     } catch (err) {
       console.error("Save settings error:", err);

@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { BrandDataProvider, useBrandData } from "@/lib/brandDataStore";
+import { BrandDataProvider } from "@/lib/brandDataStore";
 import { AIUsageProvider, useAIUsage } from "@/lib/aiUsageStore";
 import UpgradeModal from "@/components/brand/UpgradeModal";
 import { useUnreadNotifications } from "@/hooks/use-notifications";
@@ -118,9 +118,6 @@ function BrandLayoutInner({ children }) {
   const pageTitle = getPageTitle(pathname);
   const { showUpgradeModal, setShowUpgradeModal } = useAIUsage();
   const unreadCount = useUnreadNotifications();
-  const { brandInfo } = useBrandData();
-
-  const profilePic = brandInfo?.logoUrl || brandInfo?.logo || "https://images.unsplash.com/photo-1612196808214-b8e1d6145a8c?w=120&auto=format&fit=crop&q=80";
 
   return (
     <div className="min-h-screen bg-[#FAF7F0] flex">
@@ -182,7 +179,7 @@ function BrandLayoutInner({ children }) {
               <Link href="/brand/profile" title="View public profile">
                 <div className="relative w-9 h-9 rounded-full overflow-hidden border-2 border-brand-border/50 hover:border-brand-primary transition-colors bg-white">
                   <Image 
-                    src={profilePic} 
+                    src="https://images.unsplash.com/photo-1612196808214-b8e1d6145a8c?w=120&auto=format&fit=crop&q=80" 
                     alt="Brand Profile" 
                     fill
                     sizes="36px"
