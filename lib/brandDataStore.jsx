@@ -63,13 +63,7 @@ export const addFeedUpdate = (updateType, details) => {
 
 export function BrandDataProvider({ children }) {
   
-  const [brandInfo, setBrandInfoState] = useState(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("cc_brand_info");
-      if (saved) return JSON.parse(saved);
-    }
-    return seedBrandInfo;
-  });
+  const [brandInfo, setBrandInfoState] = useState(seedBrandInfo);
 
   const setBrandInfo = (newInfo) => {
     setBrandInfoState(newInfo);
@@ -95,13 +89,7 @@ export function BrandDataProvider({ children }) {
   };
 
   
-  const [products, setProductsState] = useState(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("cc_brand_products");
-      if (saved) return JSON.parse(saved);
-    }
-    return seedProducts;
-  });
+  const [products, setProductsState] = useState(seedProducts);
 
   const setProducts = (newProducts) => {
     setProductsState(newProducts);
@@ -111,18 +99,43 @@ export function BrandDataProvider({ children }) {
   };
 
   useEffect(() => {
+    // Load from localStorage on mount (safe from hydration mismatch)
+    if (typeof window !== "undefined") {
+      const savedInfo = localStorage.getItem("cc_brand_info");
+      if (savedInfo) {
+        setBrandInfoState(JSON.parse(savedInfo));
+      }
+      const savedProds = localStorage.getItem("cc_brand_products");
+      if (savedProds) {
+        setProductsState(JSON.parse(savedProds));
+      }
+    }
+
     async function loadData() {
       try {
-        const profileRes = await fetch("/api/brand/profile");
+        const [profileRes, productsRes] = await Promise.all([
+          fetch("/api/brand/profile"),
+          fetch("/api/brand/products")
+        ]);
+
         if (profileRes.ok) {
           const profileData = await profileRes.json();
           setBrandInfoState(profileData.profile);
+        } else if (profileRes.status === 401) {
+          if (typeof window !== "undefined") {
+            window.location.href = "/login";
+          }
+          return;
         }
         
-        const productsRes = await fetch("/api/brand/products");
         if (productsRes.ok) {
           const productsData = await productsRes.json();
           setProductsState(productsData.products);
+        } else if (productsRes.status === 401) {
+          if (typeof window !== "undefined") {
+            window.location.href = "/login";
+          }
+          return;
         }
       } catch (err) {
         console.error("Failed to fetch brand provider data:", err);
@@ -173,19 +186,11 @@ export function useBrandData() {
     let localBrandInfo = seedBrandInfo;
     let localProducts = seedProducts;
     
-    if (typeof window !== "undefined") {
-      const savedInfo = localStorage.getItem("cc_brand_info");
-      if (savedInfo) localBrandInfo = JSON.parse(savedInfo);
-      
-      const savedProds = localStorage.getItem("cc_brand_products");
-      if (savedProds) localProducts = JSON.parse(savedProds);
-    }
-
     return {
-      brandInfo: localBrandInfo,
-      brandAbout: localBrandInfo.description,
+      brandInfo: seedBrandInfo,
+      brandAbout: seedBrandInfo.description,
       setBrandAbout: () => {},
-      products: localProducts,
+      products: seedProducts,
       setProducts: () => {},
       updateProductDescription: () => {},
       activeBrandId: ACTIVE_BRAND_ID,

@@ -52,28 +52,26 @@ export async function GET(request) {
     }
 
     // 1. Get active products count (status != 'sold_out')
-    const { data: products } = await supabase
+    const { count: activeProducts } = await supabase
       .from('Product')
-      .select('id')
+      .select('*', { count: 'exact', head: true })
       .eq('brand_id', brand.id)
       .neq('status', 'sold_out');
 
-    const activeProducts = products ? products.length : 0;
-
     // 2. Get pending requests count (brand_id = brand.id, status = 'pending', direction = 'incoming')
-    const { data: pendingRequestsData } = await supabase
+    const { count: pendingRequests } = await supabase
       .from('CollabRequest')
-      .select('id')
+      .select('*', { count: 'exact', head: true })
       .eq('brand_id', brand.id)
       .eq('status', 'pending')
       .eq('direction', 'incoming');
 
-    const pendingRequests = pendingRequestsData ? pendingRequestsData.length : 0;
-
-    // 3. Get all creators to calculate similarity and recommendation
+    // 3. Get recent creators to calculate similarity and recommendation (optimized query limit)
     const { data: creators } = await supabase
       .from('CreatorProfile')
-      .select('*');
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(30);
 
     const lastViewed = brand.last_viewed_matches_at || '1970-01-01T00:00:00Z';
     const brandVector = parseVector(brand.embedding);

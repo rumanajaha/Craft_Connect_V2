@@ -186,7 +186,7 @@ function formatDBNotification(notif) {
 }
 
 export default function BrandNotificationsPage() {
-  const [dbNotifications, setDbNotifications] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -195,7 +195,13 @@ export default function BrandNotificationsPage() {
         const res = await fetch("/api/brand/notifications");
         if (res.ok) {
           const data = await res.json();
-          setDbNotifications(data.notifications || []);
+          const dbNotifs = data.notifications || [];
+          const formattedDb = dbNotifs.map(formatDBNotification);
+          const merged = [
+            ...formattedDb,
+            ...MOCK_NOTIFICATIONS.filter(mock => !formattedDb.some(db => db.title === mock.title))
+          ];
+          setNotifications(merged);
         }
       } catch (err) {
         console.error("Failed to load notifications:", err);
@@ -206,21 +212,13 @@ export default function BrandNotificationsPage() {
     loadNotifications();
   }, []);
 
-  const formattedDbNotifs = dbNotifications.map(formatDBNotification);
-  
-  // Merge and prioritize DB notifications
-  const mergedNotifications = [
-    ...formattedDbNotifs,
-    ...MOCK_NOTIFICATIONS.filter(mock => !formattedDbNotifs.some(db => db.title === mock.title))
-  ];
-
-  const unreadCount = mergedNotifications.filter(n => !n.isRead).length;
+  const unreadCount = notifications.filter(n => !n.isRead).length;
 
   const markAllAsRead = async () => {
     try {
       const res = await fetch("/api/brand/notifications", { method: "PATCH" });
       if (res.ok) {
-        setDbNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
       }
     } catch (err) {
       console.error(err);
@@ -236,16 +234,16 @@ export default function BrandNotificationsPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id })
         });
-        setDbNotifications(prev =>
-          prev.map(n => (n.id === id ? { ...n, is_read: true } : n))
-        );
       }
+      setNotifications(prev =>
+        prev.map(n => (n.id === id ? { ...n, isRead: true } : n))
+      );
     } catch (err) {
       console.error("Failed to mark notification as read:", err);
     }
   };
 
-  const grouped = mergedNotifications.reduce((acc, notif) => {
+  const grouped = notifications.reduce((acc, notif) => {
     if (!acc[notif.dateGroup]) acc[notif.dateGroup] = [];
     acc[notif.dateGroup].push(notif);
     return acc;

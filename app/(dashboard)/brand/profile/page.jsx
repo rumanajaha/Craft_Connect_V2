@@ -29,6 +29,7 @@ export default function BrandProfilePage() {
     category: brandInfo.category,
     location: brandInfo.location,
     website: brandInfo.website,
+    logo: brandInfo.logoUrl || brandInfo.logo || (brandFromMock ? brandFromMock.logo : "https://images.unsplash.com/photo-1612196808214-b8e1d6145a8c?w=400&auto=format&fit=crop&q=80"),
     banner: brandInfo.videoUrl,
     about: brandInfo.description,
     tags: brandInfo.tags ? brandInfo.tags.split(",").map(t => t.trim()).filter(Boolean) : [],
@@ -98,7 +99,17 @@ export default function BrandProfilePage() {
         
         <div className="absolute bottom-4 left-5 flex items-end gap-3">
           <div className="relative w-16 h-16 rounded-xl overflow-hidden border-2 border-white shadow-md bg-white">
-            <Image src={brand.logo} alt={brand.name} fill sizes="64px" className="object-cover" />
+            <Image 
+              src={brand.logo} 
+              alt={brand.name} 
+              fill 
+              sizes="64px" 
+              className="object-cover" 
+              onError={(e) => {
+                e.currentTarget.src = "https://images.unsplash.com/photo-1612196808214-b8e1d6145a8c?w=400&auto=format&fit=crop&q=80";
+                e.currentTarget.srcset = "";
+              }}
+            />
           </div>
           <div>
             <h1 className="font-serif text-2xl font-bold text-white leading-tight drop-shadow-sm">{brand.name}</h1>
