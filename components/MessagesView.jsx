@@ -14,15 +14,6 @@ import { useRealtime } from "@/context/RealtimeProvider";
  *
  * Props:
  *   currentRole: "brand" | "creator" | "customer"
- *
- * Features:
- *   - 100% database-driven inbox (no mock/placeholder data)
- *   - Sidebar displays only real MessageThread records
- *   - Search bar queries /api/search/users for new contacts
- *   - Optimistic message sending
- *   - Supabase Realtime for live updates
- *   - localStorage persistence for active thread
- *   - Empty states, loading states, error handling
  */
 export default function MessagesView({ currentRole = "brand" }) {
   const { supabase } = useRealtime();
@@ -154,7 +145,7 @@ export default function MessagesView({ currentRole = "brand" }) {
         },
         (payload) => {
           const newMsg = payload.new;
-          
+
           // Only append messages sent by the OTHER participant.
           // Messages we send ourselves are handled via the optimistic-then-reconciled flow.
           if (newMsg.sender_id === currentUserId) {
@@ -293,9 +284,9 @@ export default function MessagesView({ currentRole = "brand" }) {
     const user = typeof userOrId === 'string'
       ? searchResults.find(u => u.owner_user_id === userOrId)
       : userOrId;
-      
+
     if (!user) return;
-    
+
     // Check if thread already exists
     const existing = threads.find(t => t.recipientId === user.owner_user_id);
     if (existing) {
@@ -305,7 +296,7 @@ export default function MessagesView({ currentRole = "brand" }) {
       setSearchResults([]);
       return;
     }
-    
+
     // Create temporary thread, don't add to threads list yet
     setActiveThread({
       id: `new-${user.owner_user_id}`,
@@ -355,7 +346,7 @@ export default function MessagesView({ currentRole = "brand" }) {
 
     try {
       let targetThreadId = activeThread.id;
-      
+
       // If it's a new temporary thread, create it first
       if (activeThread.isNew) {
         const res = await fetch("/api/brand/messages", {
@@ -366,7 +357,7 @@ export default function MessagesView({ currentRole = "brand" }) {
         if (!res.ok) throw new Error("Failed to create thread");
         const data = await res.json();
         targetThreadId = data.threadId;
-        
+
         // Update active thread ID
         setActiveThread(prev => ({
           ...prev,
@@ -380,7 +371,7 @@ export default function MessagesView({ currentRole = "brand" }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: textToSend }),
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         // Replace optimistic msg with real one
@@ -621,9 +612,8 @@ export default function MessagesView({ currentRole = "brand" }) {
                             <span className="text-[10px] text-brand-muted shrink-0">{thread.lastMessageTime}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
-                              info.type === "creator" ? "bg-purple-50 text-purple-700" : info.type === "brand" ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-blue-700"
-                            }`}>
+                            <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${info.type === "creator" ? "bg-purple-50 text-purple-700" : info.type === "brand" ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-blue-700"
+                              }`}>
                               {info.type}
                             </span>
                             <p className={`text-xs truncate ${thread.unread ? "font-medium text-brand-dark" : "text-brand-muted"}`}>
@@ -672,9 +662,8 @@ export default function MessagesView({ currentRole = "brand" }) {
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-bold text-brand-dark truncate">{info.name}</p>
                               <div className="flex items-center gap-2 mt-0.5">
-                                <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
-                                  info.type === "creator" ? "bg-purple-50 text-purple-700" : info.type === "brand" ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-blue-700"
-                                }`}>
+                                <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${info.type === "creator" ? "bg-purple-50 text-purple-700" : info.type === "brand" ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-blue-700"
+                                  }`}>
                                   {info.type}
                                 </span>
                                 <p className="text-xs text-brand-muted truncate">{thread.lastMessageText || "Start a conversation"}</p>
@@ -714,9 +703,8 @@ export default function MessagesView({ currentRole = "brand" }) {
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-bold text-brand-dark truncate">{user.name}</p>
                             <div className="flex items-center gap-2 mt-0.5">
-                              <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
-                                user.profileType === "brand" ? "bg-emerald-50 text-emerald-700" : user.profileType === "creator" ? "bg-purple-50 text-purple-700" : "bg-blue-50 text-blue-700"
-                              }`}>
+                              <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${user.profileType === "brand" ? "bg-emerald-50 text-emerald-700" : user.profileType === "creator" ? "bg-purple-50 text-purple-700" : "bg-blue-50 text-blue-700"
+                                }`}>
                                 {user.profileType}
                               </span>
                               {user.category && (
@@ -787,9 +775,8 @@ export default function MessagesView({ currentRole = "brand" }) {
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="font-bold text-sm text-brand-dark">{contactInfo.name}</h3>
-                  <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
-                    contactInfo.type === "creator" ? "bg-purple-50 text-purple-700" : contactInfo.type === "brand" ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-blue-700"
-                  }`}>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${contactInfo.type === "creator" ? "bg-purple-50 text-purple-700" : contactInfo.type === "brand" ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-blue-700"
+                    }`}>
                     {contactInfo.type}
                   </span>
                 </div>
@@ -905,13 +892,11 @@ export default function MessagesView({ currentRole = "brand" }) {
                 const isPending = msg.pending === true;
                 return (
                   <div key={msg.id || idx} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-[85%] md:max-w-[70%] rounded-2xl px-5 py-3 transition-opacity duration-200 ${
-                      isPending ? "opacity-60" : ""
-                    } ${
-                      isMe
+                    <div className={`max-w-[85%] md:max-w-[70%] rounded-2xl px-5 py-3 transition-opacity duration-200 ${isPending ? "opacity-60" : ""
+                      } ${isMe
                         ? "bg-brand-primary text-white rounded-br-sm"
                         : "bg-white border border-brand-border/50 text-brand-dark shadow-sm rounded-bl-sm"
-                    }`}>
+                      }`}>
                       {msg.image && (
                         <div className="relative w-full h-40 mb-3 rounded-xl overflow-hidden">
                           <Image src={msg.image} alt="Attachment" fill className="object-cover" />
@@ -952,10 +937,10 @@ export default function MessagesView({ currentRole = "brand" }) {
                   }
                 }}
               />
-              <Button 
-                type="submit" 
-                variant="primary" 
-                disabled={!inputText.trim() || (activeThread?.status === "pending" && !activeThread.isInitiator)} 
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={!inputText.trim() || (activeThread?.status === "pending" && !activeThread.isInitiator)}
                 className="px-5"
               >
                 <Send className="w-4 h-4" />

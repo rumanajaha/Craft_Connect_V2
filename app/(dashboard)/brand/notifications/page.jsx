@@ -159,13 +159,11 @@ export default function BrandNotificationsPage() {
                   <div
                     key={notif.id}
                     onClick={() => handleNotificationClick(notif)}
-                    className={`flex items-center gap-4 px-5 py-4 transition-all duration-200 cursor-pointer hover:bg-brand-border/10 ${
-                      idx !== grouped[group].length - 1 ? "border-b border-brand-border/40" : ""
-                    } ${
-                      notif.is_read
+                    className={`flex items-center gap-4 px-5 py-4 transition-all duration-200 cursor-pointer hover:bg-brand-border/10 ${idx !== grouped[group].length - 1 ? "border-b border-brand-border/40" : ""
+                      } ${notif.is_read
                         ? "opacity-80 hover:opacity-100"
                         : "bg-[#fdfbfa]"
-                    }`}
+                      }`}
                   >
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${notif.iconBg}`}>
                       <notif.Icon className={`w-5 h-5 ${notif.iconColor}`} />

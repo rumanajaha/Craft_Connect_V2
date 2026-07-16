@@ -64,23 +64,9 @@ export async function POST(request) {
         status = 409;
       }
 
-      if (status === 429 || errMsg.toLowerCase().includes("rate limit") || errMsg.toLowerCase().includes("security reasons")) {
-        return NextResponse.json(
-          { error: "Signup limit exceeded. Please try again in a few minutes." },
-          { status: 429 }
-        );
-      }
-
       return NextResponse.json(
         { error: errMsg },
         { status }
-      );
-    }
-
-    if (data.user && (!data.user.identities || data.user.identities.length === 0)) {
-      return NextResponse.json(
-        { error: "User already exists with this email." },
-        { status: 409 }
       );
     }
 

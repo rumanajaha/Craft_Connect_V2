@@ -9,14 +9,14 @@ import { AIUsageProvider, useAIUsage } from "@/lib/aiUsageStore";
 import { CollabProvider } from "@/lib/collabStore";
 import UpgradeModal from "@/components/brand/UpgradeModal";
 import { useRealtime } from "@/context/RealtimeProvider";
-import { 
-  LayoutDashboard, 
-  Settings, 
-  Package, 
-  Sparkles, 
-  MessageSquare, 
-  LogOut, 
-  Menu, 
+import {
+  LayoutDashboard,
+  Settings,
+  Package,
+  Sparkles,
+  MessageSquare,
+  LogOut,
+  Menu,
   X,
   Bell,
   Rss
@@ -47,7 +47,7 @@ function getPageTitle(pathname) {
 function Sidebar({ pathname, onClose }) {
   return (
     <div className="flex flex-col h-full bg-white border-r border-brand-border/40">
-      
+
       <div className="px-6 py-5 border-b border-brand-border/40 flex items-center justify-between">
         <Link href="/" className="font-serif text-xl font-bold text-brand-dark hover:text-brand-primary transition-colors">
           CraftConnect<span className="text-brand-primary">.</span>
@@ -59,14 +59,14 @@ function Sidebar({ pathname, onClose }) {
         )}
       </div>
 
-      
+
       <div className="px-6 py-3 border-b border-brand-border/40 flex items-center gap-2">
         <span className="inline-block px-2.5 py-1 bg-amber-100 text-amber-700 text-[10px] font-bold uppercase tracking-wider rounded-full border border-amber-200">
           Brand Owner
         </span>
       </div>
 
-      
+
       <nav className="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto">
         {NAV_ITEMS.map(({ label, href, icon: Icon }) => {
           const isActive = pathname === href || (href !== "/brand" && pathname?.startsWith(href));
@@ -75,11 +75,10 @@ function Sidebar({ pathname, onClose }) {
               key={href}
               href={href}
               onClick={onClose}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-                isActive
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${isActive
                   ? "bg-brand-primary text-white shadow-sm shadow-brand-primary/20"
                   : "text-brand-muted hover:text-brand-dark hover:bg-brand-border/30"
-              }`}
+                }`}
             >
               <Icon className="w-4 h-4 shrink-0" />
               {label}
@@ -88,7 +87,7 @@ function Sidebar({ pathname, onClose }) {
         })}
       </nav>
 
-      
+
       <div className="px-3 py-4 border-t border-brand-border/40">
         <Link
           href="/login"
@@ -128,12 +127,12 @@ function BrandLayoutInner({ children }) {
   return (
     <div className="min-h-screen bg-[#FAF7F0] flex">
       <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} />
-      
+
       <aside className="hidden lg:flex flex-col w-56 shrink-0 fixed inset-y-0 left-0 z-30">
         <Sidebar pathname={pathname} />
       </aside>
 
-      
+
       {mobileOpen && (
         <div className="fixed inset-0 z-40 flex lg:hidden">
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
@@ -143,13 +142,13 @@ function BrandLayoutInner({ children }) {
         </div>
       )}
 
-      
+
       <div className="flex-1 lg:ml-56 flex flex-col min-h-screen">
 
-        
+
         <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-brand-border/40">
           <div className="flex items-center justify-between px-5 py-3.5 max-w-full">
-            
+
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setMobileOpen(true)}
@@ -166,7 +165,7 @@ function BrandLayoutInner({ children }) {
               </h2>
             </div>
 
-            
+
             <div className="flex items-center gap-4">
               <Link
                 href="/brand/notifications"
@@ -174,7 +173,7 @@ function BrandLayoutInner({ children }) {
                 aria-label="Notifications"
               >
                 <Bell className="w-4.5 h-4.5" />
-                
+
                 {unreadCount > 0 && (
                   <span className="absolute -top-1 -right-1 w-4 h-4 bg-brand-primary text-white text-[10px] font-bold flex items-center justify-center rounded-full border border-white">
                     {unreadCount}
@@ -184,9 +183,9 @@ function BrandLayoutInner({ children }) {
 
               <Link href="/brand/profile" title="View public profile">
                 <div className="relative w-9 h-9 rounded-full overflow-hidden border-2 border-brand-border/50 hover:border-brand-primary transition-colors bg-white">
-                  <Image 
-                    src={profilePic} 
-                    alt="Brand Profile" 
+                  <Image
+                    src={profilePic}
+                    alt="Brand Profile"
                     fill
                     sizes="36px"
                     className="object-cover"
@@ -197,7 +196,7 @@ function BrandLayoutInner({ children }) {
           </div>
         </header>
 
-        
+
         <main className="flex-1 p-6 md:p-8 relative">
           {children}
         </main>

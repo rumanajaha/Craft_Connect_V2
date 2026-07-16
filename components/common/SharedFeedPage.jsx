@@ -80,9 +80,8 @@ function ProfileSearchTile({ user, viewerRole, onStartChat, onProposeCollab }) {
 
         {/* Action Buttons overlay */}
         <div
-          className={`flex gap-1.5 mt-2 transition-all duration-300 origin-bottom ${
-            hovered ? "opacity-100 translate-y-0 h-auto" : "opacity-0 translate-y-2 h-0 overflow-hidden"
-          }`}
+          className={`flex gap-1.5 mt-2 transition-all duration-300 origin-bottom ${hovered ? "opacity-100 translate-y-0 h-auto" : "opacity-0 translate-y-2 h-0 overflow-hidden"
+            }`}
         >
           <button
             onClick={(e) => {
@@ -464,4 +463,3 @@ export default function SharedFeedPage({ role, userTags = [], heading, subheadin
     </div>
   );
 }
-
