@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import { Handshake, Clock, TrendingUp, Gift, DollarSign, RefreshCw, MessageSquare, Sparkles } from "lucide-react";
+import { Handshake, Clock, TrendingUp, Gift, DollarSign, RefreshCw, MessageSquare, Sparkles, Loader2 } from "lucide-react";
 import { MOCK_BRAND_MATCHES } from "@/lib/mockData";
 import { useCollab } from "@/lib/collabStore";
 import BrandMatchCard from "@/components/creator/BrandMatchCard";
@@ -43,73 +43,156 @@ function getStatusBadge(status) {
 }
 
 export default function CreatorDashboardPage() {
-  const { outgoingPitches, addPitch } = useCollab();
+  const { addPitch } = useCollab();
   const [pitchBrand, setPitchBrand] = useState(null);
   
-  
+  // Real data states
+  const [creatorName, setCreatorName] = useState("Sarah");
+  const [stats, setStats] = useState({
+    active_collabs: 0,
+    pending_pitches: 0,
+    monthly_growth: "+0%"
+  });
+  const [pitches, setPitches] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // AI Brand Matches states
   const [isGeneratingMatches, setIsGeneratingMatches] = useState(false);
   const [matchesGenerated, setMatchesGenerated] = useState(false);
   const [matchInputs, setMatchInputs] = useState({ categories: "", comp: "", value: "" });
 
-  const handleGenerateMatches = (e) => {
+  useEffect(() => {
+    async function loadDashboardData() {
+      try {
+        setIsLoading(true);
+        
+        // 1. Fetch Creator Profile to get real name
+        const profileRes = await fetch("/api/creator/profile");
+        if (profileRes.ok) {
+          const profileData = await profileRes.json();
+          if (profileData.profile?.displayName) {
+            setCreatorName(profileData.profile.displayName);
+          }
+        }
+
+        // 2. Fetch Dashboard Statistics
+        const statsRes = await fetch("/api/creator/dashboard");
+        if (statsRes.ok) {
+          const statsData = await statsRes.json();
+          setStats(statsData);
+        }
+
+        // 3. Fetch Real Creator Pitches
+        const pitchesRes = await fetch("/api/creator/pitches");
+        if (pitchesRes.ok) {
+          const pitchesData = await pitchesRes.json();
+          setPitches(pitchesData.pitches || []);
+        }
+      } catch (err) {
+        console.error("Error loading creator dashboard data:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadDashboardData();
+  }, []);
+
+  const handleGenerateMatches = async (e) => {
     e.preventDefault();
     setIsGeneratingMatches(true);
-    setTimeout(() => {
+    try {
+      const res = await fetch("/api/creator/ai/brand-match", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(matchInputs)
+      });
+      if (res.ok) {
+        setMatchesGenerated(true);
+      } else {
+        alert("Failed to call AI matching.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error finding brand matches.");
+    } finally {
       setIsGeneratingMatches(false);
-      setMatchesGenerated(true);
-    }, 1500);
+    }
   };
 
-  const activePitches = outgoingPitches.filter(p => p.status === "accepted").length;
-  const pendingPitches = outgoingPitches.filter(p => p.status === "pending").length;
+  const handleAddPitch = async (pitch) => {
+    await addPitch(pitch);
+    
+    // Refresh pitches & stats after a slight delay for Supabase synchronization
+    setTimeout(async () => {
+      try {
+        const pitchesRes = await fetch("/api/creator/pitches");
+        if (pitchesRes.ok) {
+          const pitchesData = await pitchesRes.json();
+          setPitches(pitchesData.pitches || []);
+        }
+
+        const statsRes = await fetch("/api/creator/dashboard");
+        if (statsRes.ok) {
+          const statsData = await statsRes.json();
+          setStats(statsData);
+        }
+      } catch (err) {
+        console.error("Error refreshing dashboard data:", err);
+      }
+    }, 1000);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-12 bg-white rounded-2xl border border-brand-border/50 max-w-6xl mx-auto">
+        <Loader2 className="w-6 h-6 animate-spin text-brand-primary mr-2" />
+        <span className="text-sm font-semibold text-brand-muted">Loading dashboard...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
-      
       <ProposeCollabModal
         isOpen={!!pitchBrand}
         onClose={() => setPitchBrand(null)}
         brand={pitchBrand}
-        onSubmit={(pitch) => addPitch(pitch)}
+        onSubmit={handleAddPitch}
       />
 
-      
       <div>
         <h1 className="font-serif text-3xl md:text-4xl font-bold text-brand-dark">
-          Welcome back, Sarah
+          Welcome back, {creatorName}
         </h1>
         <p className="text-brand-muted text-sm mt-1.5">
           Here&apos;s an overview of your collaborations and opportunities.
         </p>
       </div>
 
-      
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard icon={Handshake} label="Active Collabs" value={activePitches} accent="bg-emerald-50 text-emerald-600" />
-        <StatCard icon={Clock} label="Pending Pitches" value={pendingPitches} accent="bg-amber-50 text-amber-600" />
-        <StatCard icon={TrendingUp} label="Monthly Growth" value="+12%" accent="bg-brand-primary/10 text-brand-primary" />
+        <StatCard icon={Handshake} label="Active Collabs" value={stats.active_collabs} accent="bg-emerald-50 text-emerald-600" />
+        <StatCard icon={Clock} label="Pending Pitches" value={stats.pending_pitches} accent="bg-amber-50 text-amber-600" />
+        <StatCard icon={TrendingUp} label="Monthly Growth" value={stats.monthly_growth} accent="bg-brand-primary/10 text-brand-primary" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center gap-2 px-1">
             <Handshake className="w-4 h-4 text-brand-primary" />
             <h2 className="font-serif text-xl font-bold text-brand-dark">My Pitches</h2>
           </div>
 
-          {outgoingPitches.length === 0 ? (
+          {pitches.length === 0 ? (
             <div className="bg-white border border-dashed border-brand-border rounded-2xl p-8 text-center text-brand-muted text-sm">
               No pitches yet. Find a brand match below and send your first pitch!
             </div>
           ) : (
             <div className="space-y-3">
-              {outgoingPitches.map(pitch => {
+              {pitches.map(pitch => {
                 const compBadge = getCompensationBadge(pitch.compensation);
                 const CompIcon = compBadge.icon;
                 return (
                   <div key={pitch.id} className="flex flex-col sm:flex-row gap-4 p-4 items-start sm:items-center bg-white border border-brand-border/50 rounded-2xl hover:shadow-sm transition-shadow">
-                    
                     <div className="flex items-center gap-3 w-full sm:w-1/4 shrink-0">
                       <div className="relative w-10 h-10 rounded-xl overflow-hidden border border-brand-border/40 shrink-0 bg-white">
                         <Image src={pitch.brandLogo} alt={pitch.brandName} fill className="object-cover" />
@@ -120,7 +203,6 @@ export default function CreatorDashboardPage() {
                       </div>
                     </div>
 
-                    
                     <div className="w-full sm:w-auto shrink-0">
                       <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold uppercase tracking-wider ${compBadge.color}`}>
                         <CompIcon className="w-3.5 h-3.5" />
@@ -128,12 +210,10 @@ export default function CreatorDashboardPage() {
                       </div>
                     </div>
 
-                    
                     <div className="flex-1 w-full min-w-0">
                       <p className="text-sm text-brand-dark/80 line-clamp-2 leading-relaxed">&quot;{pitch.snippet}&quot;</p>
                     </div>
 
-                    
                     <div className="flex items-center w-full sm:w-auto shrink-0 justify-end">
                       <span className={`text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-full ${getStatusBadge(pitch.status)}`}>
                         {pitch.status}
@@ -146,7 +226,6 @@ export default function CreatorDashboardPage() {
           )}
         </div>
 
-        
         <aside className="space-y-4">
           <div className="flex items-center gap-2 px-1">
             <Sparkles className="w-4 h-4 text-brand-primary" />

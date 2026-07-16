@@ -1,15 +1,13 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseServer";
 
-
-function getTagOverlap(brandTags, itemTags) {
-
-  if (!brandTags || brandTags.length === 0 || !itemTags || itemTags.length === 0) {
+function getTagOverlap(userTags, itemTags) {
+  if (!userTags || userTags.length === 0 || !itemTags || itemTags.length === 0) {
     return 0;
   }
-  const brandTagsSet = new Set(brandTags.map(t => t.toLowerCase().trim()).filter(Boolean));
-  const overlapCount = itemTags.filter(t => brandTagsSet.has(t.toLowerCase().trim())).length;
-  return overlapCount / Math.max(1, brandTagsSet.size);
+  const userTagsSet = new Set(userTags.map(t => t.toLowerCase().trim()).filter(Boolean));
+  const overlapCount = itemTags.filter(t => userTagsSet.has(t.toLowerCase().trim())).length;
+  return overlapCount / Math.max(1, userTagsSet.size);
 }
 
 function getRecencyDecay(createdAtString) {
@@ -31,6 +29,7 @@ export async function POST(request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // 1. Fetch all Brand profiles
     const { data: brands, error: brandsError } = await supabaseAdmin
       .from("BrandProfile")
       .select("id, owner_user_id, ai_tags");
@@ -40,6 +39,17 @@ export async function POST(request) {
       return NextResponse.json({ error: "Database error fetching brands" }, { status: 500 });
     }
 
+    // 2. Fetch all Creator profiles
+    const { data: creators, error: creatorsError } = await supabaseAdmin
+      .from("CreatorProfile")
+      .select("id, owner_user_id, ai_tags, niches");
+
+    if (creatorsError) {
+      console.error("Error fetching creators for feed recomputation:", creatorsError.message);
+      return NextResponse.json({ error: "Database error fetching creators" }, { status: 500 });
+    }
+
+    // 3. Fetch all FeedItem records
     const { data: feedItems, error: itemsError } = await supabaseAdmin
       .from("FeedItem")
       .select("*");
@@ -63,6 +73,7 @@ export async function POST(request) {
 
     let totalComputed = 0;
 
+    // 4. Compute for Brands
     for (const brand of brands) {
       if (!brand.owner_user_id) continue;
 
@@ -99,9 +110,48 @@ export async function POST(request) {
       }
     }
 
+    // 5. Compute for Creators
+    for (const creator of creators) {
+      if (!creator.owner_user_id) continue;
+
+      const creatorTags = (creator.ai_tags || []).concat(creator.niches || []);
+
+      const cacheEntries = feedItems.map(item => {
+        const tagOverlap = getTagOverlap(creatorTags, item.ai_tags);
+        const recencyDecay = getRecencyDecay(item.created_at);
+        const rawEngagement = (item.views || 0) + (item.saves || 0) * 5;
+        const engagementNorm = rawEngagement / maxEngagement;
+
+        const score = (w1 * tagOverlap) + (w2 * recencyDecay) + (w3 * engagementNorm);
+
+        return {
+          user_id: creator.owner_user_id,
+          item_type: item.type,
+          item_id: item.id,
+          score: Math.min(1.0, Math.max(0.0, score)),
+          computed_at: new Date().toISOString()
+        };
+      });
+
+      await supabaseAdmin
+        .from("FeedCache")
+        .delete()
+        .eq("user_id", creator.owner_user_id);
+
+      const { error: insertError } = await supabaseAdmin
+        .from("FeedCache")
+        .insert(cacheEntries);
+
+      if (insertError) {
+        console.error(`Failed to insert FeedCache entries for creator ${creator.id}:`, insertError.message);
+      } else {
+        totalComputed += cacheEntries.length;
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      message: `Recomputed ${totalComputed} cache feed items scores for ${brands.length} brands.`
+      message: `Recomputed ${totalComputed} cache feed items scores for ${brands.length} brands and ${creators.length} creators.`
     }, { status: 200 });
 
   } catch (err) {

@@ -180,18 +180,42 @@ export default function CreatorToolPage() {
   const currentUsage = usageByTool[toolSlug] || 0;
   const isCapped = !isPro && currentUsage >= FREE_TRIAL_LIMIT;
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (isCapped) {
       alert("You have reached your limit for this tool. Please upgrade to Pro.");
       return;
     }
     
     setIsGenerating(true);
-    setTimeout(() => {
-      setResult(toolConfig.mockResult);
+    try {
+      const endpointMap = {
+        "trending-feed": "/api/creator/ai/trending",
+        "brand-match": "/api/creator/ai/brand-match",
+        "content-ideas": "/api/creator/ai/content-ideas",
+      };
+      const endpoint = endpointMap[toolSlug];
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          niche: formData.niche,
+          topic: formData.topic,
+          channel: "Instagram"
+        })
+      });
+      if (res.ok) {
+        setResult(toolConfig.mockResult);
+        incrementUsage(toolSlug);
+      } else {
+        const errorData = await res.json();
+        alert(errorData.message || "AI generation failed.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("An error occurred during AI generation.");
+    } finally {
       setIsGenerating(false);
-      incrementUsage(toolSlug);
-    }, 1500);
+    }
   };
 
   return (

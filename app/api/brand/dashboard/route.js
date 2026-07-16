@@ -58,13 +58,13 @@ export async function GET(request) {
       .eq('brand_id', brand.id)
       .neq('status', 'sold_out');
 
-    // 2. Get pending requests count (brand_id = brand.id, status = 'pending', direction = 'incoming')
+    // 2. Get pending requests count (brand_id = brand.id, status = 'pending', direction = 'outgoing')
     const { count: pendingRequests } = await supabase
       .from('CollabRequest')
       .select('*', { count: 'exact', head: true })
       .eq('brand_id', brand.id)
       .eq('status', 'pending')
-      .eq('direction', 'incoming');
+      .eq('direction', 'outgoing');
 
     // 3. Get recent creators to calculate similarity and recommendation (optimized query limit)
     const { data: creators } = await supabase
@@ -129,13 +129,13 @@ export async function GET(request) {
       .update({ last_viewed_matches_at: new Date().toISOString() })
       .eq('id', brand.id);
 
-    // 4. Fetch incoming pitches
+    // 4. Fetch incoming pitches (direction = 'outgoing' from creator's perspective)
     const { data: pitchesData } = await supabase
       .from('CollabRequest')
       .select('id, creator_id, compensation_type, pitch_message, created_at, status')
       .eq('brand_id', brand.id)
       .eq('status', 'pending')
-      .eq('direction', 'incoming')
+      .eq('direction', 'outgoing')
       .order('created_at', { ascending: false });
 
     // Join pitches with CreatorProfile display_name/avatar

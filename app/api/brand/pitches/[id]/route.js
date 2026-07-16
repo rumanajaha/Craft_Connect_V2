@@ -76,12 +76,12 @@ export async function PATCH(request, { params }) {
       // we will need to add a notification insert here targeting the brand owner (type: "pitch_status", link: "/brand#collaboration-requests").
       await supabase.from('Notification').insert({
         user_id: creator.owner_user_id,
-        type: 'pitch_status',
+        type: 'pitch_response',
         title: `Collaboration ${dbStatus === 'accepted' ? 'Accepted' : 'Declined'}`,
         body: `${brandName} has ${actionText} your collaboration request.`,
         is_read: false,
         related_entity_id: id,
-        link: '/creator'
+        link: '/creator#my-pitches'
       });
     }
 

@@ -75,7 +75,7 @@ export default function MessagesView({ currentRole = "brand" }) {
       try {
         setIsLoading(true);
         setLoadError(null);
-        const response = await fetch("/api/brand/messages");
+        const response = await fetch("/api/messages");
         if (!response.ok) throw new Error("Failed to load conversations");
         const data = await response.json();
         const loadedThreads = data.threads || [];
@@ -120,7 +120,7 @@ export default function MessagesView({ currentRole = "brand" }) {
 
     async function loadMessages() {
       try {
-        const res = await fetch(`/api/brand/messages/${activeThread.id}`);
+        const res = await fetch(`/api/messages/${activeThread.id}`);
         if (res.ok) {
           const data = await res.json();
           setActiveThread(prev => {
@@ -212,7 +212,7 @@ export default function MessagesView({ currentRole = "brand" }) {
 
     const refetchThreadList = async () => {
       try {
-        const response = await fetch("/api/brand/messages", { cache: "no-store" });
+        const response = await fetch("/api/messages", { cache: "no-store" });
         if (response.ok) {
           const data = await response.json();
           setThreads(data.threads || []);
@@ -358,7 +358,7 @@ export default function MessagesView({ currentRole = "brand" }) {
       
       // If it's a new temporary thread, create it first
       if (activeThread.isNew) {
-        const res = await fetch("/api/brand/messages", {
+        const res = await fetch("/api/messages", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ recipientId: activeThread.recipientId }),
@@ -375,7 +375,7 @@ export default function MessagesView({ currentRole = "brand" }) {
         }));
       }
 
-      const response = await fetch(`/api/brand/messages/${targetThreadId}`, {
+      const response = await fetch(`/api/messages/${targetThreadId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: textToSend }),
@@ -393,7 +393,7 @@ export default function MessagesView({ currentRole = "brand" }) {
         });
 
         // Refresh the whole threads list so the new thread appears at the top
-        const refreshRes = await fetch("/api/brand/messages", { cache: "no-store" });
+        const refreshRes = await fetch("/api/messages", { cache: "no-store" });
         if (refreshRes.ok) {
           const tData = await refreshRes.json();
           setThreads(tData.threads || []);
@@ -410,7 +410,7 @@ export default function MessagesView({ currentRole = "brand" }) {
   // ─── Accept Message Request ───────────────────────────
   const handleAcceptRequest = async () => {
     try {
-      const res = await fetch(`/api/brand/messages/${activeThread.id}`, {
+      const res = await fetch(`/api/messages/${activeThread.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'accepted' })
@@ -438,7 +438,7 @@ export default function MessagesView({ currentRole = "brand" }) {
     setAnalysis(null);
 
     try {
-      const response = await fetch(`/api/brand/messages/${activeThread.id}/analyze`, {
+      const response = await fetch(`/api/messages/${activeThread.id}/analyze`, {
         method: "POST",
       });
       const data = await response.json();
