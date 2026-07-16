@@ -71,3 +71,28 @@ export async function PATCH(request) {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
+
+// DELETE /api/brand/notifications - Clear all notifications for brand owner
+export async function DELETE(request) {
+  try {
+    const user = await authenticate(request);
+    if (!user || user.role !== "BRANDOWNER") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { error } = await supabaseAdmin
+      .from("Notification")
+      .delete()
+      .eq("user_id", user.id);
+
+    if (error) {
+      console.error("Failed to delete all notifications:", error.message);
+      return NextResponse.json({ error: "Database error" }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("DELETE /api/brand/notifications error:", err);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}

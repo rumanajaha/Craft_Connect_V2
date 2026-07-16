@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useRouter } from "next/navigation";
 import { MessageCircle, CheckCircle, XCircle, Sparkles, Users, Package, TrendingUp, Lock, Loader2 } from "lucide-react";
 import Button from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/client";
+import { useRealtime } from "@/context/RealtimeProvider";
 
 function formatDBNotification(notif) {
   const IconMap = {
@@ -83,111 +83,22 @@ function formatDBNotification(notif) {
 }
 
 export default function BrandNotificationsPage() {
-  const [notifications, setNotifications] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { notifications: rawNotifications, unreadCount, markAsRead, markAllAsRead, clearAll, userId } = useRealtime();
   const router = useRouter();
-
-  useEffect(() => {
-    const supabase = createClient();
-    let isMounted = true;
-    let channel = null;
-
-    async function loadNotifications() {
-      try {
-        const res = await fetch("/api/brand/notifications");
-        if (res.ok && isMounted) {
-          const data = await res.json();
-          const dbNotifs = data.notifications || [];
-          const formattedDb = dbNotifs.map(formatDBNotification);
-          setNotifications(formattedDb);
-        }
-      } catch (err) {
-        console.error("Failed to load notifications:", err);
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
-    }
-
-    async function setupRealtime() {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        if (isMounted) {
-          loadNotifications();
-
-          channel = supabase
-            .channel(`notifications-user-${user.id}`)
-            .on(
-              "postgres_changes",
-              { event: "INSERT", schema: "public", table: "Notification", filter: `user_id=eq.${user.id}` },
-              (payload) => {
-                const formatted = formatDBNotification(payload.new);
-                setNotifications((prev) => {
-                  if (prev.some(n => n.id === formatted.id)) return prev;
-                  return [formatted, ...prev];
-                });
-              }
-            )
-            .on(
-              "postgres_changes",
-              { event: "UPDATE", schema: "public", table: "Notification", filter: `user_id=eq.${user.id}` },
-              (payload) => {
-                const formatted = formatDBNotification(payload.new);
-                setNotifications((prev) =>
-                  prev.map(n => n.id === formatted.id ? formatted : n)
-                );
-              }
-            )
-            .subscribe();
-        }
-      } catch (err) {
-        console.error("Failed to setup notifications realtime subscription:", err);
-      }
-    }
-
-    setupRealtime();
-
-    return () => {
-      isMounted = false;
-      if (channel) {
-        supabase.removeChannel(channel);
-      }
-    };
-  }, []);
-
-  const unreadCount = notifications.filter(n => n.is_read === false).length;
-
-  const markAllAsRead = async () => {
-    try {
-      const res = await fetch("/api/brand/notifications", { method: "PATCH" });
-      if (res.ok) {
-        setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const markAsRead = async (id) => {
-    try {
-      await fetch("/api/brand/notifications", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id })
-      });
-      setNotifications(prev =>
-        prev.map(n => (n.id === id ? { ...n, is_read: true } : n))
-      );
-    } catch (err) {
-      console.error("Failed to mark notification as read:", err);
-    }
-  };
 
   const handleNotificationClick = async (notif) => {
     await markAsRead(notif.id);
     router.push(notif.link);
   };
+
+  const handleClearAll = () => {
+    if (window.confirm("Are you sure you want to permanently clear all notifications? This action is irreversible.")) {
+      clearAll();
+    }
+  };
+
+  const notifications = rawNotifications.map(formatDBNotification);
+  const isLoading = !userId;
 
   const grouped = notifications.reduce((acc, notif) => {
     if (!acc[notif.dateGroup]) acc[notif.dateGroup] = [];
@@ -212,9 +123,17 @@ export default function BrandNotificationsPage() {
             You have <span className="font-bold text-brand-primary">{unreadCount}</span> {unreadCount === 1 ? 'notification' : 'notifications'} to go through
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={markAllAsRead} className="text-xs font-semibold px-4">
-          Mark all as Read
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={markAllAsRead} className="text-xs font-semibold px-4">
+            Mark all as Read
+          </Button>
+          <button
+            onClick={handleClearAll}
+            className="text-xs font-semibold px-4 py-2 border border-red-200 text-red-600 hover:bg-red-50 rounded-xl transition-colors active:bg-red-100"
+          >
+            Clear All
+          </button>
+        </div>
       </div>
 
       {isLoading ? (

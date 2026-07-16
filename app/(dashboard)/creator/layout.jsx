@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { AIUsageProvider, useAIUsage } from "@/lib/aiUsageStore";
 import { CollabProvider } from "@/lib/collabStore";
 import UpgradeModal from "@/components/brand/UpgradeModal";
-import { useUnreadNotifications } from "@/hooks/use-notifications";
+import { useRealtime } from "@/context/RealtimeProvider";
 import {
   LayoutDashboard,
   User,
@@ -112,7 +112,7 @@ function CreatorLayoutInner({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pageTitle = getPageTitle(pathname);
   const { showUpgradeModal, setShowUpgradeModal } = useAIUsage();
-  const unreadCount = useUnreadNotifications();
+  const { unreadCount } = useRealtime();
 
   return (
     <div className="min-h-screen bg-[#FAF7F0] flex">

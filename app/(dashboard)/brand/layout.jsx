@@ -8,7 +8,7 @@ import { BrandDataProvider, useBrandData } from "@/lib/brandDataStore";
 import { AIUsageProvider, useAIUsage } from "@/lib/aiUsageStore";
 import { CollabProvider } from "@/lib/collabStore";
 import UpgradeModal from "@/components/brand/UpgradeModal";
-import { useUnreadNotifications } from "@/hooks/use-notifications";
+import { useRealtime } from "@/context/RealtimeProvider";
 import { 
   LayoutDashboard, 
   Settings, 
@@ -120,7 +120,7 @@ function BrandLayoutInner({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pageTitle = getPageTitle(pathname);
   const { showUpgradeModal, setShowUpgradeModal } = useAIUsage();
-  const unreadCount = useUnreadNotifications();
+  const { unreadCount } = useRealtime();
   const { brandInfo } = useBrandData();
 
   const profilePic = brandInfo?.logoUrl || brandInfo?.logo || "https://images.unsplash.com/photo-1612196808214-b8e1d6145a8c?w=120&auto=format&fit=crop&q=80";

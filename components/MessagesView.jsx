@@ -7,7 +7,7 @@ import {
   Sparkles, Loader2, Search, X, MessageCircle
 } from "lucide-react";
 import Button from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/client";
+import { useRealtime } from "@/context/RealtimeProvider";
 
 /**
  * MessagesView — Unified messaging component for Brand, Creator, and Customer portals.
@@ -25,7 +25,7 @@ import { createClient } from "@/lib/supabase/client";
  *   - Empty states, loading states, error handling
  */
 export default function MessagesView({ currentRole = "brand" }) {
-  const supabase = createClient();
+  const { supabase } = useRealtime();
 
   // ─── State ────────────────────────────────────────────
   const [threads, setThreads] = useState([]);

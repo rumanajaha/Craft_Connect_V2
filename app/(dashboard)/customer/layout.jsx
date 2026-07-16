@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Compass, MessageCircle, Bookmark, Settings, LogOut, Menu, X, Bell, Sparkles } from "lucide-react";
-import { useUnreadNotifications } from "@/hooks/use-notifications";
+import { useRealtime } from "@/context/RealtimeProvider";
 
 const NAV_ITEMS = [
   { label: "Dashboard",    href: "/customer",          icon: LayoutDashboard },
@@ -90,7 +90,7 @@ export default function CustomerLayout({ children }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const pageTitle = getPageTitle(pathname);
-  const unreadCount = useUnreadNotifications();
+  const { unreadCount } = useRealtime();
 
   return (
     <div className="min-h-screen bg-[#FAF7F0] flex">
