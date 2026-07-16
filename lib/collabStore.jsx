@@ -13,11 +13,9 @@ export function CollabProvider({ children }) {
   
   const [outgoingPitches, setOutgoingPitches] = useState(MOCK_CREATOR_OUTGOING_PITCHES);
 
-  const addPitch = (pitch) => {
-    
+  const addPitch = async (pitch) => {
     setOutgoingPitches(prev => [pitch, ...prev]);
 
-    
     const incomingVersion = {
       id: pitch.id,
       brandId: pitch.brandId,
@@ -30,7 +28,23 @@ export function CollabProvider({ children }) {
       status: "pending",
     };
     setIncomingPitches(prev => [incomingVersion, ...prev]);
-    
+
+    try {
+      const res = await fetch("/api/creator/pitches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          brandId: pitch.brandId,
+          compensation: pitch.compensation,
+          message: pitch.snippet,
+        }),
+      });
+      if (!res.ok) {
+        console.error("Failed to persist pitch in DB:", await res.text());
+      }
+    } catch (err) {
+      console.error("Error persisting pitch:", err);
+    }
   };
 
   return (

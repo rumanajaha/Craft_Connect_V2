@@ -135,7 +135,7 @@ export default function BrandOverview() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-        <section className="space-y-4">
+        <section id="collaboration-requests" className="space-y-4">
           <div className="flex items-center justify-between px-1">
             <h2 className="font-serif text-xl font-bold text-brand-dark">Incoming Pitches</h2>
             <Link href="/brand/messages" className="text-xs text-brand-primary font-semibold hover:underline flex items-center gap-1">
@@ -161,7 +161,7 @@ export default function BrandOverview() {
           </div>
         </section>
 
-        <section className="space-y-4">
+        <section id="ai-creator-match" className="space-y-4">
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-brand-primary" />

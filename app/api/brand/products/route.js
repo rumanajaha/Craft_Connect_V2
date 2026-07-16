@@ -114,11 +114,12 @@ export async function POST(request) {
         .from('Notification')
         .insert({
           user_id: user.id,
-          type: 'product',
+          type: 'product_status',
           title: 'Product Marked Sold Out',
           body: `"${newProd.name}" automatically flagged as sold out.`,
           is_read: false,
-          related_entity_id: newProd.id
+          related_entity_id: newProd.id,
+          link: '/brand/products'
         });
     }
 

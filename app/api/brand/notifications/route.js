@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { authenticate } from "@/middleware/auth";
 import { getSupabaseRouteClient } from "@/lib/supabaseRouteHandler";
+import { supabaseAdmin } from "@/lib/supabaseServer";
 
 // GET /api/brand/notifications - Fetch notifications for logged-in brand owner
 export async function GET(request) {
@@ -38,11 +39,10 @@ export async function PATCH(request) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const supabase = getSupabaseRouteClient();
 
     if (body.id) {
-      // Mark single notification as read
-      const { error } = await supabase
+      // Mark single notification as read using supabaseAdmin to bypass RLS
+      const { error } = await supabaseAdmin
         .from("Notification")
         .update({ is_read: true })
         .eq("id", body.id)
@@ -53,8 +53,8 @@ export async function PATCH(request) {
         return NextResponse.json({ error: "Database update error" }, { status: 500 });
       }
     } else {
-      // Mark all notifications as read
-      const { error } = await supabase
+      // Mark all notifications as read using supabaseAdmin to bypass RLS
+      const { error } = await supabaseAdmin
         .from("Notification")
         .update({ is_read: true })
         .eq("user_id", user.id);

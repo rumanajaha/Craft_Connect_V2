@@ -89,11 +89,12 @@ export async function PATCH(request, { params }) {
         .from('Notification')
         .insert({
           user_id: user.id,
-          type: 'product',
+          type: 'product_status',
           title: 'Product Marked Sold Out',
           body: `"${updatedProd.name}" automatically flagged as sold out.`,
           is_read: false,
-          related_entity_id: updatedProd.id
+          related_entity_id: updatedProd.id,
+          link: '/brand/products'
         });
 
       if (notifError) {

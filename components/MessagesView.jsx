@@ -49,8 +49,25 @@ export default function MessagesView({ currentRole = "brand" }) {
   // Tabs
   const [activeTab, setActiveTab] = useState("messages");
 
+  const [currentUserId, setCurrentUserId] = useState(null);
+
   // ─── LocalStorage key for persisting active thread ────
   const STORAGE_KEY = `craft_connect_active_thread_${currentRole}`;
+
+  // ─── Fetch current user ID on mount ───────────────────
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setCurrentUserId(user.id);
+        }
+      } catch (err) {
+        console.error("Error fetching user in MessagesView:", err);
+      }
+    }
+    fetchUser();
+  }, []);
 
   // ─── Load threads on mount ────────────────────────────
   useEffect(() => {
@@ -120,12 +137,13 @@ export default function MessagesView({ currentRole = "brand" }) {
     loadMessages();
   }, [activeThread?.id]);
 
-  // ─── Supabase Realtime subscription ───────────────────
+  // ─── Supabase Realtime scoped messages subscription ──
   useEffect(() => {
-    if (!activeThread?.id) return;
+    if (!activeThread?.id || !currentUserId) return;
 
+    console.log(`[Realtime] Subscribing to messages-thread-${activeThread.id}`);
     const channel = supabase
-      .channel(`chat-${activeThread.id}`)
+      .channel(`messages-thread-${activeThread.id}`)
       .on(
         "postgres_changes",
         {
@@ -134,12 +152,17 @@ export default function MessagesView({ currentRole = "brand" }) {
           table: "Message",
           filter: `thread_id=eq.${activeThread.id}`,
         },
-        async (payload) => {
+        (payload) => {
           const newMsg = payload.new;
-          const { data: { session } } = await supabase.auth.getSession();
-          const currentUserId = session?.user?.id;
-          if (newMsg.sender_id === currentUserId) return;
+          
+          // Only append messages sent by the OTHER participant.
+          // Messages we send ourselves are handled via the optimistic-then-reconciled flow.
+          if (newMsg.sender_id === currentUserId) {
+            console.log("[Realtime] Ignoring own message insertion payload", newMsg.id);
+            return;
+          }
 
+          console.log("[Realtime] Received new message from other user:", newMsg.id);
           const formatted = {
             id: newMsg.id,
             sender: "them",
@@ -178,9 +201,48 @@ export default function MessagesView({ currentRole = "brand" }) {
       .subscribe();
 
     return () => {
+      console.log(`[Realtime] Unsubscribing from messages-thread-${activeThread.id}`);
       supabase.removeChannel(channel);
     };
-  }, [activeThread?.id]);
+  }, [activeThread?.id, currentUserId]);
+
+  // ─── Supabase Realtime thread list subscription ───────
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    const refetchThreadList = async () => {
+      try {
+        const response = await fetch("/api/brand/messages", { cache: "no-store" });
+        if (response.ok) {
+          const data = await response.json();
+          setThreads(data.threads || []);
+        }
+      } catch (err) {
+        console.error("Error refetching threads:", err);
+      }
+    };
+
+    const threadsChannel = supabase
+      .channel(`threads-user-${currentUserId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "MessageThread" },
+        (payload) => {
+          const newThread = payload.new || payload.old;
+          if (
+            newThread?.participant_a_id === currentUserId ||
+            newThread?.participant_b_id === currentUserId
+          ) {
+            refetchThreadList();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(threadsChannel);
+    };
+  }, [currentUserId]);
 
   // ─── Scroll to bottom on new messages ─────────────────
   useEffect(() => {
@@ -277,12 +339,13 @@ export default function MessagesView({ currentRole = "brand" }) {
     setInputText("");
 
     // Optimistic update
-    const tempMsgId = `temp-${Date.now()}`;
+    const tempId = `temp-${Date.now()}-${Math.random()}`;
     const optimisticMsg = {
-      id: tempMsgId,
+      id: tempId,
       sender: "me",
       text: textToSend,
       timestamp: new Date().toISOString(),
+      pending: true
     };
 
     setActiveThread(prev => ({
@@ -321,10 +384,13 @@ export default function MessagesView({ currentRole = "brand" }) {
       if (response.ok) {
         const data = await response.json();
         // Replace optimistic msg with real one
-        setActiveThread(prev => ({
-          ...prev,
-          messages: (prev.messages || []).map(m => m.id === tempMsgId ? data.message : m),
-        }));
+        setActiveThread(prev => {
+          if (!prev || prev.id !== targetThreadId) return prev;
+          return {
+            ...prev,
+            messages: (prev.messages || []).map(m => m.id === tempId ? { ...data.message, pending: false } : m),
+          };
+        });
 
         // Refresh the whole threads list so the new thread appears at the top
         const refreshRes = await fetch("/api/brand/messages", { cache: "no-store" });
@@ -836,9 +902,12 @@ export default function MessagesView({ currentRole = "brand" }) {
               /* Message bubbles */
               activeThread.messages.map((msg, idx) => {
                 const isMe = msg.sender === "me";
+                const isPending = msg.pending === true;
                 return (
                   <div key={msg.id || idx} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-[85%] md:max-w-[70%] rounded-2xl px-5 py-3 ${
+                    <div className={`max-w-[85%] md:max-w-[70%] rounded-2xl px-5 py-3 transition-opacity duration-200 ${
+                      isPending ? "opacity-60" : ""
+                    } ${
                       isMe
                         ? "bg-brand-primary text-white rounded-br-sm"
                         : "bg-white border border-brand-border/50 text-brand-dark shadow-sm rounded-bl-sm"
@@ -849,7 +918,8 @@ export default function MessagesView({ currentRole = "brand" }) {
                         </div>
                       )}
                       <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.text}</p>
-                      <p className={`text-[10px] mt-2 text-right ${isMe ? "text-white/70" : "text-brand-muted"}`}>
+                      <p className={`text-[10px] mt-2 text-right flex items-center justify-end gap-1 ${isMe ? "text-white/70" : "text-brand-muted"}`}>
+                        {isPending && <span className="inline-block animate-pulse">⏳</span>}
                         {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                       </p>
                     </div>

@@ -125,17 +125,78 @@ export async function POST(request, { params }) {
       .update(updateData)
       .eq("id", id);
 
-    // Send in-app notification to recipient
-    const bodyText = text.length > 80 ? text.substring(0, 77) + "..." : text;
+    // Resolve recipient's role/portal
+    const [brandRes, creatorRes] = await Promise.all([
+      supabaseAdmin.from("BrandProfile").select("id").eq("owner_user_id", otherId).maybeSingle(),
+      supabaseAdmin.from("CreatorProfile").select("id").eq("owner_user_id", otherId).maybeSingle(),
+    ]);
+
+    let recipientPortal = "customer";
+    if (creatorRes.data) {
+      recipientPortal = "creator";
+    } else if (brandRes.data) {
+      recipientPortal = "brand";
+    }
+
+    let notifType = "new_message";
+    let notifLink = `/${recipientPortal}/messages?thread=${id}`;
+    let notifTitle = "New Message";
+
+    if (thread.status === "pending" && thread.initiated_by === user.id) {
+      notifType = "message_request";
+      notifLink = `/${recipientPortal}/messages?tab=requests&thread=${id}`;
+      notifTitle = "New Message Request";
+    }
+
+    const bodyText = text.slice(0, 60);
+
+    // Get sender display name
+    let senderName = null;
+    if (user.role === "BRANDOWNER") {
+      const { data: brandProf } = await supabaseAdmin
+        .from("BrandProfile")
+        .select("brand_name")
+        .eq("owner_user_id", user.id)
+        .maybeSingle();
+      if (brandProf?.brand_name) {
+        senderName = brandProf.brand_name;
+      }
+    } else if (user.role === "CREATOR") {
+      const { data: creatorProf } = await supabaseAdmin
+        .from("CreatorProfile")
+        .select("display_name")
+        .eq("owner_user_id", user.id)
+        .maybeSingle();
+      if (creatorProf?.display_name) {
+        senderName = creatorProf.display_name;
+      }
+    } else {
+      const { data: customerProf } = await supabaseAdmin
+        .from("CustomerProfile")
+        .select("display_name")
+        .eq("owner_user_id", user.id)
+        .maybeSingle();
+      if (customerProf?.display_name) {
+        senderName = customerProf.display_name;
+      }
+    }
+
+    if (!senderName) {
+      const emailPrefix = user.email ? user.email.split("@")[0] : "user";
+      senderName = emailPrefix;
+      console.warn(`[WARNING] Name lookup returned null for sender_id ${user.id}. Falling back to email prefix: ${emailPrefix}`);
+    }
+
     await supabaseAdmin
       .from("Notification")
       .insert({
         user_id: otherId,
-        type: "message",
+        type: notifType,
         title: "New Message",
-        body: bodyText,
+        body: `${senderName}: ${bodyText}`,
         is_read: false,
         related_entity_id: id,
+        link: notifLink
       });
 
     return NextResponse.json({
@@ -196,6 +257,44 @@ export async function PATCH(request, { params }) {
     if (updateError) {
       console.error("Error updating thread:", updateError);
       return NextResponse.json({ error: "Database error" }, { status: 500 });
+    }
+
+    if (status === "accepted" && thread.status === "pending") {
+      const initiatorId = thread.initiated_by;
+      const [brandRes, creatorRes] = await Promise.all([
+        supabaseAdmin.from("BrandProfile").select("id").eq("owner_user_id", initiatorId).maybeSingle(),
+        supabaseAdmin.from("CreatorProfile").select("id").eq("owner_user_id", initiatorId).maybeSingle(),
+      ]);
+
+      let initiatorPortal = "customer";
+      if (creatorRes.data) {
+        initiatorPortal = "creator";
+      } else if (brandRes.data) {
+        initiatorPortal = "brand";
+      }
+
+      // Get acceptor's display name
+      let acceptorName = "Someone";
+      const { data: acceptorCust } = await supabaseAdmin
+        .from("CustomerProfile")
+        .select("display_name")
+        .eq("owner_user_id", user.id)
+        .maybeSingle();
+      if (acceptorCust?.display_name) {
+        acceptorName = acceptorCust.display_name;
+      }
+
+      await supabaseAdmin
+        .from("Notification")
+        .insert({
+          user_id: initiatorId,
+          type: "request_accepted",
+          title: "Message Request Accepted",
+          body: `${acceptorName} accepted your message request.`,
+          is_read: false,
+          related_entity_id: id,
+          link: `/${initiatorPortal}/messages?thread=${id}`
+        });
     }
 
     return NextResponse.json({ success: true, status });
