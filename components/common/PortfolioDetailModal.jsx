@@ -5,24 +5,19 @@ import Image from "next/image";
 import { X, Eye, Sparkles, FolderOpen, Heart } from "lucide-react";
 
 export default function PortfolioDetailModal({ item, isOpen, onClose }) {
-  const [localViews, setLocalViews] = useState(item?.view_count || item?.views || 0);
+  const [localViews, setLocalViews] = useState(0);
   const [liked, setLiked] = useState(false);
-
-  useEffect(() => {
-    if (item) {
-      setLocalViews(item.view_count || item.views || 0);
-    }
-  }, [item]);
 
   useEffect(() => {
     if (!isOpen || !item?.id) return;
 
+    const baseViews = item.view_count || item.views || 0;
     const storageKey = `viewed_portfolio_${item.id}`;
     const alreadyViewed = sessionStorage.getItem(storageKey);
 
     if (!alreadyViewed) {
       sessionStorage.setItem(storageKey, "true");
-      setLocalViews(prev => prev + 1);
+      setLocalViews(baseViews + 1);
 
       fetch("/api/track-view", {
         method: "POST",
@@ -31,8 +26,10 @@ export default function PortfolioDetailModal({ item, isOpen, onClose }) {
       }).catch(err => {
         console.error("Failed to track view for portfolio:", item.id, err);
       });
+    } else {
+      setLocalViews(baseViews);
     }
-  }, [isOpen, item?.id]);
+  }, [isOpen, item]);
 
   if (!isOpen || !item) return null;
 
