@@ -24,10 +24,25 @@ export function AIUsageProvider({ children }) {
   const [usageByTool, setUsageByTool] = useState(INITIAL_USAGE);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [isPro, setIsPro] = useState(false);
+  const [userRole, setUserRole] = useState(null);
 
-  const refreshUsage = async () => {
+  const refreshUsage = async (roleOverride) => {
     try {
-      const response = await fetch("/api/brand/ai/usage");
+      const activeRole = roleOverride || userRole;
+      let endpoint = "/api/brand/ai/usage";
+      if (activeRole === "CREATOR") {
+        endpoint = "/api/creator/ai/usage";
+      } else if (!activeRole) {
+        const meRes = await fetch("/api/auth/me");
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          setUserRole(meData.user?.role);
+          if (meData.user?.role === "CREATOR") {
+            endpoint = "/api/creator/ai/usage";
+          }
+        }
+      }
+      const response = await fetch(endpoint);
       if (response.ok) {
         const data = await response.json();
         setUsageByTool(prev => ({ ...prev, ...data.usage }));

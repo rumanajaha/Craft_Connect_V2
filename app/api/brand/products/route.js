@@ -41,7 +41,8 @@ export async function GET(request) {
       status: p.status || 'in_stock',
       inStock: p.status === 'in_stock',
       buyLink: p.buy_link || '',
-      image: p.image_url || ''
+      image: p.image_url || '',
+      view_count: p.view_count || 0
     }));
 
     return NextResponse.json({ products: formattedProducts });
@@ -133,7 +134,8 @@ export async function POST(request) {
       status: newProd.status,
       inStock: newProd.status === 'in_stock',
       buyLink: newProd.buy_link,
-      image: newProd.image_url
+      image: newProd.image_url,
+      view_count: newProd.view_count || 0
     };
 
     return NextResponse.json({ product: formattedProduct });

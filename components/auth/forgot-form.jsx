@@ -19,8 +19,9 @@ export default function ForgotForm() {
         setError("");
         setSuccess("");
         try {
+            const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
             const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: "https://craft-connect-v2.vercel.app/reset-password",
+                redirectTo: `${origin}/reset-password`,
             });
             if (resetError) {
                 console.error("Supabase resetPasswordForEmail error:", resetError);

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef, useCallback, useContext } from "react";
+import { useRouter } from "next/navigation";
 import { Search, Sparkles, Loader2, MessageSquare, X, Handshake } from "lucide-react";
 import FeedTile from "@/components/common/FeedTile";
 import { getFeedItems, rankFeed } from "@/lib/feedRanking";
@@ -117,6 +118,7 @@ function ProfileSearchTile({ user, viewerRole, onStartChat, onProposeCollab }) {
 
 export default function SharedFeedPage({ role, userTags = [], heading, subheading, emptyStatePrompt }) {
   const collabCtx = useContext(CollabContext);
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const loaderRef = useRef(null);
@@ -195,7 +197,7 @@ export default function SharedFeedPage({ role, userTags = [], heading, subheadin
         return;
       }
 
-      const res = await fetch("/api/brand/messages", {
+      const res = await fetch("/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ recipientId })
@@ -233,23 +235,25 @@ export default function SharedFeedPage({ role, userTags = [], heading, subheadin
     });
   };
 
-  // Fetch logic for brand role
+  // Fetch logic for brand/creator role
   useEffect(() => {
-    if (role !== "brand") return;
+    if (role !== "brand" && role !== "creator") return;
     if (searchQuery.trim()) return; // Skip feed fetching during active search
-
+ 
     let active = true;
     const fetchFeed = async () => {
       try {
         setIsLoading(page === 1);
         setIsMoreLoading(page > 1);
-
-        const endpoint = `/api/brand/feed?page=${page}&limit=${PAGE_SIZE}`;
-
+ 
+        const endpoint = role === "brand"
+          ? `/api/brand/feed?page=${page}&limit=${PAGE_SIZE}`
+          : `/api/creator/feed?page=${page}&limit=${PAGE_SIZE}`;
+ 
         const res = await fetch(endpoint);
         if (!res.ok) throw new Error("Failed to fetch feed");
         const data = await res.json();
-
+ 
         if (active) {
           if (page === 1) {
             setItems(data.items || []);
@@ -267,13 +271,13 @@ export default function SharedFeedPage({ role, userTags = [], heading, subheadin
         }
       }
     };
-
+ 
     fetchFeed();
     return () => { active = false; };
   }, [role, page, searchQuery]);
-
+ 
   useEffect(() => {
-    if (role === "brand") {
+    if (role === "brand" || role === "creator") {
       setPage(1);
     }
   }, [searchQuery, role]);
@@ -301,25 +305,25 @@ export default function SharedFeedPage({ role, userTags = [], heading, subheadin
   const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
 
   useEffect(() => {
-    if (role !== "brand") {
+    if (role !== "brand" && role !== "creator") {
       setDisplayCount(PAGE_SIZE);
     }
   }, [searchQuery, role]);
 
   useEffect(() => {
-    if (role !== "brand") {
+    if (role !== "brand" && role !== "creator") {
       setIsLoading(true);
       const t = setTimeout(() => setIsLoading(false), 400);
       return () => clearTimeout(t);
     }
   }, [role]);
 
-  const visibleItems = role === "brand" ? items : clientFilteredItems.slice(0, displayCount);
-  const showLoader = role === "brand" ? hasMore : displayCount < clientFilteredItems.length;
+  const visibleItems = (role === "brand" || role === "creator") ? items : clientFilteredItems.slice(0, displayCount);
+  const showLoader = (role === "brand" || role === "creator") ? hasMore : displayCount < clientFilteredItems.length;
 
   const handleObserver = useCallback((entries) => {
     if (entries[0].isIntersecting) {
-      if (role === "brand") {
+      if (role === "brand" || role === "creator") {
         if (hasMore && !isMoreLoading) {
           setPage(prev => prev + 1);
         }
@@ -454,9 +458,12 @@ export default function SharedFeedPage({ role, userTags = [], heading, subheadin
           isOpen={!!pitchTarget}
           onClose={() => setPitchTarget(null)}
           brand={pitchTarget}
-          onSubmit={(pitch) => {
+          onSubmit={async (pitch) => {
             if (collabCtx && collabCtx.addPitch) {
-              collabCtx.addPitch(pitch);
+              const res = await collabCtx.addPitch(pitch);
+              if (res && res.threadId) {
+                router.push(`/creator/messages?thread=${res.threadId}`);
+              }
             }
           }}
         />

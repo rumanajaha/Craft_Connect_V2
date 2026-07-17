@@ -55,7 +55,7 @@ export default function SecurityTab() {
     setMessage({ text: "", type: "" });
 
     try {
-      const response = await fetch("/api/brand/security/password", {
+      const response = await fetch("/api/auth/security/password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password: newPassword }),

@@ -1,75 +1,279 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Camera, Save, ShieldAlert, Bell, Check, Loader2, Mail, Monitor } from "lucide-react";
+import { Camera, Save, ShieldAlert, Bell, Check, Loader2, Mail, Monitor, Plus, X } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
-import { MOCK_ACTIVE_CREATOR, MOCK_CREATOR_PORTFOLIO } from "@/lib/mockData";
 import PortfolioItem from "@/components/creator/PortfolioItem";
 
 export default function CreatorProfilePage() {
   const [activeTab, setActiveTab] = useState("profile");
+  const fileInputRef = useRef(null);
+  const projectFileInputRef = useRef(null);
 
-  
   const [profile, setProfile] = useState({
-    displayName: MOCK_ACTIVE_CREATOR.name,
-    bio: MOCK_ACTIVE_CREATOR.bio,
-    niches: MOCK_ACTIVE_CREATOR.niches.join(", "),
-    followers: MOCK_ACTIVE_CREATOR.followers,
-    engagementRate: MOCK_ACTIVE_CREATOR.engagementRate,
-    tags: MOCK_ACTIVE_CREATOR.tags,
-    instagram: MOCK_ACTIVE_CREATOR.instagram,
-    tiktok: MOCK_ACTIVE_CREATOR.tiktok,
-    youtube: MOCK_ACTIVE_CREATOR.youtube,
+    displayName: "",
+    bio: "",
+    niches: "",
+    followers: 0,
+    engagementRate: 0,
+    tags: "",
+    instagram: "",
+    tiktok: "",
+    youtube: "",
+    avatar: "",
   });
 
-  const [portfolio, setPortfolio] = useState(MOCK_CREATOR_PORTFOLIO);
+  const [portfolio, setPortfolio] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
-  
+  // Add Portfolio Modal States
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newProject, setNewProject] = useState({ brandName: "", description: "", image: "" });
+  const [isAddingProject, setIsAddingProject] = useState(false);
+
+  // Security (password change) States
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [passwordUpdated, setPasswordUpdated] = useState(false);
 
-  const handlePasswordUpdate = () => {
-    if (!currentPassword || !newPassword || !confirmPassword) return;
-    setIsUpdatingPassword(true);
-    setTimeout(() => {
-      setIsUpdatingPassword(false);
-      setPasswordUpdated(true);
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-      setTimeout(() => setPasswordUpdated(false), 3000);
-    }, 800);
-  };
-
-  
+  // Notification Preferences State
   const [notifPrefs, setNotifPrefs] = useState({
     brandMatchFound: { email: true, desktop: true },
     pitchResponse: { email: true, desktop: true },
     newMessage: { email: true, desktop: true },
   });
 
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const response = await fetch("/api/creator/profile");
+        if (response.ok) {
+          const data = await response.json();
+          setProfile({
+            id: data.profile.id,
+            displayName: data.profile.displayName || "",
+            bio: data.profile.bio || "",
+            niches: data.profile.niches || "",
+            followers: data.profile.followers || 0,
+            engagementRate: data.profile.engagementRate || 0,
+            tags: data.profile.tags || "",
+            instagram: data.profile.instagram || "",
+            tiktok: data.profile.tiktok || "",
+            youtube: data.profile.youtube || "",
+            avatar: data.profile.avatar || "",
+          });
+          if (data.profile.notification_prefs) {
+            setNotifPrefs(data.profile.notification_prefs);
+          }
+        } else if (response.status === 401) {
+          window.location.href = "/login";
+        }
+
+        // Fetch portfolio items
+        const portfolioRes = await fetch("/api/creator/portfolio");
+        if (portfolioRes.ok) {
+          const portfolioData = await portfolioRes.json();
+          setPortfolio(portfolioData.portfolio || []);
+        }
+      } catch (err) {
+        console.error("Failed to load creator profile / portfolio data:", err);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    }
+    fetchData();
+  }, []);
+
   const handleProfileChange = (e) => {
     const { name, value } = e.target;
     setProfile(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = () => {
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/creator/profile/upload", {
+        method: "POST",
+        body: formData
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setProfile(prev => ({
+          ...prev,
+          avatar: data.avatarUrl
+        }));
+      } else {
+        alert(data.error || "Failed to upload image.");
+      }
+    } catch (err) {
+      console.error("Avatar upload error:", err);
+      alert("Error uploading avatar.");
+    }
+  };
+
+  const handleSave = async () => {
     setIsSaving(true);
-    
-    setTimeout(() => {
+    try {
+      const response = await fetch("/api/creator/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...profile,
+          notification_prefs: notifPrefs
+        })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setProfile({
+          id: data.profile.id,
+          displayName: data.profile.displayName || "",
+          bio: data.profile.bio || "",
+          niches: data.profile.niches || "",
+          followers: data.profile.followers || 0,
+          engagementRate: data.profile.engagementRate || 0,
+          tags: data.profile.tags || "",
+          instagram: data.profile.instagram || "",
+          tiktok: data.profile.tiktok || "",
+          youtube: data.profile.youtube || "",
+          avatar: data.profile.avatar || "",
+        });
+        if (data.profile.notification_prefs) {
+          setNotifPrefs(data.profile.notification_prefs);
+        }
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      } else {
+        const errData = await response.json().catch(() => ({}));
+        alert(`Failed to save settings: ${errData.error || response.statusText || "Unknown error"}`);
+      }
+    } catch (err) {
+      console.error("Save settings error:", err);
+      alert("Error saving settings.");
+    } finally {
       setIsSaving(false);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    }, 600);
+    }
+  };
+
+  const handleProjectImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/creator/portfolio/upload", {
+        method: "POST",
+        body: formData
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setNewProject(prev => ({ ...prev, image: data.url }));
+      } else {
+        alert(data.error || "Upload failed");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error uploading image");
+    }
+  };
+
+  const handleAddProject = async () => {
+    if (!newProject.brandName) {
+      alert("Please enter a Brand Name / Title.");
+      return;
+    }
+    setIsAddingProject(true);
+    try {
+      const res = await fetch("/api/creator/portfolio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newProject)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPortfolio(prev => [data.portfolioItem, ...prev]);
+        setShowAddModal(false);
+        setNewProject({ brandName: "", description: "", image: "" });
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Failed to add portfolio item");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error adding portfolio item");
+    } finally {
+      setIsAddingProject(false);
+    }
+  };
+
+  const handleRemovePortfolioItem = async (id) => {
+    if (!confirm("Are you sure you want to delete this portfolio item?")) return;
+    try {
+      const res = await fetch(`/api/creator/portfolio/${id}`, {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        setPortfolio(prev => prev.filter(p => p.id !== id));
+      } else {
+        alert("Failed to delete portfolio item.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error deleting portfolio item.");
+    }
+  };
+
+  const handlePasswordUpdate = async () => {
+    if (!newPassword || !confirmPassword) return;
+    if (newPassword !== confirmPassword) {
+      alert("Passwords do not match.");
+      return;
+    }
+    if (newPassword.length < 6) {
+      alert("Password must be at least 6 characters long.");
+      return;
+    }
+    setIsUpdatingPassword(true);
+    try {
+      const response = await fetch("/api/auth/security/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: newPassword }),
+      });
+      if (response.ok) {
+        setPasswordUpdated(true);
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setTimeout(() => setPasswordUpdated(false), 3000);
+      } else {
+        const data = await response.json();
+        alert(data.error || "Failed to update password.");
+      }
+    } catch (err) {
+      console.error("Password update error:", err);
+      alert("An error occurred while updating the password.");
+    } finally {
+      setIsUpdatingPassword(false);
+    }
   };
 
   const TABS = [
@@ -78,9 +282,18 @@ export default function CreatorProfilePage() {
     { id: "notifications", label: "Notifications" },
   ];
 
+  if (isLoadingProfile) {
+    return (
+      <div className="flex items-center justify-center p-12 bg-white rounded-2xl border border-brand-border/50 max-w-5xl mx-auto">
+        <Loader2 className="w-6 h-6 animate-spin text-brand-primary mr-2" />
+        <span className="text-sm font-semibold text-brand-muted">Loading profile settings...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-5xl mx-auto space-y-8">
-      
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="font-serif text-3xl md:text-4xl font-bold text-brand-dark">Profile Settings</h1>
@@ -97,7 +310,7 @@ export default function CreatorProfilePage() {
         </div>
       </div>
 
-      
+      {/* Tabs list */}
       <div className="flex gap-1 bg-brand-border/20 p-1 rounded-xl w-fit max-w-full overflow-x-auto scrollbar-none">
         {TABS.map(tab => (
           <button
@@ -114,17 +327,32 @@ export default function CreatorProfilePage() {
         ))}
       </div>
 
-      
+      {/* Profile Tab */}
       {activeTab === "profile" && (
-        <div className="space-y-8">
-          
+        <div className="space-y-8 animate-in fade-in duration-300">
+          {/* Identity */}
           <Card className="p-6">
             <div className="flex items-center gap-6">
-              <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-brand-border/50 bg-white shrink-0">
-                <Image src={MOCK_ACTIVE_CREATOR.avatar} alt="Avatar" fill className="object-cover" />
-                <button className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleAvatarUpload} 
+                style={{ display: "none" }} 
+                accept="image/*" 
+              />
+              <div 
+                onClick={triggerFileInput}
+                className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-brand-border/50 bg-white shrink-0 cursor-pointer group"
+              >
+                <Image 
+                  src={profile.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"} 
+                  alt="Avatar" 
+                  fill 
+                  className="object-cover" 
+                />
+                <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                   <Camera className="w-5 h-5 text-white" />
-                </button>
+                </div>
               </div>
               <div className="flex-1">
                 <Input label="Display Name" name="displayName" value={profile.displayName} onChange={handleProfileChange} />
@@ -132,7 +360,7 @@ export default function CreatorProfilePage() {
             </div>
           </Card>
 
-          
+          {/* About */}
           <Card className="p-6 space-y-5">
             <h3 className="font-serif font-bold text-brand-dark text-lg">About You</h3>
             <div className="flex flex-col gap-1.5">
@@ -168,7 +396,7 @@ export default function CreatorProfilePage() {
             </div>
           </Card>
 
-          
+          {/* Socials */}
           <Card className="p-6 space-y-5">
             <h3 className="font-serif font-bold text-brand-dark text-lg">Social Channels</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -187,24 +415,35 @@ export default function CreatorProfilePage() {
             </div>
           </Card>
 
-          
+          {/* Portfolio */}
           <Card className="p-6 space-y-5">
             <div className="flex items-center justify-between">
               <h3 className="font-serif font-bold text-brand-dark text-lg">Portfolio</h3>
-              <p className="text-xs text-brand-muted">{portfolio.length} project{portfolio.length !== 1 ? "s" : ""}</p>
+              <div className="flex items-center gap-4">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setShowAddModal(true)}
+                  className="text-brand-dark border-brand-border flex items-center gap-1.5"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Add Project
+                </Button>
+                <p className="text-xs text-brand-muted">{portfolio.length} project{portfolio.length !== 1 ? "s" : ""}</p>
+              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {portfolio.map(item => (
                 <PortfolioItem
                   key={item.id}
                   item={item}
-                  onRemove={(id) => setPortfolio(prev => prev.filter(p => p.id !== id))}
+                  onRemove={handleRemovePortfolioItem}
                 />
               ))}
             </div>
           </Card>
 
-          
+          {/* Save Button */}
           <div className="flex justify-end">
             <Button variant="primary" onClick={handleSave} disabled={isSaving}>
               {isSaving ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : saved ? <Check className="w-4 h-4 mr-1.5" /> : <Save className="w-4 h-4 mr-1.5" />}
@@ -214,7 +453,7 @@ export default function CreatorProfilePage() {
         </div>
       )}
 
-      
+      {/* Security Tab */}
       {activeTab === "security" && (
         <div className="bg-white rounded-2xl border border-brand-border/50 p-6 animate-in fade-in duration-300">
           <h3 className="font-serif text-lg font-bold text-brand-dark mb-1">Password & Security</h3>
@@ -228,7 +467,7 @@ export default function CreatorProfilePage() {
               variant="outline" 
               className={`mt-2 ${passwordUpdated ? "border-emerald-500 text-emerald-700 hover:bg-emerald-50" : "text-brand-dark"}`} 
               onClick={handlePasswordUpdate}
-              disabled={isUpdatingPassword || !currentPassword || !newPassword || !confirmPassword}
+              disabled={isUpdatingPassword || !newPassword || !confirmPassword}
             >
               {isUpdatingPassword ? (
                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Updating...</>
@@ -242,25 +481,20 @@ export default function CreatorProfilePage() {
         </div>
       )}
 
-      
+      {/* Notifications Tab */}
       {activeTab === "notifications" && (
-        <div className="space-y-4">
-          
+        <div className="space-y-4 animate-in fade-in duration-300">
           <div className="bg-white border border-brand-border/50 shadow-sm rounded-2xl overflow-hidden">
-            
-            
             <div className="flex items-end justify-between px-6 py-5 border-b border-brand-border/30">
               <div>
                 <h3 className="font-serif text-base font-bold text-brand-dark">Notification Preferences</h3>
                 <p className="text-xs text-brand-muted mt-0.5">Control which alerts you receive about your creator activity.</p>
               </div>
               <div className="flex items-center gap-8 pr-1 shrink-0">
-                
                 <div className="flex flex-col items-center gap-1 w-16">
                   <Mail className="w-4 h-4 text-brand-muted" />
                   <span className="text-[9px] font-bold uppercase tracking-wider text-brand-muted">Email</span>
                 </div>
-                
                 <div className="flex flex-col items-center gap-1 w-16">
                   <Monitor className="w-4 h-4 text-brand-muted" />
                   <span className="text-[9px] font-bold uppercase tracking-wider text-brand-muted">Push</span>
@@ -268,14 +502,12 @@ export default function CreatorProfilePage() {
               </div>
             </div>
 
-            
             <div className="divide-y divide-brand-border/20">
               {[
                 { key: "brandMatchFound", label: "New brand match found", desc: "Get notified when AI finds a compatible brand for you." },
                 { key: "pitchResponse", label: "Brand responded to my pitch", desc: "Get notified when a brand accepts or declines your pitch." },
                 { key: "newMessage", label: "New message received", desc: "Get notified when a brand sends you a message." },
               ].map(pref => {
-                
                 const Toggle = ({ checked, onChange }) => (
                   <button
                     type="button"
@@ -301,19 +533,19 @@ export default function CreatorProfilePage() {
                     <div className="flex items-center gap-8 pr-1 shrink-0">
                       <div className="w-16 flex justify-center">
                         <Toggle 
-                          checked={notifPrefs[pref.key].email} 
+                          checked={notifPrefs[pref.key]?.email ?? true} 
                           onChange={() => setNotifPrefs(prev => ({
                             ...prev,
-                            [pref.key]: { ...prev[pref.key], email: !prev[pref.key].email }
+                            [pref.key]: { ...prev[pref.key], email: !(prev[pref.key]?.email ?? true) }
                           }))}
                         />
                       </div>
                       <div className="w-16 flex justify-center">
                         <Toggle 
-                          checked={notifPrefs[pref.key].desktop} 
+                          checked={notifPrefs[pref.key]?.desktop ?? true} 
                           onChange={() => setNotifPrefs(prev => ({
                             ...prev,
-                            [pref.key]: { ...prev[pref.key], desktop: !prev[pref.key].desktop }
+                            [pref.key]: { ...prev[pref.key], desktop: !(prev[pref.key]?.desktop ?? true) }
                           }))}
                         />
                       </div>
@@ -322,7 +554,95 @@ export default function CreatorProfilePage() {
                 );
               })}
             </div>
+          </div>
 
+          <div className="flex justify-end">
+            <Button variant="primary" onClick={handleSave} disabled={isSaving}>
+              {isSaving ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : saved ? <Check className="w-4 h-4 mr-1.5" /> : <Save className="w-4 h-4 mr-1.5" />}
+              {isSaving ? "Saving..." : saved ? "Saved!" : "Save Preferences"}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Add Project Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-brand-dark/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-2xl border border-brand-border/80 shadow-2xl p-6 animate-in zoom-in-95 duration-200 relative text-left">
+            <button 
+              onClick={() => setShowAddModal(false)}
+              className="absolute top-4 right-4 text-brand-muted hover:text-brand-dark transition-colors"
+            >
+              <X className="w-4.5 h-4.5" />
+            </button>
+            <h4 className="font-serif text-xl font-bold text-brand-dark mb-4">Add Portfolio Project</h4>
+            <div className="space-y-4">
+              <input 
+                type="file" 
+                ref={projectFileInputRef} 
+                onChange={handleProjectImageUpload} 
+                style={{ display: "none" }} 
+                accept="image/*" 
+              />
+              
+              <div className="flex flex-col items-center gap-3">
+                <label className="text-xs font-bold text-brand-dark uppercase tracking-wider self-start">Project Image</label>
+                <div 
+                  onClick={() => projectFileInputRef.current?.click()}
+                  className="relative w-full h-40 rounded-xl overflow-hidden border-2 border-brand-border/50 bg-brand-border/10 cursor-pointer group flex items-center justify-center"
+                >
+                  {newProject.image ? (
+                    <Image src={newProject.image} alt="Project Image" fill className="object-cover" />
+                  ) : (
+                    <div className="text-center text-brand-muted flex flex-col items-center gap-1.5">
+                      <Camera className="w-8 h-8 opacity-40" />
+                      <span className="text-xs font-semibold">Upload cover photo</span>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Camera className="w-6 h-6 text-white mb-1" />
+                    <span className="text-[10px] text-white font-bold uppercase tracking-wider">Upload new</span>
+                  </div>
+                </div>
+              </div>
+
+              <Input 
+                label="Brand Name / Project Title" 
+                value={newProject.brandName} 
+                onChange={e => setNewProject(prev => ({ ...prev, brandName: e.target.value }))}
+                placeholder="e.g. Ochre Clay Studio"
+              />
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-brand-dark uppercase tracking-wider">Project Description</label>
+                <textarea
+                  rows={3}
+                  value={newProject.description}
+                  onChange={e => setNewProject(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="e.g. Instagram reel campaign with slow living aesthetics..."
+                  className="w-full px-4 py-2.5 rounded-xl border border-brand-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all text-brand-dark resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <Button
+                variant="outline"
+                className="text-brand-dark border-brand-border"
+                onClick={() => setShowAddModal(false)}
+                disabled={isAddingProject}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleAddProject}
+                disabled={!newProject.brandName || isAddingProject}
+                variant="primary"
+              >
+                {isAddingProject ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : null}
+                {isAddingProject ? "Adding..." : "Add Project"}
+              </Button>
+            </div>
           </div>
         </div>
       )}

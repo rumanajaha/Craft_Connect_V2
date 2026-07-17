@@ -112,7 +112,8 @@ export async function PATCH(request, { params }) {
       status: updatedProd.status,
       inStock: updatedProd.status === 'in_stock',
       buyLink: updatedProd.buy_link,
-      image: updatedProd.image_url
+      image: updatedProd.image_url,
+      view_count: updatedProd.view_count || 0
     };
 
     return NextResponse.json({ product: formattedProduct });

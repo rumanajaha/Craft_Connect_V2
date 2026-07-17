@@ -16,16 +16,17 @@ export default function ProposeCollabModal({ isOpen, onClose, brand, onSubmit })
   const [compensation, setCompensation] = useState("gifting");
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState("");
 
   if (!isOpen || !brand) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!message.trim()) return;
     setIsSending(true);
+    setError("");
 
-    
-    setTimeout(() => {
+    try {
       const pitch = {
         id: `pitch-${Date.now()}`,
         brandId: brand.id,
@@ -36,12 +37,17 @@ export default function ProposeCollabModal({ isOpen, onClose, brand, onSubmit })
         date: new Date().toISOString().split("T")[0],
         status: "pending",
       };
-      onSubmit?.(pitch);
-      setIsSending(false);
+      await onSubmit?.(pitch);
       setMessage("");
       setCompensation("gifting");
+      setError("");
       onClose();
-    }, 600);
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Failed to send pitch — please try again");
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -120,7 +126,12 @@ export default function ProposeCollabModal({ isOpen, onClose, brand, onSubmit })
             />
           </div>
 
-          
+          {error && (
+            <p className="text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-xl p-3 text-center">
+              {error}
+            </p>
+          )}
+
           <Button type="submit" variant="primary" className="w-full justify-center" disabled={isSending || !message.trim()}>
             {isSending ? "Sending..." : <><Send className="w-4 h-4 mr-1.5" /> Send Pitch</>}
           </Button>

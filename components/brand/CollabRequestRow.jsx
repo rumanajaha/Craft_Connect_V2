@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import Image from "next/image";
 import Button from "@/components/ui/button";
 import { Check, X, Gift, DollarSign, RefreshCw, MessageSquare } from "lucide-react";
@@ -34,11 +35,10 @@ export default function CollabRequestRow({ pitch, onAccept, onReject }) {
     if (action === "rejected" && onReject) onReject(pitch.id);
   };
 
-  return (
-    <div className="flex flex-col sm:flex-row gap-4 p-4 items-start sm:items-center bg-white border border-brand-border/50 rounded-2xl hover:shadow-sm transition-shadow">
-      
+  const requestContent = (
+    <>
       <div className="flex items-center gap-3 w-full sm:w-1/4 shrink-0">
-        <div className="relative w-10 h-10 rounded-full overflow-hidden border border-brand-border/40 shrink-0">
+        <div className="relative w-10 h-10 rounded-full overflow-hidden border border-brand-border/40 shrink-0 bg-white">
           <Image src={pitch.creatorAvatar} alt={pitch.creatorName} fill className="object-cover" />
         </div>
         <div className="min-w-0 flex-1">
@@ -47,7 +47,6 @@ export default function CollabRequestRow({ pitch, onAccept, onReject }) {
         </div>
       </div>
 
-      
       <div className="w-full sm:w-auto shrink-0">
         <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold uppercase tracking-wider ${getCompensationColor(pitch.compensation)}`}>
           {getCompensationIcon(pitch.compensation)}
@@ -55,12 +54,25 @@ export default function CollabRequestRow({ pitch, onAccept, onReject }) {
         </div>
       </div>
 
-      
       <div className="flex-1 w-full min-w-0">
         <p className="text-sm text-brand-dark/80 line-clamp-2 leading-relaxed">
           "{pitch.snippet}"
         </p>
       </div>
+    </>
+  );
+
+  return (
+    <div className="flex flex-col sm:flex-row gap-4 p-4 items-start sm:items-center bg-white border border-brand-border/50 rounded-2xl hover:shadow-sm transition-shadow">
+      {pitch.threadId ? (
+        <Link href={`/brand/messages?thread=${pitch.threadId}`} className="flex flex-col sm:flex-row gap-4 flex-1 items-start sm:items-center min-w-0">
+          {requestContent}
+        </Link>
+      ) : (
+        <div className="flex flex-col sm:flex-row gap-4 flex-1 items-start sm:items-center min-w-0">
+          {requestContent}
+        </div>
+      )}
 
       
       <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 justify-end">

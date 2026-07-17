@@ -66,7 +66,7 @@ export function RealtimeProvider({ children }) {
 
   const markAsRead = useCallback(async (id) => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
-    await fetch("/api/brand/notifications", {
+    await fetch("/api/notifications", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),
@@ -75,12 +75,12 @@ export function RealtimeProvider({ children }) {
 
   const markAllAsRead = useCallback(async () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-    await fetch("/api/brand/notifications", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
+    await fetch("/api/notifications", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
   }, []);
 
   const clearAll = useCallback(async () => {
     setNotifications([]);
-    await fetch("/api/brand/notifications", { method: "DELETE" });
+    await fetch("/api/notifications", { method: "DELETE" });
   }, []);
 
   const dismissToast = useCallback(() => setToast(null), []);

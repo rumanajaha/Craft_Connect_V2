@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { authenticate } from '@/middleware/auth';
 import { getSupabaseRouteClient } from '@/lib/supabaseRouteHandler';
+import { createNotification } from '@/lib/notify';
+import { findOrCreateThread } from '@/lib/messages';
+import { supabaseAdmin } from '@/lib/supabaseServer';
 
 export async function PATCH(request, { params }) {
   try {
@@ -69,19 +72,39 @@ export async function PATCH(request, { params }) {
       const brandName = brand.brand_name || 'A Brand';
       const actionText = dbStatus === 'accepted' ? 'accepted' : 'declined';
       
+      // Insert SYSTEM style message in the thread
+      try {
+        const threadId = await findOrCreateThread(creator.owner_user_id, user.id);
+        const systemMessageBody = `[SYSTEM] Collaboration ${dbStatus === 'accepted' ? 'accepted' : 'declined'}`;
+        await supabaseAdmin
+          .from('Message')
+          .insert({
+            thread_id: threadId,
+            sender_id: user.id,
+            body: systemMessageBody
+          });
+
+        // Update the thread's last_message_at
+        await supabaseAdmin
+          .from('MessageThread')
+          .update({ last_message_at: new Date().toISOString() })
+          .eq('id', threadId);
+      } catch (threadErr) {
+        console.error("Error setting up system message in conversation thread:", threadErr);
+      }
+
       // TODO: Once the Creator backend and campaign views are fully implemented, this notification link and routing
       // should target the creator's specific pitch detail view or campaign page (currently fallback to creator dashboard).
       //
       // TODO: For the reverse flow (when a brand proposes a collab to a creator, and the creator accepts/declines),
       // we will need to add a notification insert here targeting the brand owner (type: "pitch_status", link: "/brand#collaboration-requests").
-      await supabase.from('Notification').insert({
-        user_id: creator.owner_user_id,
-        type: 'pitch_status',
+      await createNotification({
+        userId: creator.owner_user_id,
+        type: 'pitch_response',
         title: `Collaboration ${dbStatus === 'accepted' ? 'Accepted' : 'Declined'}`,
         body: `${brandName} has ${actionText} your collaboration request.`,
-        is_read: false,
-        related_entity_id: id,
-        link: '/creator'
+        relatedEntityId: id,
+        link: '/creator#my-pitches'
       });
     }
 

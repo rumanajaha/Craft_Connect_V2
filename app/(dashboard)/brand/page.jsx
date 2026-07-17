@@ -7,6 +7,7 @@ import CollabRequestRow from "@/components/brand/CollabRequestRow";
 import CreatorMatchCard from "@/components/brand/CreatorMatchCard";
 import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
+import { useBrandData } from "@/lib/brandDataStore";
 
 function StatPill({ icon: Icon, value, label, accent }) {
   return (
@@ -41,6 +42,8 @@ export default function BrandOverview() {
   const [isGeneratingMatches, setIsGeneratingMatches] = useState(false);
   const [matchesGenerated, setMatchesGenerated] = useState(false);
   const [matchInputs, setMatchInputs] = useState({ productType: "", audience: "", goal: "" });
+
+  const { brandInfo } = useBrandData();
 
   useEffect(() => {
     async function loadDashboard() {
@@ -120,7 +123,7 @@ export default function BrandOverview() {
         </div>
 
         <Link
-          href="/brand/profile"
+          href={brandInfo?.id ? `/brand/profile?id=${brandInfo.id}` : "/brand/profile"}
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-brand-border/60 bg-white text-sm font-semibold text-brand-dark hover:border-brand-primary/50 hover:text-brand-primary transition-all shadow-sm shrink-0"
         >
           <ExternalLink className="w-4 h-4" />

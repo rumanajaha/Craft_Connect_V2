@@ -41,6 +41,10 @@ export default function MessagesView({ currentRole = "brand" }) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState(null);
 
+  // Chat menu (three-dot dropdown)
+  const [showChatMenu, setShowChatMenu] = useState(false);
+  const [isClearingChat, setIsClearingChat] = useState(false);
+
   // Inbox search
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -75,7 +79,7 @@ export default function MessagesView({ currentRole = "brand" }) {
       try {
         setIsLoading(true);
         setLoadError(null);
-        const response = await fetch("/api/brand/messages");
+        const response = await fetch("/api/messages");
         if (!response.ok) throw new Error("Failed to load conversations");
         const data = await response.json();
         const loadedThreads = data.threads || [];
@@ -120,7 +124,7 @@ export default function MessagesView({ currentRole = "brand" }) {
 
     async function loadMessages() {
       try {
-        const res = await fetch(`/api/brand/messages/${activeThread.id}`);
+        const res = await fetch(`/api/messages/${activeThread.id}`);
         if (res.ok) {
           const data = await res.json();
           setActiveThread(prev => {
@@ -212,7 +216,7 @@ export default function MessagesView({ currentRole = "brand" }) {
 
     const refetchThreadList = async () => {
       try {
-        const response = await fetch("/api/brand/messages", { cache: "no-store" });
+        const response = await fetch("/api/messages", { cache: "no-store" });
         if (response.ok) {
           const data = await response.json();
           setThreads(data.threads || []);
@@ -358,7 +362,7 @@ export default function MessagesView({ currentRole = "brand" }) {
       
       // If it's a new temporary thread, create it first
       if (activeThread.isNew) {
-        const res = await fetch("/api/brand/messages", {
+        const res = await fetch("/api/messages", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ recipientId: activeThread.recipientId }),
@@ -375,7 +379,7 @@ export default function MessagesView({ currentRole = "brand" }) {
         }));
       }
 
-      const response = await fetch(`/api/brand/messages/${targetThreadId}`, {
+      const response = await fetch(`/api/messages/${targetThreadId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: textToSend }),
@@ -393,7 +397,7 @@ export default function MessagesView({ currentRole = "brand" }) {
         });
 
         // Refresh the whole threads list so the new thread appears at the top
-        const refreshRes = await fetch("/api/brand/messages", { cache: "no-store" });
+        const refreshRes = await fetch("/api/messages", { cache: "no-store" });
         if (refreshRes.ok) {
           const tData = await refreshRes.json();
           setThreads(tData.threads || []);
@@ -410,7 +414,7 @@ export default function MessagesView({ currentRole = "brand" }) {
   // ─── Accept Message Request ───────────────────────────
   const handleAcceptRequest = async () => {
     try {
-      const res = await fetch(`/api/brand/messages/${activeThread.id}`, {
+      const res = await fetch(`/api/messages/${activeThread.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'accepted' })
@@ -438,7 +442,7 @@ export default function MessagesView({ currentRole = "brand" }) {
     setAnalysis(null);
 
     try {
-      const response = await fetch(`/api/brand/messages/${activeThread.id}/analyze`, {
+      const response = await fetch(`/api/messages/${activeThread.id}/analyze`, {
         method: "POST",
       });
       const data = await response.json();
@@ -454,6 +458,47 @@ export default function MessagesView({ currentRole = "brand" }) {
       setShowAnalyzer(false);
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  // ─── Clear Chat ───────────────────────────────────────
+  const handleClearChat = async () => {
+    if (!activeThread?.id || activeThread.isNew) return;
+    setShowChatMenu(false);
+
+    const confirmed = window.confirm(
+      "Clear this conversation? This will delete all messages in this chat for you only."
+    );
+    if (!confirmed) return;
+
+    setIsClearingChat(true);
+    try {
+      const res = await fetch(`/api/messages/${activeThread.id}/clear`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        // Optimistically clear messages from the active thread view
+        setActiveThread(prev => ({
+          ...prev,
+          messages: [],
+        }));
+        // Clear last message preview in the sidebar
+        setThreads(prev =>
+          prev.map(t =>
+            t.id === activeThread.id
+              ? { ...t, lastMessageText: "", lastMessageTime: "", unread: false }
+              : t
+          )
+        );
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        alert(errData.error || "Failed to clear chat.");
+      }
+    } catch (err) {
+      console.error("Error clearing chat:", err);
+      alert("Error clearing chat.");
+    } finally {
+      setIsClearingChat(false);
     }
   };
 
@@ -808,9 +853,44 @@ export default function MessagesView({ currentRole = "brand" }) {
               >
                 <Sparkles className="w-4 h-4 mr-1.5" /> AI Chat Analyzer
               </Button>
-              <button className="w-8 h-8 flex items-center justify-center rounded-full text-brand-muted hover:bg-brand-border/20">
-                <MoreHorizontal className="w-5 h-5" />
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setShowChatMenu(prev => !prev)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full text-brand-muted hover:bg-brand-border/20 transition-colors"
+                  aria-label="Chat options"
+                >
+                  {isClearingChat
+                    ? <span className="w-4 h-4 border-2 border-brand-muted border-t-transparent rounded-full animate-spin block" />
+                    : <MoreHorizontal className="w-5 h-5" />}
+                </button>
+
+                {/* Dropdown */}
+                {showChatMenu && (
+                  <>
+                    {/* Backdrop to close on outside click */}
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setShowChatMenu(false)}
+                    />
+                    <div className="absolute right-0 top-9 z-20 w-44 bg-white border border-brand-border/50 rounded-xl shadow-lg py-1 animate-in fade-in slide-in-from-top-1 duration-150">
+                      <button
+                        onClick={handleClearChat}
+                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors rounded-lg mx-1 text-left"
+                        style={{ width: 'calc(100% - 8px)' }}
+                      >
+                        <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                          <path d="M10 11v6" />
+                          <path d="M14 11v6" />
+                          <path d="M9 6V4h6v2" />
+                        </svg>
+                        Clear Chat
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
@@ -903,6 +983,64 @@ export default function MessagesView({ currentRole = "brand" }) {
               activeThread.messages.map((msg, idx) => {
                 const isMe = msg.sender === "me";
                 const isPending = msg.pending === true;
+
+                if (msg.text && msg.text.startsWith("[SYSTEM]")) {
+                  const cleanText = msg.text.replace("[SYSTEM]", "").trim();
+                  return (
+                    <div key={msg.id || idx} className="flex justify-center my-3 w-full">
+                      <div className="bg-brand-border/10 border border-brand-border/20 text-brand-muted text-xs font-semibold px-4 py-2 rounded-full font-sans">
+                        {cleanText}
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (msg.text && msg.text.startsWith("[COLLAB_PITCH:")) {
+                  let compensation = "";
+                  let cleanText = msg.text;
+                  const match = msg.text.match(/^\[COLLAB_PITCH:([^\]]+)\](.*)$/s);
+                  if (match) {
+                    compensation = match[1];
+                    cleanText = match[2].trim();
+                  }
+
+                  const getCompBadge = (type) => {
+                    switch (type) {
+                      case "gifting": return { label: "Gifting", color: "bg-purple-50 text-purple-700 border-purple-200" };
+                      case "paid": return { label: "Paid", color: "bg-emerald-50 text-emerald-700 border-emerald-200" };
+                      case "barter": return { label: "Barter", color: "bg-blue-50 text-blue-700 border-blue-200" };
+                      case "discuss": return { label: "Let's Discuss", color: "bg-amber-50 text-amber-700 border-amber-200" };
+                      default: return { label: "Negotiable", color: "bg-gray-50 text-gray-700 border-gray-200" };
+                    }
+                  };
+                  const comp = getCompBadge(compensation);
+
+                  return (
+                    <div key={msg.id || idx} className={`flex ${isMe ? "justify-end" : "justify-start"} my-2 w-full`}>
+                      <div className={`max-w-[85%] md:max-w-[70%] rounded-2xl p-5 border shadow-sm ${
+                        isMe
+                          ? "bg-brand-primary/5 border-brand-primary/30 text-brand-dark rounded-br-sm"
+                          : "bg-white border-brand-border/60 text-brand-dark rounded-bl-sm"
+                      }`}>
+                        <div className="flex items-center justify-between gap-4 mb-3 pb-2 border-b border-brand-border/30">
+                          <span className="text-xs font-bold uppercase tracking-wider text-brand-dark/70">
+                            Collaboration Proposal
+                          </span>
+                          <span className={`px-2.5 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider ${comp.color}`}>
+                            {comp.label}
+                          </span>
+                        </div>
+                        <p className="text-sm whitespace-pre-wrap leading-relaxed text-brand-dark italic">
+                          "{cleanText}"
+                        </p>
+                        <p className="text-[10px] mt-3 text-right text-brand-muted">
+                          {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                }
+
                 return (
                   <div key={msg.id || idx} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
                     <div className={`max-w-[85%] md:max-w-[70%] rounded-2xl px-5 py-3 transition-opacity duration-200 ${

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   TrendingUp,
@@ -12,7 +12,6 @@ import {
   Award,
 } from "lucide-react";
 import { useAIUsage } from "@/lib/aiUsageStore";
-import { MOCK_AI_USAGE } from "@/lib/mockData";
 
 const CREATOR_TOOLS = [
   {
@@ -61,7 +60,33 @@ function ToolCard({ tool }) {
 }
 
 export default function CreatorAIStudioPage() {
-  const { usageByTool, FREE_TRIAL_LIMIT, isPro } = useAIUsage();
+  const { usageByTool, FREE_TRIAL_LIMIT, isPro, refreshUsage } = useAIUsage();
+
+  const [insights, setInsights] = useState({
+    trendingCategories: ["Ceramics", "Minimalist", "Slow Living", "Sustainable", "Eco-friendly"],
+    topBrands: ["Ochre Clay Studio", "Soren Objects", "Gaea Weaves"]
+  });
+
+  useEffect(() => {
+    // Explicitly sync creator usage
+    refreshUsage("CREATOR");
+
+    async function loadInsights() {
+      try {
+        const res = await fetch("/api/creator/ai/insights");
+        if (res.ok) {
+          const data = await res.json();
+          setInsights({
+            trendingCategories: data.trendingCategories || [],
+            topBrands: data.topBrands || []
+          });
+        }
+      } catch (err) {
+        console.error("Failed to load AI Insights:", err);
+      }
+    }
+    loadInsights();
+  }, []);
 
   const creatorToolKeys = ["trending-feed", "brand-match", "content-ideas"];
   const cappedTools = creatorToolKeys.filter(k => (usageByTool[k] || 0) >= FREE_TRIAL_LIMIT).length;
@@ -153,7 +178,7 @@ export default function CreatorAIStudioPage() {
                 <h4 className="text-xs font-bold uppercase tracking-wider text-brand-dark">Trending Categories</h4>
               </div>
               <div className="flex flex-wrap gap-2">
-                {MOCK_AI_USAGE.trendingCategories.map(cat => (
+                {insights.trendingCategories.map(cat => (
                   <span key={cat} className="inline-block px-2.5 py-1 rounded-full bg-brand-border/20 text-brand-dark/80 text-[10px] font-bold uppercase tracking-wider">
                     {cat}
                   </span>
@@ -166,7 +191,7 @@ export default function CreatorAIStudioPage() {
                 <h4 className="text-xs font-bold uppercase tracking-wider text-brand-dark">Top Brands This Week</h4>
               </div>
               <ul className="space-y-2">
-                {MOCK_AI_USAGE.fastestGrowing.map(brand => (
+                {insights.topBrands.map(brand => (
                   <li key={brand} className="text-sm text-brand-muted flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                     {brand}
