@@ -53,7 +53,7 @@ export async function GET(request, { params }) {
     // 2. Fetch products for this brand
     const { data: products, error: productsError } = await supabaseAdmin
       .from('Product')
-      .select('id, brand_id, name, description, price, category, status, image_url, created_at')
+      .select('id, brand_id, name, description, price, category, status, image_url, created_at, view_count')
       .eq('brand_id', brand.id)
       .order('created_at', { ascending: false });
 
@@ -66,7 +66,8 @@ export async function GET(request, { params }) {
       category: p.category || '',
       status: p.status || 'in_stock',
       inStock: p.status === 'in_stock',
-      image: p.image_url || ''
+      image: p.image_url || '',
+      view_count: p.view_count || 0
     }));
 
     // 3. Fetch accepted collaborations for this brand

@@ -46,7 +46,8 @@ export async function GET(request) {
       description: item.description || '',
       image: item.media_url || '',
       media_url: item.media_url || '',
-      createdAt: item.created_at
+      createdAt: item.created_at,
+      view_count: item.view_count || 0
     }));
 
     return NextResponse.json({ portfolio: formattedItems });
@@ -112,7 +113,8 @@ export async function POST(request) {
       description: newItem.description || '',
       image: newItem.media_url || '',
       media_url: newItem.media_url || '',
-      createdAt: newItem.created_at
+      createdAt: newItem.created_at,
+      view_count: newItem.view_count || 0
     };
 
     return NextResponse.json({ portfolioItem: formattedItem, item: formattedItem });

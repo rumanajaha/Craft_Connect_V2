@@ -70,7 +70,8 @@ export async function PATCH(request, { params }) {
       description: updatedItem.description || '',
       image: updatedItem.media_url || '',
       media_url: updatedItem.media_url || '',
-      createdAt: updatedItem.created_at
+      createdAt: updatedItem.created_at,
+      view_count: updatedItem.view_count || 0
     };
 
     return NextResponse.json({ portfolioItem: formattedItem, item: formattedItem });

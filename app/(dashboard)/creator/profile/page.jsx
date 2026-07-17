@@ -3,13 +3,16 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Star, MapPin, ExternalLink, Instagram, Youtube, Users, Activity } from "lucide-react";
+import { Star, MapPin, ExternalLink, Instagram, Youtube, Users, Activity, Eye } from "lucide-react";
+import PortfolioDetailModal from "@/components/common/PortfolioDetailModal";
 
 export default function CreatorPublicProfilePage() {
   const [creator, setCreator] = useState(null);
   const [portfolio, setPortfolio] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
 
   useEffect(() => {
     async function fetchProfileData() {
@@ -153,18 +156,36 @@ export default function CreatorPublicProfilePage() {
         <h2 className="font-serif text-2xl font-bold text-brand-dark">Portfolio & Recent Work</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {portfolio.map(item => (
-            <div key={item.id} className="group flex flex-col bg-white rounded-2xl border border-brand-border/50 overflow-hidden hover:shadow-md transition-shadow">
+            <div 
+              key={item.id} 
+              onClick={() => { setSelectedItem(item); setIsDetailOpen(true); }}
+              className="group flex flex-col bg-white rounded-2xl border border-brand-border/50 overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+            >
               <div className="relative w-full h-48 bg-brand-border/20">
-                {item.image ? <Image src={item.image} alt={item.brandName || item.title || ''} fill className="object-cover group-hover:scale-105 transition-transform duration-500" /> : <div className="w-full h-full bg-brand-border/30 flex items-center justify-center text-brand-muted text-xs">No Image</div>}
+                {item.image ? <Image src={item.image} alt={item.brandName || item.title || ''} fill className="object-cover group-hover:scale-105 transition-transform duration-500" unoptimized /> : <div className="w-full h-full bg-brand-border/30 flex items-center justify-center text-brand-muted text-xs">No Image</div>}
               </div>
-              <div className="p-4 flex flex-col flex-1">
-                <p className="text-xs text-brand-primary font-bold uppercase tracking-wider mb-1">For {item.brandName || item.title || 'Project'}</p>
-                <p className="text-sm text-brand-dark leading-relaxed">{item.description}</p>
+              <div className="p-4 flex flex-col flex-1 justify-between">
+                <div>
+                  <p className="text-xs text-brand-primary font-bold uppercase tracking-wider mb-1">For {item.brandName || item.title || 'Project'}</p>
+                  <p className="text-sm text-brand-dark leading-relaxed line-clamp-2">{item.description}</p>
+                </div>
+                {item.view_count !== undefined && (
+                  <div className="flex items-center gap-1 mt-3 text-xs text-brand-muted font-medium">
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>{(item.view_count || 0).toLocaleString()} views</span>
+                  </div>
+                )}
               </div>
             </div>
           ))}
         </div>
       </section>
+
+      <PortfolioDetailModal
+        item={selectedItem}
+        isOpen={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+      />
     </div>
   );
 }

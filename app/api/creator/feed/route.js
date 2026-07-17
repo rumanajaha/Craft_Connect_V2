@@ -79,9 +79,11 @@ export async function GET(request) {
           category: p.BrandProfile?.category || "",
           ai_tags: p.BrandProfile?.ai_tags || [],
           created_at: p.created_at,
-          views: 0,
+          views: p.view_count || 0,
           saves: 0,
-          rating: 4.9
+          rating: 4.9,
+          description: p.description || "",
+          buyLink: p.buy_link || ""
         });
       });
     }
@@ -97,9 +99,10 @@ export async function GET(request) {
           creatorAvatar: pf.CreatorProfile?.avatar_url || "",
           portfolioImage: pf.media_url || "",
           caption: pf.description || "",
+          description: pf.description || "",
           ai_tags: pf.CreatorProfile?.niches || [],
           created_at: pf.created_at,
-          views: 0,
+          views: pf.view_count || 0,
           saves: 0,
           rating: 4.9
         });
