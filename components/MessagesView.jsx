@@ -41,6 +41,10 @@ export default function MessagesView({ currentRole = "brand" }) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState(null);
 
+  // Chat menu (three-dot dropdown)
+  const [showChatMenu, setShowChatMenu] = useState(false);
+  const [isClearingChat, setIsClearingChat] = useState(false);
+
   // Inbox search
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -457,6 +461,47 @@ export default function MessagesView({ currentRole = "brand" }) {
     }
   };
 
+  // ─── Clear Chat ───────────────────────────────────────
+  const handleClearChat = async () => {
+    if (!activeThread?.id || activeThread.isNew) return;
+    setShowChatMenu(false);
+
+    const confirmed = window.confirm(
+      "Clear this conversation? This will delete all messages in this chat for you only."
+    );
+    if (!confirmed) return;
+
+    setIsClearingChat(true);
+    try {
+      const res = await fetch(`/api/messages/${activeThread.id}/clear`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        // Optimistically clear messages from the active thread view
+        setActiveThread(prev => ({
+          ...prev,
+          messages: [],
+        }));
+        // Clear last message preview in the sidebar
+        setThreads(prev =>
+          prev.map(t =>
+            t.id === activeThread.id
+              ? { ...t, lastMessageText: "", lastMessageTime: "", unread: false }
+              : t
+          )
+        );
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        alert(errData.error || "Failed to clear chat.");
+      }
+    } catch (err) {
+      console.error("Error clearing chat:", err);
+      alert("Error clearing chat.");
+    } finally {
+      setIsClearingChat(false);
+    }
+  };
+
   // ─── Contact info helper ──────────────────────────────
   const getContactInfo = (thread) => {
     if (!thread) return { name: "Unknown User", avatar: "", type: "customer", category: "" };
@@ -808,9 +853,44 @@ export default function MessagesView({ currentRole = "brand" }) {
               >
                 <Sparkles className="w-4 h-4 mr-1.5" /> AI Chat Analyzer
               </Button>
-              <button className="w-8 h-8 flex items-center justify-center rounded-full text-brand-muted hover:bg-brand-border/20">
-                <MoreHorizontal className="w-5 h-5" />
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setShowChatMenu(prev => !prev)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full text-brand-muted hover:bg-brand-border/20 transition-colors"
+                  aria-label="Chat options"
+                >
+                  {isClearingChat
+                    ? <span className="w-4 h-4 border-2 border-brand-muted border-t-transparent rounded-full animate-spin block" />
+                    : <MoreHorizontal className="w-5 h-5" />}
+                </button>
+
+                {/* Dropdown */}
+                {showChatMenu && (
+                  <>
+                    {/* Backdrop to close on outside click */}
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setShowChatMenu(false)}
+                    />
+                    <div className="absolute right-0 top-9 z-20 w-44 bg-white border border-brand-border/50 rounded-xl shadow-lg py-1 animate-in fade-in slide-in-from-top-1 duration-150">
+                      <button
+                        onClick={handleClearChat}
+                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors rounded-lg mx-1 text-left"
+                        style={{ width: 'calc(100% - 8px)' }}
+                      >
+                        <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                          <path d="M10 11v6" />
+                          <path d="M14 11v6" />
+                          <path d="M9 6V4h6v2" />
+                        </svg>
+                        Clear Chat
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 

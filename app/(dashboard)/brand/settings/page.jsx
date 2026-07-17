@@ -122,7 +122,7 @@ export default function BrandSettingsPage() {
         <div className="flex items-center gap-3 flex-wrap">
           
           <Link
-            href="/brand/profile"
+            href={profile?.id ? `/brand/profile?id=${profile.id}` : "/brand/profile"}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-brand-border/60 bg-white text-sm font-semibold text-brand-dark hover:border-brand-primary/50 hover:text-brand-primary transition-all shadow-sm whitespace-nowrap"
           >
             <ExternalLink className="w-4 h-4" />

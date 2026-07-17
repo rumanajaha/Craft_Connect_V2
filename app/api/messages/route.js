@@ -65,11 +65,28 @@ export async function GET(request) {
       .in("thread_id", threadIds)
       .order("created_at", { ascending: false });
 
-    // Build a map: threadId -> most recent message
+    // 4b. Fetch this user's clear states for all their threads
+    const { data: clearStates } = await supabaseAdmin
+      .from("ThreadClearState")
+      .select("thread_id, cleared_before")
+      .eq("user_id", user.id)
+      .in("thread_id", threadIds);
+
+    // Build a map: threadId -> cleared_before timestamp
+    const clearStateMap = {};
+    (clearStates || []).forEach(cs => {
+      clearStateMap[cs.thread_id] = cs.cleared_before;
+    });
+
+    // Build a map: threadId -> most recent message AFTER any clear timestamp
     const lastMessageMap = {};
     (allMessages || []).forEach(msg => {
       if (!lastMessageMap[msg.thread_id]) {
-        lastMessageMap[msg.thread_id] = msg;
+        // Only count this message if it's after the cleared_before timestamp (if any)
+        const clearedBefore = clearStateMap[msg.thread_id];
+        if (!clearedBefore || msg.created_at > clearedBefore) {
+          lastMessageMap[msg.thread_id] = msg;
+        }
       }
     });
 

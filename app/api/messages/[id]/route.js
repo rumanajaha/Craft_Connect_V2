@@ -38,19 +38,33 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Fetch all messages in chronological order
-    const { data: messages, error: messagesError } = await supabaseAdmin
+    // Check if user has a clear state for this thread
+    const { data: clearState } = await supabaseAdmin
+      .from("ThreadClearState")
+      .select("cleared_before")
+      .eq("user_id", user.id)
+      .eq("thread_id", id)
+      .maybeSingle();
+
+    // Fetch messages, applying cleared_before filter if present
+    let messagesQuery = supabaseAdmin
       .from("Message")
       .select("*")
       .eq("thread_id", id)
       .order("created_at", { ascending: true });
+
+    if (clearState?.cleared_before) {
+      messagesQuery = messagesQuery.gt("created_at", clearState.cleared_before);
+    }
+
+    const { data: messages, error: messagesError } = await messagesQuery;
 
     if (messagesError) {
       console.error("Error fetching messages:", messagesError);
       return NextResponse.json({ error: "Database error" }, { status: 500 });
     }
 
-    const formattedMessages = messages.map((msg) => ({
+    const formattedMessages = (messages || []).map((msg) => ({
       id: msg.id,
       sender: msg.sender_id === user.id ? "me" : "them",
       text: msg.body,

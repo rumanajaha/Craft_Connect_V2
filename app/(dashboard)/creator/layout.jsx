@@ -113,6 +113,24 @@ function CreatorLayoutInner({ children }) {
   const pageTitle = getPageTitle(pathname);
   const { showUpgradeModal, setShowUpgradeModal } = useAIUsage();
   const { unreadCount } = useRealtime();
+  const [avatarUrl, setAvatarUrl] = useState("https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80");
+
+  React.useEffect(() => {
+    async function loadAvatar() {
+      try {
+        const res = await fetch("/api/creator/profile");
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.profile?.avatar_url || data?.profile?.avatar) {
+            setAvatarUrl(data.profile.avatar_url || data.profile.avatar);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load layout avatar", err);
+      }
+    }
+    loadAvatar();
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#FAF7F0] flex">
@@ -172,7 +190,7 @@ function CreatorLayoutInner({ children }) {
               <Link href="/creator/profile" title="View profile">
                 <div className="relative w-9 h-9 rounded-full overflow-hidden border-2 border-brand-border/50 hover:border-brand-primary transition-colors bg-white">
                   <Image
-                    src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
+                    src={avatarUrl}
                     alt="Creator Profile"
                     fill
                     sizes="36px"
