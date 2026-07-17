@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseRouteClient } from "@/lib/supabaseRouteHandler";
 import { createClient } from "@supabase/supabase-js";
+import { createNotification } from "@/lib/notify";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -187,17 +188,14 @@ export async function POST(request, { params }) {
       console.warn(`[WARNING] Name lookup returned null for sender_id ${user.id}. Falling back to email prefix: ${emailPrefix}`);
     }
 
-    await supabaseAdmin
-      .from("Notification")
-      .insert({
-        user_id: otherId,
-        type: notifType,
-        title: notifTitle,
-        body: `${senderName}: ${bodyText}`,
-        is_read: false,
-        related_entity_id: id,
-        link: notifLink
-      });
+    await createNotification({
+      userId: otherId,
+      type: notifType,
+      title: notifTitle,
+      body: `${senderName}: ${bodyText}`,
+      relatedEntityId: id,
+      link: notifLink
+    });
 
     return NextResponse.json({
       message: {
@@ -284,17 +282,14 @@ export async function PATCH(request, { params }) {
         acceptorName = acceptorCust.display_name;
       }
 
-      await supabaseAdmin
-        .from("Notification")
-        .insert({
-          user_id: initiatorId,
-          type: "request_accepted",
-          title: "Message Request Accepted",
-          body: `${acceptorName} accepted your message request.`,
-          is_read: false,
-          related_entity_id: id,
-          link: `/${initiatorPortal}/messages?thread=${id}`
-        });
+      await createNotification({
+        userId: initiatorId,
+        type: "request_accepted",
+        title: "Message Request Accepted",
+        body: `${acceptorName} accepted your message request.`,
+        relatedEntityId: id,
+        link: `/${initiatorPortal}/messages?thread=${id}`
+      });
     }
 
     return NextResponse.json({ success: true, status });

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef, useCallback, useContext } from "react";
+import { useRouter } from "next/navigation";
 import { Search, Sparkles, Loader2, MessageSquare, X, Handshake } from "lucide-react";
 import FeedTile from "@/components/common/FeedTile";
 import { getFeedItems, rankFeed } from "@/lib/feedRanking";
@@ -117,6 +118,7 @@ function ProfileSearchTile({ user, viewerRole, onStartChat, onProposeCollab }) {
 
 export default function SharedFeedPage({ role, userTags = [], heading, subheading, emptyStatePrompt }) {
   const collabCtx = useContext(CollabContext);
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const loaderRef = useRef(null);
@@ -456,9 +458,12 @@ export default function SharedFeedPage({ role, userTags = [], heading, subheadin
           isOpen={!!pitchTarget}
           onClose={() => setPitchTarget(null)}
           brand={pitchTarget}
-          onSubmit={(pitch) => {
+          onSubmit={async (pitch) => {
             if (collabCtx && collabCtx.addPitch) {
-              collabCtx.addPitch(pitch);
+              const res = await collabCtx.addPitch(pitch);
+              if (res && res.threadId) {
+                router.push(`/creator/messages?thread=${res.threadId}`);
+              }
             }
           }}
         />

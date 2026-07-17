@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseRouteClient } from "@/lib/supabaseRouteHandler";
 import { createClient } from "@supabase/supabase-js";
+import { findOrCreateThread } from "@/lib/messages";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -193,50 +194,13 @@ export async function POST(request) {
       return NextResponse.json({ error: "Cannot message yourself" }, { status: 400 });
     }
 
-    // Check both directions for existing thread
-    const { data: existingThread } = await supabaseAdmin
-      .from("MessageThread")
-      .select("id")
-      .or(`and(participant_a_id.eq.${user.id},participant_b_id.eq.${recipientId}),and(participant_a_id.eq.${recipientId},participant_b_id.eq.${user.id})`)
-      .maybeSingle();
-
-    if (existingThread) {
-      return NextResponse.json({ success: true, threadId: existingThread.id });
-    }
-
-    // Create new thread with canonical ordering (smaller UUID first)
-    const pA = user.id < recipientId ? user.id : recipientId;
-    const pB = user.id < recipientId ? recipientId : user.id;
-
-    const { data: newThread, error: createError } = await supabaseAdmin
-      .from("MessageThread")
-      .insert({
-        participant_a_id: pA,
-        participant_b_id: pB,
-        last_message_at: new Date().toISOString(),
-        status: "pending",
-        initiated_by: user.id,
-      })
-      .select()
-      .single();
-
-    if (createError) {
-      // Handle race condition: unique constraint violation means thread was just created
-      if (createError.code === "23505") {
-        const { data: raceThread } = await supabaseAdmin
-          .from("MessageThread")
-          .select("id")
-          .or(`and(participant_a_id.eq.${user.id},participant_b_id.eq.${recipientId}),and(participant_a_id.eq.${recipientId},participant_b_id.eq.${user.id})`)
-          .maybeSingle();
-        if (raceThread) {
-          return NextResponse.json({ success: true, threadId: raceThread.id });
-        }
-      }
-      console.error("Error creating MessageThread:", createError);
+    try {
+      const threadId = await findOrCreateThread(user.id, recipientId);
+      return NextResponse.json({ success: true, threadId });
+    } catch (createError) {
+      console.error("Error finding or creating MessageThread:", createError);
       return NextResponse.json({ error: "Failed to create message thread" }, { status: 500 });
     }
-
-    return NextResponse.json({ success: true, threadId: newThread.id });
   } catch (err) {
     console.error("POST /api/messages error:", err);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

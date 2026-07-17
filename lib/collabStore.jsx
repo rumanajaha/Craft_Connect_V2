@@ -14,37 +14,37 @@ export function CollabProvider({ children }) {
   const [outgoingPitches, setOutgoingPitches] = useState(MOCK_CREATOR_OUTGOING_PITCHES);
 
   const addPitch = async (pitch) => {
-    setOutgoingPitches(prev => [pitch, ...prev]);
+    const res = await fetch("/api/creator/pitches", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        brandId: pitch.brandId,
+        compensation: pitch.compensation,
+        message: pitch.snippet,
+      }),
+    });
 
-    const incomingVersion = {
-      id: pitch.id,
-      brandId: pitch.brandId,
-      creatorId: "creator-1", 
-      creatorName: "Sarah Indigo",
-      creatorAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
-      compensation: pitch.compensation,
-      snippet: pitch.snippet,
-      date: new Date().toISOString().split("T")[0],
-      status: "pending",
-    };
-    setIncomingPitches(prev => [incomingVersion, ...prev]);
-
-    try {
-      const res = await fetch("/api/creator/pitches", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          brandId: pitch.brandId,
-          compensation: pitch.compensation,
-          message: pitch.snippet,
-        }),
-      });
-      if (!res.ok) {
-        console.error("Failed to persist pitch in DB:", await res.text());
-      }
-    } catch (err) {
-      console.error("Error persisting pitch:", err);
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("Failed to persist pitch in DB:", errorText);
+      throw new Error("Failed to send pitch — please try again");
     }
+
+    const data = await res.json();
+    if (data.pitch) {
+      const newPitch = {
+        id: data.pitch.id,
+        brandId: data.pitch.brand_id,
+        brandName: pitch.brandName,
+        brandLogo: pitch.brandLogo,
+        compensation: data.pitch.compensation_type,
+        snippet: data.pitch.pitch_message,
+        date: new Date(data.pitch.created_at || Date.now()).toISOString().split("T")[0],
+        status: data.pitch.status,
+      };
+      setOutgoingPitches(prev => [newPitch, ...prev]);
+    }
+    return data;
   };
 
   return (

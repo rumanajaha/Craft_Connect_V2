@@ -4,7 +4,13 @@ import { getSupabaseRouteClient } from '@/lib/supabaseRouteHandler';
 
 export async function GET(request) {
   try {
-    const user = await authenticate(request);
+    let user;
+    try {
+      user = await authenticate(request);
+    } catch (authError) {
+      console.error("GET CreatorProfile auth error:", authError.message || authError, authError.details || "", authError.hint || "");
+      return NextResponse.json({ error: 'Authentication failed', details: authError.message || String(authError) }, { status: 401 });
+    }
 
     if (!user || user.role !== 'CREATOR') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -19,18 +25,21 @@ export async function GET(request) {
       .eq('owner_user_id', user.id)
       .maybeSingle();
 
-    if (creatorError || !creator) {
+    if (creatorError) {
+      console.error("GET CreatorProfile DB error:", creatorError.message, creatorError.details, creatorError.hint);
+      return NextResponse.json({
+        error: 'Failed to retrieve creator profile',
+        details: creatorError.message,
+        db_details: creatorError.details,
+        db_hint: creatorError.hint
+      }, { status: 500 });
+    }
+
+    if (!creator) {
       return NextResponse.json({ error: 'Creator profile not found' }, { status: 404 });
     }
 
-    // Retrieve CustomerProfile to get avatar_url
-    const { data: customer, error: customerError } = await supabase
-      .from('CustomerProfile')
-      .select('avatar_url')
-      .eq('owner_user_id', user.id)
-      .maybeSingle();
-
-    const avatarUrl = customer?.avatar_url || '';
+    const avatarUrl = creator.avatar_url || '';
 
     // Map database notification prefs (which use newBrandMatch and push) to UI prefs (which use brandMatchFound and desktop)
     const dbPrefs = creator.notification_prefs || {
@@ -80,14 +89,20 @@ export async function GET(request) {
 
     return NextResponse.json({ profile });
   } catch (error) {
-    console.error("GET CreatorProfile error:", error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("GET CreatorProfile general error:", error.message || error, error.details || "", error.hint || "");
+    return NextResponse.json({ error: 'Internal server error', details: error.message || String(error) }, { status: 500 });
   }
 }
 
 export async function PATCH(request) {
   try {
-    const user = await authenticate(request);
+    let user;
+    try {
+      user = await authenticate(request);
+    } catch (authError) {
+      console.error("PATCH CreatorProfile auth error:", authError.message || authError, authError.details || "", authError.hint || "");
+      return NextResponse.json({ error: 'Authentication failed', details: authError.message || String(authError) }, { status: 401 });
+    }
 
     if (!user || user.role !== 'CREATOR') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -102,7 +117,17 @@ export async function PATCH(request) {
       .eq('owner_user_id', user.id)
       .maybeSingle();
 
-    if (creatorError || !creator) {
+    if (creatorError) {
+      console.error("PATCH CreatorProfile retrieve error:", creatorError.message, creatorError.details, creatorError.hint);
+      return NextResponse.json({
+        error: 'Failed to retrieve current creator profile',
+        details: creatorError.message,
+        db_details: creatorError.details,
+        db_hint: creatorError.hint
+      }, { status: 500 });
+    }
+
+    if (!creator) {
       return NextResponse.json({ error: 'Creator profile not found' }, { status: 404 });
     }
 
@@ -118,6 +143,8 @@ export async function PATCH(request) {
     if (body.tiktok !== undefined) updateData.tiktok_url = body.tiktok;
     if (body.youtube_url !== undefined) updateData.youtube_url = body.youtube_url;
     if (body.youtube !== undefined) updateData.youtube_url = body.youtube;
+    if (body.avatar_url !== undefined) updateData.avatar_url = body.avatar_url;
+    if (body.avatar !== undefined) updateData.avatar_url = body.avatar;
 
     // Validate follower_count
     if (body.followers !== undefined || body.follower_count !== undefined) {
@@ -193,9 +220,18 @@ export async function PATCH(request) {
       .select()
       .maybeSingle();
 
-    if (updateError || !updatedCreator) {
-      console.error("PATCH CreatorProfile DB error:", updateError);
-      return NextResponse.json({ error: 'Failed to update creator profile' }, { status: 500 });
+    if (updateError) {
+      console.error("PATCH CreatorProfile update error:", updateError.message, updateError.details, updateError.hint);
+      return NextResponse.json({
+        error: 'Failed to update creator profile',
+        details: updateError.message,
+        db_details: updateError.details,
+        db_hint: updateError.hint
+      }, { status: 500 });
+    }
+
+    if (!updatedCreator) {
+      return NextResponse.json({ error: 'Failed to update profile (no data returned)' }, { status: 500 });
     }
 
     // Log follower count change in FollowerHistory
@@ -207,35 +243,11 @@ export async function PATCH(request) {
           follower_count: updateData.follower_count
         });
       if (histError) {
-        console.error("Failed to insert into FollowerHistory:", histError);
+        console.error("PATCH FollowerHistory error:", histError.message, histError.details, histError.hint);
       }
     }
 
-    // Sync avatar_url and display_name changes to CustomerProfile
-    const customerUpdateData = {};
-    if (body.displayName !== undefined) customerUpdateData.display_name = body.displayName;
-    if (body.display_name !== undefined) customerUpdateData.display_name = body.display_name;
-    if (body.avatar_url !== undefined) customerUpdateData.avatar_url = body.avatar_url;
-    if (body.avatar !== undefined) customerUpdateData.avatar_url = body.avatar;
-
-    if (Object.keys(customerUpdateData).length > 0) {
-      const { error: customerError } = await supabase
-        .from('CustomerProfile')
-        .update(customerUpdateData)
-        .eq('owner_user_id', user.id);
-      if (customerError) {
-        console.error("PATCH CustomerProfile sync error:", customerError);
-      }
-    }
-
-    // Retrieve final avatar_url
-    const { data: finalCustomer } = await supabase
-      .from('CustomerProfile')
-      .select('avatar_url')
-      .eq('owner_user_id', user.id)
-      .maybeSingle();
-
-    const finalAvatar = finalCustomer?.avatar_url || '';
+    const finalAvatar = updatedCreator.avatar_url || '';
 
     // Re-map db notification prefs back to UI format for consistency
     const finalDbPrefs = updatedCreator.notification_prefs || updatedPrefs;
@@ -280,7 +292,7 @@ export async function PATCH(request) {
 
     return NextResponse.json({ profile });
   } catch (error) {
-    console.error("PATCH CreatorProfile error:", error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("PATCH CreatorProfile general error:", error.message || error, error.details || "", error.hint || "");
+    return NextResponse.json({ error: 'Internal server error', details: error.message || String(error) }, { status: 500 });
   }
 }

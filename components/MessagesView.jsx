@@ -903,6 +903,64 @@ export default function MessagesView({ currentRole = "brand" }) {
               activeThread.messages.map((msg, idx) => {
                 const isMe = msg.sender === "me";
                 const isPending = msg.pending === true;
+
+                if (msg.text && msg.text.startsWith("[SYSTEM]")) {
+                  const cleanText = msg.text.replace("[SYSTEM]", "").trim();
+                  return (
+                    <div key={msg.id || idx} className="flex justify-center my-3 w-full">
+                      <div className="bg-brand-border/10 border border-brand-border/20 text-brand-muted text-xs font-semibold px-4 py-2 rounded-full font-sans">
+                        {cleanText}
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (msg.text && msg.text.startsWith("[COLLAB_PITCH:")) {
+                  let compensation = "";
+                  let cleanText = msg.text;
+                  const match = msg.text.match(/^\[COLLAB_PITCH:([^\]]+)\](.*)$/s);
+                  if (match) {
+                    compensation = match[1];
+                    cleanText = match[2].trim();
+                  }
+
+                  const getCompBadge = (type) => {
+                    switch (type) {
+                      case "gifting": return { label: "Gifting", color: "bg-purple-50 text-purple-700 border-purple-200" };
+                      case "paid": return { label: "Paid", color: "bg-emerald-50 text-emerald-700 border-emerald-200" };
+                      case "barter": return { label: "Barter", color: "bg-blue-50 text-blue-700 border-blue-200" };
+                      case "discuss": return { label: "Let's Discuss", color: "bg-amber-50 text-amber-700 border-amber-200" };
+                      default: return { label: "Negotiable", color: "bg-gray-50 text-gray-700 border-gray-200" };
+                    }
+                  };
+                  const comp = getCompBadge(compensation);
+
+                  return (
+                    <div key={msg.id || idx} className={`flex ${isMe ? "justify-end" : "justify-start"} my-2 w-full`}>
+                      <div className={`max-w-[85%] md:max-w-[70%] rounded-2xl p-5 border shadow-sm ${
+                        isMe
+                          ? "bg-brand-primary/5 border-brand-primary/30 text-brand-dark rounded-br-sm"
+                          : "bg-white border-brand-border/60 text-brand-dark rounded-bl-sm"
+                      }`}>
+                        <div className="flex items-center justify-between gap-4 mb-3 pb-2 border-b border-brand-border/30">
+                          <span className="text-xs font-bold uppercase tracking-wider text-brand-dark/70">
+                            Collaboration Proposal
+                          </span>
+                          <span className={`px-2.5 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider ${comp.color}`}>
+                            {comp.label}
+                          </span>
+                        </div>
+                        <p className="text-sm whitespace-pre-wrap leading-relaxed text-brand-dark italic">
+                          "{cleanText}"
+                        </p>
+                        <p className="text-[10px] mt-3 text-right text-brand-muted">
+                          {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                }
+
                 return (
                   <div key={msg.id || idx} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
                     <div className={`max-w-[85%] md:max-w-[70%] rounded-2xl px-5 py-3 transition-opacity duration-200 ${

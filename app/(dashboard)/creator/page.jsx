@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Handshake, Clock, TrendingUp, Gift, DollarSign, RefreshCw, MessageSquare, Sparkles, Loader2 } from "lucide-react";
 import { MOCK_BRAND_MATCHES } from "@/lib/mockData";
@@ -44,6 +45,7 @@ function getStatusBadge(status) {
 
 export default function CreatorDashboardPage() {
   const { addPitch } = useCollab();
+  const router = useRouter();
   const [pitchBrand, setPitchBrand] = useState(null);
   
   // Real data states
@@ -120,26 +122,29 @@ export default function CreatorDashboardPage() {
   };
 
   const handleAddPitch = async (pitch) => {
-    await addPitch(pitch);
-    
-    // Refresh pitches & stats after a slight delay for Supabase synchronization
-    setTimeout(async () => {
-      try {
-        const pitchesRes = await fetch("/api/creator/pitches");
-        if (pitchesRes.ok) {
-          const pitchesData = await pitchesRes.json();
-          setPitches(pitchesData.pitches || []);
-        }
+    const res = await addPitch(pitch);
+    if (res && res.threadId) {
+      router.push(`/creator/messages?thread=${res.threadId}`);
+    } else {
+      // Refresh pitches & stats after a slight delay for Supabase synchronization
+      setTimeout(async () => {
+        try {
+          const pitchesRes = await fetch("/api/creator/pitches");
+          if (pitchesRes.ok) {
+            const pitchesData = await pitchesRes.json();
+            setPitches(pitchesData.pitches || []);
+          }
 
-        const statsRes = await fetch("/api/creator/dashboard");
-        if (statsRes.ok) {
-          const statsData = await statsRes.json();
-          setStats(statsData);
+          const statsRes = await fetch("/api/creator/dashboard");
+          if (statsRes.ok) {
+            const statsData = await statsRes.json();
+            setStats(statsData);
+          }
+        } catch (err) {
+          console.error("Error refreshing dashboard data:", err);
         }
-      } catch (err) {
-        console.error("Error refreshing dashboard data:", err);
-      }
-    }, 1000);
+      }, 500); // 500ms delay
+    }
   };
 
   if (isLoading) {
