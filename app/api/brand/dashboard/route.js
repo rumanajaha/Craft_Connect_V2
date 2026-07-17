@@ -75,6 +75,7 @@ export async function GET(request) {
 
     const lastViewed = brand.last_viewed_matches_at || '1970-01-01T00:00:00Z';
     const brandVector = parseVector(brand.embedding);
+    const fallbackAvatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80';
 
     let newAiMatches = 0;
     const creatorsWithCompatibility = (creators || []).map(creator => {
@@ -93,34 +94,13 @@ export async function GET(request) {
       return {
         id: creator.id,
         name: creator.display_name || 'Anonymous Creator',
-        avatar: null, // we will fill this next
+        avatar: creator.avatar_url || fallbackAvatar,
         owner_user_id: creator.owner_user_id,
         niches: creator.niches || [],
         followers: creator.follower_count >= 1000 ? `${Math.round(creator.follower_count / 1000)}K` : `${creator.follower_count || 0}`,
         engagementRate: `${creator.engagement_rate || 0}%`,
         compatibility: Math.min(100, Math.max(0, compatibility))
       };
-    });
-
-    // Fetch avatar_urls from CustomerProfile to map to creator.avatar
-    const creatorUserIds = creatorsWithCompatibility.map(c => c.owner_user_id).filter(Boolean);
-    let customerProfiles = [];
-    if (creatorUserIds.length > 0) {
-      const { data: custProfiles } = await supabase
-        .from('CustomerProfile')
-        .select('owner_user_id, avatar_url')
-        .in('owner_user_id', creatorUserIds);
-      customerProfiles = custProfiles || [];
-    }
-
-    const customerAvatarMap = {};
-    customerProfiles.forEach(p => {
-      customerAvatarMap[p.owner_user_id] = p.avatar_url;
-    });
-
-    const fallbackAvatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80';
-    creatorsWithCompatibility.forEach(c => {
-      c.avatar = customerAvatarMap[c.owner_user_id] || fallbackAvatar;
     });
 
     // Update last_viewed_matches_at to now
@@ -144,14 +124,15 @@ export async function GET(request) {
       const pitchCreatorIds = pitchesData.map(p => p.creator_id).filter(Boolean);
       const { data: pitchCreators } = await supabase
         .from('CreatorProfile')
-        .select('id, owner_user_id, display_name')
+        .select('id, owner_user_id, display_name, avatar_url')
         .in('id', pitchCreatorIds);
 
       const creatorMap = {};
       (pitchCreators || []).forEach(pc => {
         creatorMap[pc.id] = {
           name: pc.display_name || 'Anonymous Creator',
-          owner_user_id: pc.owner_user_id
+          owner_user_id: pc.owner_user_id,
+          avatar: pc.avatar_url || fallbackAvatar
         };
       });
 
@@ -169,7 +150,7 @@ export async function GET(request) {
 
       pitchesData.forEach(pitch => {
         const creatorInfo = creatorMap[pitch.creator_id] || {};
-        const creatorAvatar = customerAvatarMap[creatorInfo.owner_user_id] || fallbackAvatar;
+        const creatorAvatar = creatorInfo.avatar || fallbackAvatar;
         const threadId = threadMap[creatorInfo.owner_user_id] || null;
         formattedPitches.push({
           id: pitch.id,

@@ -15,7 +15,7 @@ const supabaseAdmin = createClient(
  */
 export async function GET(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = params || {};
 
     const supabase = getSupabaseRouteClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -85,7 +85,7 @@ export async function GET(request, { params }) {
  */
 export async function POST(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = params || {};
     const { text, image } = await request.json();
 
     if (!text || !text.trim()) {
@@ -232,7 +232,7 @@ export async function POST(request, { params }) {
  */
 export async function PATCH(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = params || {};
     const { status } = await request.json();
 
     if (!status) {

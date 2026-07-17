@@ -45,7 +45,7 @@ export async function GET(request) {
     // 3. Batch-fetch profiles from all 3 profile tables in parallel
     const [brandRes, creatorRes, customerRes] = await Promise.all([
       supabaseAdmin.from("BrandProfile").select("owner_user_id, brand_name, logo_url, category").in("owner_user_id", otherIds),
-      supabaseAdmin.from("CreatorProfile").select("owner_user_id, display_name, niches").in("owner_user_id", otherIds),
+      supabaseAdmin.from("CreatorProfile").select("owner_user_id, display_name, niches, avatar_url").in("owner_user_id", otherIds),
       supabaseAdmin.from("CustomerProfile").select("owner_user_id, display_name, avatar_url").in("owner_user_id", otherIds),
     ]);
 
@@ -108,8 +108,8 @@ export async function GET(request) {
         recipientType = "creator";
         displayName = creator.display_name || "Creator";
         category = (creator.niches || [])[0] || "";
-        // Use customer avatar for creators
-        avatarUrl = customer?.avatar_url || "";
+        // Use creator avatar or fallback to customer avatar
+        avatarUrl = creator.avatar_url || customer?.avatar_url || "";
       } else if (brand) {
         recipientType = "brand";
         displayName = brand.brand_name || "Brand";

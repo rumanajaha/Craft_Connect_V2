@@ -5,23 +5,18 @@ import Image from "next/image";
 import { X, Eye, ExternalLink, ShoppingBag, Info, AlertCircle } from "lucide-react";
 
 export default function ProductDetailModal({ product, isOpen, onClose }) {
-  const [localViews, setLocalViews] = useState(product?.view_count || 0);
-
-  useEffect(() => {
-    if (product) {
-      setLocalViews(product.view_count || 0);
-    }
-  }, [product]);
+  const [localViews, setLocalViews] = useState(0);
 
   useEffect(() => {
     if (!isOpen || !product?.id) return;
 
+    const baseViews = product.view_count || 0;
     const storageKey = `viewed_product_${product.id}`;
     const alreadyViewed = sessionStorage.getItem(storageKey);
 
     if (!alreadyViewed) {
       sessionStorage.setItem(storageKey, "true");
-      setLocalViews(prev => prev + 1);
+      setLocalViews(baseViews + 1);
 
       fetch("/api/track-view", {
         method: "POST",
@@ -30,8 +25,10 @@ export default function ProductDetailModal({ product, isOpen, onClose }) {
       }).catch(err => {
         console.error("Failed to track view for product:", product.id, err);
       });
+    } else {
+      setLocalViews(baseViews);
     }
-  }, [isOpen, product?.id]);
+  }, [isOpen, product]);
 
   if (!isOpen || !product) return null;
 
