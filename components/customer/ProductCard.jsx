@@ -8,7 +8,9 @@ import { MOCK_BRANDS } from "@/lib/mockData";
 import ProductDetailModal from "@/components/common/ProductDetailModal";
 
 export default function ProductCard({ product }) {
-  const brand = MOCK_BRANDS.find(b => b.id === product.brandId);
+  const brand = product.brandName 
+    ? { name: product.brandName } 
+    : (product.brand?.name ? { name: product.brand.name } : MOCK_BRANDS.find(b => b.id === product.brandId));
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
   const handleCardClick = (e) => {

@@ -237,7 +237,7 @@ export default function SharedFeedPage({ role, userTags = [], heading, subheadin
 
   // Fetch logic for brand/creator role
   useEffect(() => {
-    if (role !== "brand" && role !== "creator") return;
+    if (role !== "brand" && role !== "creator" && role !== "customer") return;
     if (searchQuery.trim()) return; // Skip feed fetching during active search
  
     let active = true;
@@ -248,7 +248,9 @@ export default function SharedFeedPage({ role, userTags = [], heading, subheadin
  
         const endpoint = role === "brand"
           ? `/api/brand/feed?page=${page}&limit=${PAGE_SIZE}`
-          : `/api/creator/feed?page=${page}&limit=${PAGE_SIZE}`;
+          : role === "creator"
+            ? `/api/creator/feed?page=${page}&limit=${PAGE_SIZE}`
+            : `/api/customer/feed?page=${page}&limit=${PAGE_SIZE}`;
  
         const res = await fetch(endpoint);
         if (!res.ok) throw new Error("Failed to fetch feed");
@@ -277,7 +279,7 @@ export default function SharedFeedPage({ role, userTags = [], heading, subheadin
   }, [role, page, searchQuery]);
  
   useEffect(() => {
-    if (role === "brand" || role === "creator") {
+    if (role === "brand" || role === "creator" || role === "customer") {
       setPage(1);
     }
   }, [searchQuery, role]);
@@ -305,25 +307,25 @@ export default function SharedFeedPage({ role, userTags = [], heading, subheadin
   const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
 
   useEffect(() => {
-    if (role !== "brand" && role !== "creator") {
+    if (role !== "brand" && role !== "creator" && role !== "customer") {
       setDisplayCount(PAGE_SIZE);
     }
   }, [searchQuery, role]);
 
   useEffect(() => {
-    if (role !== "brand" && role !== "creator") {
+    if (role !== "brand" && role !== "creator" && role !== "customer") {
       setIsLoading(true);
       const t = setTimeout(() => setIsLoading(false), 400);
       return () => clearTimeout(t);
     }
   }, [role]);
 
-  const visibleItems = (role === "brand" || role === "creator") ? items : clientFilteredItems.slice(0, displayCount);
-  const showLoader = (role === "brand" || role === "creator") ? hasMore : displayCount < clientFilteredItems.length;
+  const visibleItems = (role === "brand" || role === "creator" || role === "customer") ? items : clientFilteredItems.slice(0, displayCount);
+  const showLoader = (role === "brand" || role === "creator" || role === "customer") ? hasMore : displayCount < clientFilteredItems.length;
 
   const handleObserver = useCallback((entries) => {
     if (entries[0].isIntersecting) {
-      if (role === "brand" || role === "creator") {
+      if (role === "brand" || role === "creator" || role === "customer") {
         if (hasMore && !isMoreLoading) {
           setPage(prev => prev + 1);
         }

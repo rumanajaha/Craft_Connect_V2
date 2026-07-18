@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { authenticate } from '@/middleware/auth';
 import { getSupabaseRouteClient } from '@/lib/supabaseRouteHandler';
+import { getCustomerStats } from '@/lib/customerStats';
+import { supabaseAdmin } from '@/lib/supabaseServer';
 
 export async function GET(request) {
   try {
@@ -34,51 +36,8 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Customer profile not found' }, { status: 404 });
     }
 
-    // 1. Count Saved Brands
-    const { count: saved_brands_count } = await supabase
-      .from('SavedBrand')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id);
-
-    // 2. Count Active/Pending Custom Requests
-    let active_requests_count = 0;
-    const { count: reqCountUser, error: reqErrorUser } = await supabase
-      .from('CustomRequest')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .neq('status', 'closed');
-    
-    if (!reqErrorUser) {
-      active_requests_count = reqCountUser || 0;
-    } else {
-      // Fallback if user_id is customer_id
-      const { count: reqCountCust, error: reqErrorCust } = await supabase
-        .from('CustomRequest')
-        .select('*', { count: 'exact', head: true })
-        .eq('customer_id', user.id)
-        .neq('status', 'closed');
-      
-      if (!reqErrorCust) {
-        active_requests_count = reqCountCust || 0;
-      }
-    }
-
-    // 3. Count Messages involving this customer via their threads
-    const { data: userThreads } = await supabase
-      .from('MessageThread')
-      .select('id')
-      .or(`participant_a_id.eq.${user.id},participant_b_id.eq.${user.id}`);
-    
-    const threadIds = (userThreads || []).map(t => t.id);
-
-    let total_messages_count = 0;
-    if (threadIds.length > 0) {
-      const { count } = await supabase
-        .from('Message')
-        .select('*', { count: 'exact', head: true })
-        .in('thread_id', threadIds);
-      total_messages_count = count || 0;
-    }
+    // Retrieve stats using shared helper function
+    const stats = await getCustomerStats(user.id);
 
     return NextResponse.json({
       profile: {
@@ -88,13 +47,10 @@ export async function GET(request) {
         location: profile.location || '',
         avatarUrl: profile.avatar_url || '',
         email: user.email,
-        createdAt: user.created_at || profile.created_at
+        createdAt: user.created_at || profile.created_at,
+        notification_prefs: profile.notification_prefs || {}
       },
-      stats: {
-        saved_brands_count: saved_brands_count || 0,
-        active_requests_count: active_requests_count || 0,
-        total_messages_count: total_messages_count || 0
-      }
+      stats
     });
 
   } catch (err) {
@@ -125,6 +81,8 @@ export async function PATCH(request) {
     if (body.phone_number !== undefined) updateData.phone_number = body.phone_number;
     if (body.phone !== undefined) updateData.phone_number = body.phone;
     if (body.location !== undefined) updateData.location = body.location;
+    if (body.avatar_url !== undefined) updateData.avatar_url = body.avatar_url;
+    if (body.avatarUrl !== undefined) updateData.avatar_url = body.avatarUrl;
 
     // Validate that Full Name is present and not empty
     if (updateData.display_name !== undefined && (!updateData.display_name || !updateData.display_name.trim())) {
@@ -133,7 +91,28 @@ export async function PATCH(request) {
 
     const supabase = getSupabaseRouteClient();
 
-    const { data: updatedProfile, error: updateError } = await supabase
+    // Query existing profile to merge notification_prefs
+    const { data: currentProfile, error: getError } = await supabase
+      .from('CustomerProfile')
+      .select('notification_prefs')
+      .eq('owner_user_id', user.id)
+      .maybeSingle();
+
+    if (getError) {
+      console.error("PATCH CustomerProfile GET error:", getError.message);
+      return NextResponse.json({ error: 'Failed to retrieve profile for merging', details: getError.message }, { status: 500 });
+    }
+
+    if (body.notification_prefs !== undefined) {
+      const dbPrefs = body.notification_prefs;
+      const currentPrefs = currentProfile?.notification_prefs || {};
+      updateData.notification_prefs = {
+        ...currentPrefs,
+        ...dbPrefs
+      };
+    }
+
+    const { data: updatedProfile, error: updateError } = await supabaseAdmin
       .from('CustomerProfile')
       .update(updateData)
       .eq('owner_user_id', user.id)
@@ -152,7 +131,8 @@ export async function PATCH(request) {
         displayName: updatedProfile.display_name || '',
         phone: updatedProfile.phone_number || '',
         location: updatedProfile.location || '',
-        avatarUrl: updatedProfile.avatar_url || ''
+        avatarUrl: updatedProfile.avatar_url || '',
+        notification_prefs: updatedProfile.notification_prefs || {}
       }
     });
 

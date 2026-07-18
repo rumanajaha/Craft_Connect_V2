@@ -15,7 +15,8 @@ const supabaseAdmin = createClient(
  */
 export async function GET(request, { params }) {
   try {
-    const { id } = params || {};
+    const resolvedParams = await params;
+    const { id } = resolvedParams || {};
 
     const supabase = getSupabaseRouteClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -85,7 +86,8 @@ export async function GET(request, { params }) {
  */
 export async function POST(request, { params }) {
   try {
-    const { id } = params || {};
+    const resolvedParams = await params;
+    const { id } = resolvedParams || {};
     const { text, image } = await request.json();
 
     if (!text || !text.trim()) {
@@ -139,6 +141,51 @@ export async function POST(request, { params }) {
       .from("MessageThread")
       .update(updateData)
       .eq("id", id);
+
+    // 4c. CustomRequest status updates when a brand owner responds (sends a reply)
+    if (user.role === "BRANDOWNER") {
+      try {
+        const { data: brandProf } = await supabaseAdmin
+          .from("BrandProfile")
+          .select("id, brand_name")
+          .eq("owner_user_id", user.id)
+          .maybeSingle();
+
+        const { data: customerProf } = await supabaseAdmin
+          .from("CustomerProfile")
+          .select("id")
+          .eq("owner_user_id", otherId)
+          .maybeSingle();
+
+        if (brandProf && customerProf) {
+          const { data: pendingReq } = await supabaseAdmin
+            .from("CustomRequest")
+            .select("id")
+            .eq("brand_id", brandProf.id)
+            .eq("customer_id", customerProf.id)
+            .eq("status", "pending")
+            .maybeSingle();
+
+          if (pendingReq) {
+            await supabaseAdmin
+              .from("CustomRequest")
+              .update({ status: "responded" })
+              .eq("id", pendingReq.id);
+
+            await createNotification({
+              userId: otherId,
+              type: "request_responded",
+              title: "Brand Responded to Request",
+              body: `${brandProf.brand_name || 'A Brand'} has responded to your custom request.`,
+              relatedEntityId: pendingReq.id,
+              link: "/customer/messages"
+            });
+          }
+        }
+      } catch (reqErr) {
+        console.error("Error updating CustomRequest status upon message reply:", reqErr);
+      }
+    }
 
     // Resolve recipient's role/portal
     const [brandRes, creatorRes] = await Promise.all([
@@ -232,7 +279,7 @@ export async function POST(request, { params }) {
  */
 export async function PATCH(request, { params }) {
   try {
-    const { id } = params || {};
+    const { id } = await params;
     const { status } = await request.json();
 
     if (!status) {

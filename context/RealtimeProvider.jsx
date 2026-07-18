@@ -8,11 +8,45 @@ export function RealtimeProvider({ children }) {
   const [userId, setUserId] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [toast, setToast] = useState(null);
+  const [prefs, setPrefs] = useState(null);
   const supabaseRef = useRef(null);
 
   if (!supabaseRef.current) {
     supabaseRef.current = createClient();
   }
+
+  const loadPrefs = useCallback(async (supabase, user) => {
+    try {
+      const roleStr = user.user_metadata?.role || user.role || "";
+      const userRole = roleStr.toUpperCase();
+
+      if (userRole === "CUSTOMER") {
+        const { data: profile } = await supabase
+          .from("CustomerProfile")
+          .select("notification_prefs")
+          .eq("owner_user_id", user.id)
+          .maybeSingle();
+        return profile?.notification_prefs || null;
+      } else if (userRole === "CREATOR") {
+        const { data: profile } = await supabase
+          .from("CreatorProfile")
+          .select("notification_prefs")
+          .eq("owner_user_id", user.id)
+          .maybeSingle();
+        return profile?.notification_prefs || null;
+      } else if (userRole === "BRANDOWNER" || userRole === "BRAND") {
+        const { data: profile } = await supabase
+          .from("BrandProfile")
+          .select("notification_prefs")
+          .eq("owner_user_id", user.id)
+          .maybeSingle();
+        return profile?.notification_prefs || null;
+      }
+    } catch (err) {
+      console.error("Failed to load user notification prefs:", err);
+    }
+    return null;
+  }, []);
 
   useEffect(() => {
     const supabase = supabaseRef.current;
@@ -21,6 +55,9 @@ export function RealtimeProvider({ children }) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       setUserId(user.id);
+
+      const loadedPrefs = await loadPrefs(supabase, user);
+      setPrefs(loadedPrefs);
 
       const { data } = await supabase
         .from("Notification")
@@ -34,9 +71,49 @@ export function RealtimeProvider({ children }) {
         .on(
           "postgres_changes",
           { event: "INSERT", schema: "public", table: "Notification", filter: `user_id=eq.${user.id}` },
-          (payload) => {
-            setNotifications((prev) => [payload.new, ...prev]);
-            setToast(payload.new);
+          async (payload) => {
+            const newNotif = payload.new;
+
+            setNotifications((prev) => [newNotif, ...prev]);
+
+            const currentPrefs = await loadPrefs(supabase, user);
+            setPrefs(currentPrefs);
+
+            let desktopAllowed = true; // Default fallback
+
+            if (currentPrefs) {
+              const notifType = newNotif.type;
+              if (notifType === "new_message") {
+                desktopAllowed = currentPrefs.newMessage?.desktop ?? true;
+              } else if (notifType === "request_responded") {
+                desktopAllowed = currentPrefs.requestResponded?.desktop ?? true;
+              } else if (
+                notifType === "request_accepted" ||
+                notifType === "request_status_changed" ||
+                notifType === "request_declined"
+              ) {
+                desktopAllowed = currentPrefs.requestStatusChanged?.desktop ?? false;
+              }
+            }
+
+            if (desktopAllowed) {
+              setToast(newNotif);
+
+              if (
+                typeof window !== "undefined" &&
+                "Notification" in window &&
+                Notification.permission === "granted"
+              ) {
+                try {
+                  new Notification(newNotif.title, {
+                    body: newNotif.body,
+                    icon: "/favicon.ico"
+                  });
+                } catch (e) {
+                  console.error("Failed to display native notification popup:", e);
+                }
+              }
+            }
           }
         )
         .on(
@@ -62,7 +139,7 @@ export function RealtimeProvider({ children }) {
 
     const cleanupPromise = init();
     return () => { cleanupPromise.then((cleanup) => cleanup && cleanup()); };
-  }, []);
+  }, [loadPrefs]);
 
   const markAsRead = useCallback(async (id) => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));

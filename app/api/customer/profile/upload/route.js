@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { authenticate } from '@/middleware/auth';
+import { supabaseAdmin } from '@/lib/supabaseServer';
 import { getSupabaseRouteClient } from '@/lib/supabaseRouteHandler';
 
 export async function POST(request) {
@@ -30,10 +31,17 @@ export async function POST(request) {
     const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
     const filePath = `${user.id}/${fileName}`;
 
-    const supabase = getSupabaseRouteClient();
+    // Ensure the customer-avatars bucket exists (using supabaseAdmin to guarantee success)
+    try {
+      await supabaseAdmin.storage.createBucket('customer-avatars', {
+        public: true
+      });
+    } catch (_) {
+      // Ignore if it already exists
+    }
 
-    // Upload file to 'customer-avatars' bucket
-    const { error: uploadError } = await supabase.storage
+    // Upload file to 'customer-avatars' bucket (using supabaseAdmin to bypass storage RLS checks)
+    const { error: uploadError } = await supabaseAdmin.storage
       .from('customer-avatars')
       .upload(filePath, buffer, {
         contentType: file.type || 'image/jpeg',
@@ -46,7 +54,7 @@ export async function POST(request) {
     }
 
     // Retrieve public URL
-    const { data: urlData } = supabase.storage
+    const { data: urlData } = supabaseAdmin.storage
       .from('customer-avatars')
       .getPublicUrl(filePath);
 
@@ -54,8 +62,8 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Failed to retrieve public URL' }, { status: 500 });
     }
 
-    // Update the CustomerProfile table with the new avatarUrl
-    const { error: updateError } = await supabase
+    // Update the CustomerProfile table with the new avatarUrl (using supabaseAdmin to bypass database RLS)
+    const { error: updateError } = await supabaseAdmin
       .from('CustomerProfile')
       .update({ avatar_url: urlData.publicUrl })
       .eq('owner_user_id', user.id);

@@ -81,6 +81,23 @@ export default function BrandProfilePage() {
     fetchBrandData();
   }, [id]);
 
+  useEffect(() => {
+    if (!id) return;
+    async function checkSaved() {
+      try {
+        const res = await fetch("/api/customer/saved-brands");
+        if (res.ok) {
+          const data = await res.json();
+          const savedIds = (data.savedBrands || []).map(b => b.id);
+          setIsSaved(savedIds.includes(id));
+        }
+      } catch (err) {
+        console.error("Error checking saved brand status:", err);
+      }
+    }
+    checkSaved();
+  }, [id]);
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
@@ -107,15 +124,70 @@ export default function BrandProfilePage() {
     ? brand.tags 
     : (typeof brand.tags === "string" ? brand.tags.split(",").map(t => t.trim()).filter(Boolean) : []);
 
-  const handleSendRequest = () => {
+  const handleToggleSave = async () => {
+    try {
+      const method = isSaved ? "DELETE" : "POST";
+      const url = isSaved 
+        ? `/api/customer/saved-brands?brandId=${id}`
+        : `/api/customer/saved-brands`;
+      
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: isSaved ? undefined : JSON.stringify({ brandId: id })
+      });
+
+      if (res.ok) {
+        setIsSaved(!isSaved);
+      }
+    } catch (err) {
+      console.error("Error toggling saved brand:", err);
+    }
+  };
+
+  const handleSendRequest = async () => {
     if (!message.trim()) return;
     setSending(true);
     
-    setTimeout(() => {
-      setSending(false);
+    try {
+      const res = await fetch("/api/customer/requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          brandId: brand.id,
+          requestType,
+          message,
+          budget,
+          deadline,
+          title: `Custom ${requestType}: ${message.substring(0, 30)}${message.length > 30 ? '...' : ''}`
+        })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "Failed to send request");
+      }
+
+      const responseData = await res.json();
+
+      // The request POST now creates the thread and message atomically.
+      // Use the returned threadId to redirect directly to that conversation.
+      if (responseData.threadId) {
+        router.push(`/customer/messages?thread=${responseData.threadId}`);
+      } else {
+        router.push("/customer/messages");
+      }
+
       setShowModal(false);
-      router.push(`/customer/messages?thread=thread-${brand.id}`);
-    }, 800);
+      setMessage("");
+      setBudget("");
+      setDeadline("");
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Failed to submit request.");
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -147,7 +219,7 @@ export default function BrandProfilePage() {
 
         {/* Save button */}
         <button
-          onClick={() => setIsSaved(s => !s)}
+          onClick={handleToggleSave}
           className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow hover:bg-white transition-colors"
         >
           {isSaved

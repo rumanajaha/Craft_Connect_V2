@@ -2,18 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Bookmark, FileText, MessageCircle, Sparkles, ArrowRight, TrendingUp } from "lucide-react";
-import { MOCK_BRANDS, MOCK_REQUESTS, MOCK_MESSAGES } from "@/lib/mockData";
+import { Bookmark, FileText, MessageCircle, Sparkles, ArrowRight, TrendingUp, Loader2 } from "lucide-react";
 import BrandCard from "@/components/customer/BrandCard";
 import RequestStatusBadge from "@/components/customer/RequestStatusBadge";
 import { createClient } from "@/lib/supabase/client";
-
-
-const INITIAL_SAVED = ["ochre-clay", "gaea-weaves"];
-
-
-const RECOMMENDED_BRANDS = MOCK_BRANDS.slice(0, 5);
-
 
 function StatPill({ icon: Icon, value, label, accent }) {
   return (
@@ -40,19 +32,25 @@ function StatPill({ icon: Icon, value, label, accent }) {
 }
 
 export default function CustomerDashboard() {
-  const [saved, setSaved] = useState(INITIAL_SAVED);
-
-  
+  const [saved, setSaved] = useState([]);
   const [greeting, setGreeting] = useState("");
   const [subtext, setSubtext] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  const [stats, setStats] = useState({
+    saved_brands_count: 0,
+    active_requests_count: 0,
+    total_messages_count: 0,
+    brands_available_count: 0
+  });
+  const [recentRequests, setRecentRequests] = useState([]);
+  const [recommended, setRecommended] = useState([]);
 
   useEffect(() => {
     async function buildGreeting() {
-      
       const isNew  = sessionStorage.getItem("cc_new_user") === "1";
       let   name   = sessionStorage.getItem("cc_display_name") ?? "";
 
-      
       if (!name) {
         try {
           const supabase = createClient();
@@ -67,29 +65,94 @@ export default function CustomerDashboard() {
       const firstName = name ? `, ${name}` : "";
 
       if (isNew) {
-        
         sessionStorage.removeItem("cc_new_user");
         sessionStorage.removeItem("cc_display_name");
-        setGreeting(`Welcome${firstName}! `);
+        setGreeting(`Welcome${firstName}!`);
         setSubtext("Your account is all set. Start discovering handcrafted brands.");
       } else {
-        setGreeting(`Welcome back${firstName}! `);
+        setGreeting(`Welcome back${firstName}!`);
         setSubtext("Here's what's happening with your brands and requests.");
       }
     }
     buildGreeting();
   }, []);
 
-  const toggleSave = (id) =>
-    setSaved(prev => prev.includes(id) ? prev.filter(b => b !== id) : [...prev, id]);
+  // Load Saved brand IDs on mount & fetch dashboard metrics
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setLoading(true);
+        const [dashRes, savedRes, reqRes] = await Promise.all([
+          fetch("/api/customer/dashboard"),
+          fetch("/api/customer/saved-brands"),
+          fetch("/api/customer/requests")
+        ]);
 
-  const activeRequests = MOCK_REQUESTS.filter(r => r.status !== "closed").length;
-  const totalMessages  = MOCK_MESSAGES.reduce((sum, t) => sum + t.messages.length, 0);
+        if (dashRes.ok) {
+          const dashData = await dashRes.json();
+          if (dashData.stats) setStats(dashData.stats);
+          setRecommended(dashData.recommended || []);
+        }
+
+        if (savedRes.ok) {
+          const savedData = await savedRes.json();
+          setSaved((savedData.savedBrands || []).map(b => b.id));
+        }
+
+        if (reqRes.ok) {
+          const reqData = await reqRes.json();
+          setRecentRequests(reqData.requests || []);
+        }
+      } catch (err) {
+        console.error("Dashboard data load error:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  const toggleSave = (id) => {
+    const isCurrentlySaved = saved.includes(id);
+    const method = isCurrentlySaved ? "DELETE" : "POST";
+    const url = isCurrentlySaved 
+      ? `/api/customer/saved-brands?brandId=${id}`
+      : `/api/customer/saved-brands`;
+    
+    fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: isCurrentlySaved ? undefined : JSON.stringify({ brandId: id })
+    }).catch(err => {
+      console.error("Failed to toggle save:", err);
+    });
+
+    // Update counters dynamically on bookmark changes
+    setStats(prevStats => ({
+      ...prevStats,
+      saved_brands_count: isCurrentlySaved
+        ? Math.max(0, prevStats.saved_brands_count - 1)
+        : prevStats.saved_brands_count + 1
+    }));
+
+    setSaved(prev => isCurrentlySaved ? prev.filter(b => b !== id) : [...prev, id]);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-brand-muted text-sm font-semibold flex items-center gap-2">
+          <Loader2 className="w-4 h-4 animate-spin text-brand-primary" />
+          Loading dashboard...
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto">
+    <div className="space-y-8 max-w-6xl mx-auto animate-in fade-in duration-300">
 
-      
+      {/* Greeting Header */}
       <div className="min-h-[72px]">
         <h1 className="font-serif text-3xl md:text-4xl font-bold text-brand-dark">
           {greeting || <span className="opacity-0">Welcome</span>}
@@ -99,15 +162,15 @@ export default function CustomerDashboard() {
         </p>
       </div>
 
-      
+      {/* Quick Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatPill icon={Bookmark}      value={saved.length}       label="Saved Brands"      />
-        <StatPill icon={FileText}      value={activeRequests}     label="Active Requests"   accent />
-        <StatPill icon={MessageCircle} value={totalMessages}      label="Total Messages"    />
-        <StatPill icon={TrendingUp}    value={MOCK_BRANDS.length} label="Brands Available"  />
+        <StatPill icon={Bookmark}      value={stats.saved_brands_count}       label="Saved Brands"      />
+        <StatPill icon={FileText}      value={stats.active_requests_count}     label="Active Requests"   accent />
+        <StatPill icon={MessageCircle} value={stats.total_messages_count}      label="Total Messages"    />
+        <StatPill icon={TrendingUp}    value={stats.brands_available_count}   label="Brands Available"  />
       </div>
 
-      
+      {/* Recent Requests Section */}
       <section>
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-serif text-xl font-bold text-brand-dark">Recent Requests</h2>
@@ -116,35 +179,33 @@ export default function CustomerDashboard() {
           </Link>
         </div>
         <div className="bg-white rounded-2xl border border-brand-border/50 shadow-sm overflow-hidden">
-          {MOCK_REQUESTS.length === 0 ? (
+          {recentRequests.length === 0 ? (
             <div className="p-8 text-center text-brand-muted text-sm">No requests yet.</div>
           ) : (
             <ul className="divide-y divide-brand-border/40">
-              {MOCK_REQUESTS.map(req => {
-                const brand  = MOCK_BRANDS.find(b => b.id === req.brandId);
-                const thread = MOCK_MESSAGES.find(m => m.brandId === req.brandId);
-                return (
-                  <li key={req.id}>
-                    <Link
-                      href={`/customer/messages?thread=${thread?.id ?? ""}`}
-                      className="flex items-center gap-4 px-5 py-4 hover:bg-brand-border/10 transition-colors"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm text-brand-dark truncate">{req.subject}</p>
-                        <p className="text-xs text-brand-muted mt-0.5 truncate">{brand?.name} · {req.type}</p>
-                      </div>
-                      <RequestStatusBadge status={req.status} />
-                      <ArrowRight className="w-3.5 h-3.5 text-brand-muted shrink-0" />
-                    </Link>
-                  </li>
-                );
-              })}
+              {recentRequests.slice(0, 5).map(req => (
+                <li key={req.id}>
+                  <Link
+                    href={`/customer/messages${req.threadId ? `?thread=${req.threadId}` : ""}`}
+                    className="flex items-center gap-4 px-5 py-4 hover:bg-brand-border/10 transition-colors"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm text-brand-dark truncate">{req.subject}</p>
+                      <p className="text-xs text-brand-muted mt-0.5 truncate">
+                        {req.brandName} · {req.type}
+                      </p>
+                    </div>
+                    <RequestStatusBadge status={req.status} />
+                    <ArrowRight className="w-3.5 h-3.5 text-brand-muted shrink-0" />
+                  </Link>
+                </li>
+              ))}
             </ul>
           )}
         </div>
       </section>
 
-      
+      {/* Recommended For You Section */}
       <section>
         <div className="flex items-center gap-2 mb-4">
           <Sparkles className="w-4 h-4 text-brand-primary" />
@@ -153,16 +214,23 @@ export default function CustomerDashboard() {
             AI Picks
           </span>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {RECOMMENDED_BRANDS.map(brand => (
-            <BrandCard
-              key={brand.id}
-              brand={brand}
-              isSaved={saved.includes(brand.id)}
-              onToggleSave={toggleSave}
-            />
-          ))}
-        </div>
+        
+        {recommended.length === 0 ? (
+          <div className="p-8 text-center bg-white rounded-2xl border border-brand-border/50 shadow-sm text-brand-muted text-sm">
+            No recommendations available.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {recommended.map(brand => (
+              <BrandCard
+                key={brand.id}
+                brand={brand}
+                isSaved={saved.includes(brand.id)}
+                onToggleSave={toggleSave}
+              />
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );

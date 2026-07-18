@@ -1,19 +1,61 @@
 "use client";
 
-import React, { useState } from "react";
-import { Bookmark } from "lucide-react";
-import { MOCK_BRANDS } from "@/lib/mockData";
+import React, { useState, useEffect } from "react";
+import { Bookmark, Loader2 } from "lucide-react";
 import BrandCard from "@/components/customer/BrandCard";
 
-const INITIAL_SAVED = ["ochre-clay", "gaea-weaves", "aether-scents"];
-
 export default function SavedBrandsPage() {
-  const [saved, setSaved] = useState(INITIAL_SAVED);
+  const [savedBrands, setSavedBrands] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const toggleSave = (id) =>
-    setSaved(prev => prev.includes(id) ? prev.filter(b => b !== id) : [...prev, id]);
+  async function loadSavedBrands() {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/customer/saved-brands");
+      if (res.ok) {
+        const data = await res.json();
+        setSavedBrands(data.savedBrands || []);
+      }
+    } catch (err) {
+      console.error("Failed to load saved brands:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
 
-  const savedBrands = MOCK_BRANDS.filter(b => saved.includes(b.id));
+  useEffect(() => {
+    loadSavedBrands();
+  }, []);
+
+  const toggleSave = async (brandId) => {
+    // Optimistically remove from view
+    setSavedBrands(prev => prev.filter(b => b.id !== brandId));
+
+    try {
+      const res = await fetch(`/api/customer/saved-brands?brandId=${brandId}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        // Rollback
+        loadSavedBrands();
+      }
+    } catch (err) {
+      console.error("Failed to unsave brand:", err);
+      loadSavedBrands();
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-brand-muted text-sm font-semibold flex items-center gap-2">
+          <Loader2 className="w-4 h-4 animate-spin text-brand-primary" />
+          Loading saved brands...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -36,7 +78,7 @@ export default function SavedBrandsPage() {
             <BrandCard
               key={brand.id}
               brand={brand}
-              isSaved
+              isSaved={true}
               onToggleSave={toggleSave}
             />
           ))}

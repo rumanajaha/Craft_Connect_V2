@@ -9,7 +9,7 @@ import { supabaseAdmin } from '@/lib/supabaseServer';
  */
 export async function GET(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     if (!id) {
       return NextResponse.json({ error: 'Brand ID is required' }, { status: 400 });
@@ -34,6 +34,8 @@ export async function GET(request, { params }) {
     // Map to frontend model
     const profile = {
       id: brand.id,
+      ownerUserId: brand.owner_user_id || '',
+      owner_user_id: brand.owner_user_id || '',
       name: brand.brand_name || '',
       category: brand.category || '',
       location: brand.location || '',

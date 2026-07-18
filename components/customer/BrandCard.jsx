@@ -10,14 +10,22 @@ export default function BrandCard({ brand, isSaved = false, onToggleSave, compac
   return (
     <div className="group bg-white rounded-2xl border border-brand-border/50 shadow-sm hover:shadow-md hover:border-brand-primary/20 transition-all duration-300 overflow-hidden flex flex-col">
       
-      <div className="relative h-32 w-full overflow-hidden bg-brand-border/20">
-        <Image
-          src={brand.logo}
-          alt={brand.name}
-          fill
-          sizes="(max-width: 640px) 100vw, 300px"
-          className="object-cover group-hover:scale-105 transition-transform duration-500"
-        />
+      <div className="relative h-32 w-full overflow-hidden bg-gradient-to-br from-brand-primary/10 to-brand-border/20">
+        {brand.logo ? (
+          <Image
+            src={brand.logo}
+            alt={brand.name || "Brand"}
+            fill
+            sizes="(max-width: 640px) 100vw, 300px"
+            className="object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <span className="text-3xl font-serif font-bold text-brand-primary/30">
+              {(brand.name || "B").charAt(0).toUpperCase()}
+            </span>
+          </div>
+        )}
         
         <button
           onClick={(e) => { e.preventDefault(); onToggleSave?.(brand.id); }}

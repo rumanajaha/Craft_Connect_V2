@@ -8,6 +8,37 @@ import ProfileTab from "@/components/customer/settings/ProfileTab";
 import SecurityTab from "@/components/customer/settings/SecurityTab";
 import NotificationsTab from "@/components/customer/settings/NotificationsTab";
 
+const mapDbPrefsToUi = (dbPrefs) => {
+  const defaults = {
+    newMessage: { email: true, desktop: true },
+    requestResponded: { email: true, desktop: true },
+    requestStatusChanged: { email: false, desktop: false },
+    newRecommendedBrands: { email: false, desktop: false },
+    weeklyDigest: { email: true, desktop: false },
+    securityAlerts: { email: true, desktop: true }
+  };
+  const prefs = { ...defaults, ...dbPrefs };
+  return {
+    newMessage: prefs.newMessage,
+    brandResponse: prefs.requestResponded,
+    requestStatus: prefs.requestStatusChanged,
+    newRecommended: prefs.newRecommendedBrands,
+    weeklyDigest: prefs.weeklyDigest,
+    securityAlerts: prefs.securityAlerts
+  };
+};
+
+const mapUiPrefsToDb = (uiPrefs) => {
+  return {
+    newMessage: uiPrefs.newMessage,
+    requestResponded: uiPrefs.brandResponse,
+    requestStatusChanged: uiPrefs.requestStatus,
+    newRecommendedBrands: uiPrefs.newRecommended,
+    weeklyDigest: uiPrefs.weeklyDigest,
+    securityAlerts: uiPrefs.securityAlerts
+  };
+};
+
 export default function CustomerSettingsPage() {
   const [activeTab, setActiveTab] = useState("profile");
   const [createdAt, setCreatedAt] = useState("July 2, 2026");
@@ -26,6 +57,18 @@ export default function CustomerSettingsPage() {
     active_requests_count: 0,
     total_messages_count: 0,
   });
+
+  const [initialNotifications, setInitialNotifications] = useState({
+    newMessage:       { email: true,  desktop: true  },
+    brandResponse:    { email: true,  desktop: true  },
+    requestStatus:    { email: false, desktop: false },
+    newRecommended:   { email: false, desktop: false },
+    weeklyDigest:     { email: true,  desktop: false },
+    securityAlerts:   { email: true,  desktop: true },
+  });
+  const [notifications, setNotifications] = useState(
+    JSON.parse(JSON.stringify(initialNotifications))
+  );
 
   useEffect(() => {
     async function loadData() {
@@ -58,6 +101,11 @@ export default function CustomerSettingsPage() {
               })
             );
           }
+          if (p.notification_prefs) {
+            const uiPrefs = mapDbPrefsToUi(p.notification_prefs);
+            setInitialNotifications(uiPrefs);
+            setNotifications(JSON.parse(JSON.stringify(uiPrefs)));
+          }
         }
       } catch (err) {
         console.error("Failed to load customer profile:", err);
@@ -67,18 +115,6 @@ export default function CustomerSettingsPage() {
     }
     loadData();
   }, []);
-
-  const [initialNotifications, setInitialNotifications] = useState({
-    newMessage:       { email: true,  desktop: true  },
-    brandResponse:    { email: true,  desktop: true  },
-    requestStatus:    { email: false, desktop: false },
-    newRecommended:   { email: false, desktop: false },
-    weeklyDigest:     { email: true,  desktop: false },
-    securityAlerts:   { email: true,  desktop: false },
-  });
-  const [notifications, setNotifications] = useState(
-    JSON.parse(JSON.stringify(initialNotifications))
-  );
 
   const [isDirtyOverride, setIsDirtyOverride] = useState(false);
   const [globalSaving, setGlobalSaving] = useState(false);
@@ -102,6 +138,8 @@ export default function CustomerSettingsPage() {
     setGlobalSuccess("");
 
     try {
+      const dbPrefs = mapUiPrefsToDb(notifications);
+
       const profileRes = await fetch("/api/customer/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -110,6 +148,7 @@ export default function CustomerSettingsPage() {
           phone: profile.phone,
           location: profile.location,
           avatarUrl: profile.avatarUrl,
+          notification_prefs: dbPrefs
         })
       });
 
@@ -129,7 +168,13 @@ export default function CustomerSettingsPage() {
 
       setInitialProfile(updatedProfile);
       setProfile({ ...updatedProfile });
-      setInitialNotifications(JSON.parse(JSON.stringify(notifications)));
+
+      if (resData.profile?.notification_prefs) {
+        const uiPrefs = mapDbPrefsToUi(resData.profile.notification_prefs);
+        setInitialNotifications(uiPrefs);
+        setNotifications(JSON.parse(JSON.stringify(uiPrefs)));
+      }
+
       setIsDirtyOverride(false);
       setGlobalSuccess("Settings updated successfully!");
     } catch (err) {
