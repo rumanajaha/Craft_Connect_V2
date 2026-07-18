@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import Button from "@/components/ui/button";
 import { Save, Loader2 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 
 import ProfileTab from "@/components/customer/settings/ProfileTab";
 import SecurityTab from "@/components/customer/settings/SecurityTab";
@@ -12,34 +11,62 @@ import NotificationsTab from "@/components/customer/settings/NotificationsTab";
 export default function CustomerSettingsPage() {
   const [activeTab, setActiveTab] = useState("profile");
   const [createdAt, setCreatedAt] = useState("July 2, 2026");
-  
-  useEffect(() => {
-    async function loadUser() {
-      try {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user?.created_at) {
-          const date = new Date(user.created_at);
-          setCreatedAt(
-            date.toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric"
-            })
-          );
-        }
-      } catch (e) {
-      }
-    }
-    loadUser();
-  }, []);
+  const [loading, setLoading] = useState(true);
 
   const [initialProfile, setInitialProfile] = useState({
-    displayName: "Alex Customer",
-    phone: "+1 (555) 0199",
-    location: "Seattle, WA",
+    displayName: "",
+    phone: "",
+    location: "",
+    avatarUrl: "",
+    email: "",
   });
   const [profile, setProfile] = useState({ ...initialProfile });
+  const [stats, setStats] = useState({
+    saved_brands_count: 0,
+    active_requests_count: 0,
+    total_messages_count: 0,
+  });
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setLoading(true);
+        const res = await fetch("/api/customer/profile");
+        if (res.ok) {
+          const data = await res.json();
+          const p = data.profile || {};
+          const loadedProfile = {
+            displayName: p.displayName || "",
+            phone: p.phone || "",
+            location: p.location || "",
+            avatarUrl: p.avatarUrl || "",
+            email: p.email || "",
+          };
+          setInitialProfile(loadedProfile);
+          setProfile({ ...loadedProfile });
+          
+          if (data.stats) {
+            setStats(data.stats);
+          }
+          if (p.createdAt) {
+            const date = new Date(p.createdAt);
+            setCreatedAt(
+              date.toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric"
+              })
+            );
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load customer profile:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
 
   const [initialNotifications, setInitialNotifications] = useState({
     newMessage:       { email: true,  desktop: true  },
@@ -62,25 +89,67 @@ export default function CustomerSettingsPage() {
     profile.displayName !== initialProfile.displayName ||
     profile.phone !== initialProfile.phone ||
     profile.location !== initialProfile.location ||
+    profile.avatarUrl !== initialProfile.avatarUrl ||
     Object.keys(notifications).some(
       k =>
         notifications[k].email   !== initialNotifications[k].email ||
         notifications[k].desktop !== initialNotifications[k].desktop
     );
 
-  const handleSaveAllChanges = () => {
+  const handleSaveAllChanges = async () => {
     if (!isDirty) return;
     setGlobalSaving(true);
     setGlobalSuccess("");
 
-    setTimeout(() => {
-      setInitialProfile({ ...profile });
+    try {
+      const profileRes = await fetch("/api/customer/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          displayName: profile.displayName,
+          phone: profile.phone,
+          location: profile.location,
+          avatarUrl: profile.avatarUrl,
+        })
+      });
+
+      if (!profileRes.ok) {
+        const errData = await profileRes.json();
+        throw new Error(errData.error || "Failed to update profile settings");
+      }
+
+      const resData = await profileRes.json();
+      const updatedProfile = {
+        displayName: resData.profile?.displayName || profile.displayName,
+        phone: resData.profile?.phone || profile.phone,
+        location: resData.profile?.location || profile.location,
+        avatarUrl: resData.profile?.avatarUrl || profile.avatarUrl,
+        email: profile.email,
+      };
+
+      setInitialProfile(updatedProfile);
+      setProfile({ ...updatedProfile });
       setInitialNotifications(JSON.parse(JSON.stringify(notifications)));
       setIsDirtyOverride(false);
-      setGlobalSaving(false);
       setGlobalSuccess("Settings updated successfully!");
-    }, 1200);
+    } catch (err) {
+      console.error("Error saving changes:", err);
+      alert(err.message || "Something went wrong while saving changes");
+    } finally {
+      setGlobalSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-brand-muted text-sm font-semibold flex items-center gap-2">
+          <Loader2 className="w-4 h-4 animate-spin text-brand-primary" />
+          Loading settings...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-24">
@@ -141,7 +210,8 @@ export default function CustomerSettingsPage() {
             profile={profile} 
             setProfile={setProfile} 
             setIsDirty={setIsDirtyOverride} 
-            createdAt={createdAt} 
+            createdAt={createdAt}
+            stats={stats} 
           />
         )}
         {activeTab === "security" && <SecurityTab />}

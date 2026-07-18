@@ -1,50 +1,81 @@
-import React, { useState, useRef } from "react";
+import React, { useRef, useState } from "react";
 import Image from "next/image";
-import { Award, Calendar } from "lucide-react";
+import { Award, Calendar, Loader2 } from "lucide-react";
 import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
-import { MOCK_REQUESTS, MOCK_MESSAGES } from "@/lib/mockData";
 
 function Card({ className, children }) {
   return <div className={className}>{children}</div>;
 }
 
-export default function ProfileTab({ profile, setProfile, setIsDirty, createdAt }) {
-  const [avatar, setAvatar] = useState(null);
+export default function ProfileTab({ profile, setProfile, setIsDirty, createdAt, stats }) {
   const fileRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
 
   const handleProfileChange = (key, value) => {
     setProfile(prev => ({ ...prev, [key]: value }));
     setIsDirty(true);
   };
 
-  const handleAvatarChange = (e) => {
+  const handleAvatarChange = async (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      setAvatar(URL.createObjectURL(file));
-      setIsDirty(true);
+      try {
+        setUploading(true);
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const res = await fetch("/api/customer/profile/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || "Failed to upload photo");
+        }
+
+        const data = await res.json();
+        if (data.avatarUrl) {
+          setProfile(prev => ({ ...prev, avatarUrl: data.avatarUrl }));
+          setIsDirty(true);
+        }
+      } catch (err) {
+        console.error("Avatar upload failed:", err);
+        alert(err.message || "Failed to upload avatar");
+      } finally {
+        setUploading(false);
+      }
     }
   };
 
   const handleRemoveAvatar = () => {
-    setAvatar(null);
+    setProfile(prev => ({ ...prev, avatarUrl: "" }));
     setIsDirty(true);
     if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const safeStats = stats || {
+    saved_brands_count: 0,
+    active_requests_count: 0,
+    total_messages_count: 0
   };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         
-        
+        {/* Profile Picture */}
         <div className="col-span-12 md:col-span-4">
           <Card className="p-6 flex flex-col items-center text-center bg-white border border-brand-border/50 shadow-sm rounded-2xl">
             <h3 className="text-xs font-bold uppercase tracking-wider text-brand-dark/70 mb-4 w-full text-left">
               Profile Picture
             </h3>
             <div className="relative w-28 h-28 rounded-full overflow-hidden bg-brand-border/20 border-2 border-white shadow-md mb-4 flex items-center justify-center">
-              {avatar ? (
-                <Image src={avatar} alt="Avatar preview" fill className="object-cover" />
+              {uploading ? (
+                <Loader2 className="w-8 h-8 animate-spin text-brand-primary" />
+              ) : profile.avatarUrl ? (
+                <Image src={profile.avatarUrl} alt="Avatar preview" fill className="object-cover" unoptimized />
               ) : (
                 <span className="text-4xl font-serif font-bold text-brand-primary">
                   {profile.displayName ? profile.displayName[0].toUpperCase() : "C"}
@@ -65,10 +96,11 @@ export default function ProfileTab({ profile, setProfile, setIsDirty, createdAt 
                 size="sm"
                 className="w-full text-xs text-brand-dark"
                 onClick={() => fileRef.current?.click()}
+                disabled={uploading}
               >
                 Upload new photo
               </Button>
-              {avatar && (
+              {profile.avatarUrl && !uploading && (
                 <button
                   onClick={handleRemoveAvatar}
                   className="text-xs text-red-600 font-semibold hover:underline mt-1"
@@ -83,7 +115,7 @@ export default function ProfileTab({ profile, setProfile, setIsDirty, createdAt 
           </Card>
         </div>
 
-        
+        {/* Basic Information */}
         <div className="col-span-12 md:col-span-8">
           <Card className="p-6 bg-white border border-brand-border/50 shadow-sm rounded-2xl space-y-5">
             <h3 className="text-xs font-bold uppercase tracking-wider text-brand-dark/70 pb-3 border-b border-brand-border/30">
@@ -113,7 +145,7 @@ export default function ProfileTab({ profile, setProfile, setIsDirty, createdAt 
                   Email Address
                 </label>
                 <div className="w-full px-4 py-3 rounded-2xl bg-brand-border/20 border border-brand-border/50 text-sm text-brand-muted cursor-not-allowed">
-                  alex@example.com
+                  {profile.email || "loading..."}
                 </div>
                 <span className="text-[10px] text-brand-muted pl-1">
                   🔒 Email verification is required to edit address.
@@ -132,7 +164,7 @@ export default function ProfileTab({ profile, setProfile, setIsDirty, createdAt 
 
       </div>
 
-      
+      {/* Account Overview */}
       <Card className="p-6 bg-white border border-brand-border/50 shadow-sm rounded-2xl">
         <h3 className="text-xs font-bold uppercase tracking-wider text-brand-dark/70 pb-3 border-b border-brand-border/30 mb-5">
           Account Overview
@@ -168,18 +200,20 @@ export default function ProfileTab({ profile, setProfile, setIsDirty, createdAt 
           </h4>
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-[#FAF7F0] border border-brand-border/40 rounded-2xl p-4 text-center">
-              <p className="text-2xl font-serif font-bold text-brand-dark">3</p>
+              <p className="text-2xl font-serif font-bold text-brand-dark">
+                {safeStats.saved_brands_count}
+              </p>
               <p className="text-[9px] text-brand-muted uppercase font-bold tracking-wider mt-1.5">Saved Brands</p>
             </div>
             <div className="bg-[#FAF7F0] border border-brand-border/40 rounded-2xl p-4 text-center">
               <p className="text-2xl font-serif font-bold text-brand-dark">
-                {MOCK_REQUESTS.filter(r => r.status !== "closed").length}
+                {safeStats.active_requests_count}
               </p>
               <p className="text-[9px] text-brand-muted uppercase font-bold tracking-wider mt-1.5">Active Requests</p>
             </div>
             <div className="bg-[#FAF7F0] border border-brand-border/40 rounded-2xl p-4 text-center">
               <p className="text-2xl font-serif font-bold text-brand-dark">
-                {MOCK_MESSAGES.reduce((acc, t) => acc + t.messages.length, 0)}
+                {safeStats.total_messages_count}
               </p>
               <p className="text-[9px] text-brand-muted uppercase font-bold tracking-wider mt-1.5">Total Messages</p>
             </div>
