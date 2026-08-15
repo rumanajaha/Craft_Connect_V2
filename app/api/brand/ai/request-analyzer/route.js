@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authenticate } from '@/middleware/auth';
 import { supabaseAdmin } from '@/lib/supabaseServer';
-import { getGeminiModel } from '@/lib/gemini';
+import { generateWithGemini, GeminiUnavailableError } from '@/lib/gemini';
 import { checkQuota } from '@/lib/quotaHelper';
 
 export async function POST(request) {
@@ -38,20 +38,22 @@ export async function POST(request) {
       }, { status: 429 });
     }
 
-    const model = getGeminiModel();
-    const prompt = `Analyze the following customer inquiry text. Extract the Intent, Confidence, Specific specifications requested, Budget if mentioned, Deadline if mentioned, and recommend a clear next action for the brand.
+    const prompt = `Analyze the following customer inquiry for a handmade goods brand. Extract and clearly identify:
+- Intent (what the customer is asking for)
+- Confidence (how clear/actionable the request is: High / Medium / Low)
+- Specific specifications requested (materials, size, style, quantity, etc.)
+- Budget (if mentioned)
+- Deadline (if mentioned)
+- Recommended next action for the brand
+
 Inquiry: "${text}"
 
-Format it as clean, readable text using standard bullet points. Keep it under 120 words.`;
+Format as clean, readable bullet points. Keep it under 120 words. Be specific and avoid generic language.`;
 
-    const genResult = await model.generateContent(prompt);
-    const analysisText = genResult.response.text().trim();
+    // generateWithGemini throws GeminiUnavailableError on failure — quota is NOT incremented
+    const analysisText = await generateWithGemini(prompt);
 
-    if (!analysisText) {
-      return NextResponse.json({ error: 'Failed to analyze request' }, { status: 500 });
-    }
-
-    // Log usage in AIGeneration table
+    // Only log after a successful generation
     await supabaseAdmin
       .from('AIGeneration')
       .insert({
@@ -68,7 +70,10 @@ Format it as clean, readable text using standard bullet points. Keep it under 12
     });
 
   } catch (error) {
-    console.error("AI request analyzer error:", error);
+    if (error instanceof GeminiUnavailableError) {
+      return NextResponse.json({ error: error.message }, { status: 503 });
+    }
+    console.error('AI request-analyzer error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

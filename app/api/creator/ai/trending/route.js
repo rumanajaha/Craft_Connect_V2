@@ -2,12 +2,8 @@ import { NextResponse } from 'next/server';
 import { authenticate } from '@/middleware/auth';
 import { checkCreatorQuota } from '@/lib/quotaHelper';
 import { getSupabaseRouteClient } from '@/lib/supabaseRouteHandler';
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+import { supabaseAdmin } from '@/lib/supabaseServer';
+import { generateWithGemini, GeminiUnavailableError } from '@/lib/gemini';
 
 export async function POST(request) {
   try {
@@ -22,7 +18,7 @@ export async function POST(request) {
     const supabase = getSupabaseRouteClient();
     const { data: creator, error: creatorError } = await supabase
       .from('CreatorProfile')
-      .select('id')
+      .select('id, niches')
       .eq('owner_user_id', user.id)
       .maybeSingle();
 
@@ -39,27 +35,47 @@ export async function POST(request) {
       }, { status: 429 });
     }
 
-    const placeholderText = "AI generation coming soon";
+    const creatorNiches = niche || (Array.isArray(creator.niches) ? creator.niches.join(', ') : creator.niches) || 'Handmade & Artisan';
 
-    // Log the generation usage
+    const model = getGeminiModel();
+    const prompt = `You are a social media trend analyst specialising in handmade goods, slow living, and artisan content.
+
+A content creator works in these niches: ${creatorNiches}.
+
+Identify 3 trending content formats or creative angles that are performing well right now on platforms like Instagram Reels, TikTok, and Pinterest for this type of creator.
+
+For each trend:
+1. Give it a short name/title
+2. Briefly describe the format or angle (2-3 sentences)
+3. Suggest a specific hook line they could use
+4. Name the best platform for it
+
+Format clearly numbered (1. 2. 3.). End with one actionable recommendation for what to try first this week. Keep total under 280 words. Sound practical and specific, not generic.`;
+
+    // generateWithGemini throws GeminiUnavailableError on failure — quota is NOT incremented
+    const trendingText = await generateWithGemini(prompt);
+
+    // Only log after a successful generation
     await supabaseAdmin
       .from('AIGeneration')
       .insert({
         creator_id: creator.id,
         tool_name: 'trending-feed',
-        input_json: { niche: niche || '' },
-        output_text: placeholderText
+        input_json: { niche: creatorNiches },
+        output_text: trendingText
       });
 
     return NextResponse.json({
       success: true,
-      message: placeholderText,
-      result: null,
+      result: trendingText,
       remaining: Math.max(0, quota.limit - quota.count - 1)
     });
 
   } catch (error) {
-    console.error("AI Trending POST error:", error);
+    if (error instanceof GeminiUnavailableError) {
+      return NextResponse.json({ error: error.message }, { status: 503 });
+    }
+    console.error('AI Trending POST error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

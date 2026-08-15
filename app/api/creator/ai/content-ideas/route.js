@@ -2,12 +2,8 @@ import { NextResponse } from 'next/server';
 import { authenticate } from '@/middleware/auth';
 import { checkCreatorQuota } from '@/lib/quotaHelper';
 import { getSupabaseRouteClient } from '@/lib/supabaseRouteHandler';
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+import { supabaseAdmin } from '@/lib/supabaseServer';
+import { generateWithGemini, GeminiUnavailableError } from '@/lib/gemini';
 
 export async function POST(request) {
   try {
@@ -17,12 +13,12 @@ export async function POST(request) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const { topic, channel } = body;
+    const { topic, channel, niche } = body;
 
     const supabase = getSupabaseRouteClient();
     const { data: creator, error: creatorError } = await supabase
       .from('CreatorProfile')
-      .select('id')
+      .select('id, niches, display_name')
       .eq('owner_user_id', user.id)
       .maybeSingle();
 
@@ -39,27 +35,47 @@ export async function POST(request) {
       }, { status: 429 });
     }
 
-    const placeholderText = "AI generation coming soon";
+    // Build context from creator's actual profile
+    const creatorNiches = niche || (Array.isArray(creator.niches) ? creator.niches.join(', ') : creator.niches) || 'Handmade & Artisan';
+    const targetChannel = channel || 'Instagram';
+    const topicContext = topic ? `Focus specifically on the topic: "${topic}".` : 'Cover a variety of engaging angles.';
 
-    // Log the generation usage
+    const model = getGeminiModel();
+    const prompt = `You are a creative content strategist for handmade and artisan creators. Generate 5 content hook ideas for a creator in the following niches: ${creatorNiches}.
+${topicContext}
+Target platform: ${targetChannel}.
+
+For each idea, provide:
+- A compelling hook (1 sentence, designed to stop scrolling)
+- A brief visual/execution description (1-2 sentences)
+- Why it works for the artisan/slow-living audience
+
+Format each idea clearly numbered (1. 2. 3. 4. 5.) with the hook on the first line. Keep total response under 300 words. Do not use markdown headers or excessive symbols.`;
+
+    // generateWithGemini throws GeminiUnavailableError on failure — quota is NOT incremented
+    const ideasText = await generateWithGemini(prompt);
+
+    // Only log after a successful generation
     await supabaseAdmin
       .from('AIGeneration')
       .insert({
         creator_id: creator.id,
         tool_name: 'content-ideas',
-        input_json: { topic: topic || '', channel: channel || '' },
-        output_text: placeholderText
+        input_json: { topic: topic || '', channel: targetChannel, niche: creatorNiches },
+        output_text: ideasText
       });
 
     return NextResponse.json({
       success: true,
-      message: placeholderText,
-      result: null,
+      result: ideasText,
       remaining: Math.max(0, quota.limit - quota.count - 1)
     });
 
   } catch (error) {
-    console.error("AI Content Ideas POST error:", error);
+    if (error instanceof GeminiUnavailableError) {
+      return NextResponse.json({ error: error.message }, { status: 503 });
+    }
+    console.error('AI Content Ideas POST error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { authenticate } from '@/middleware/auth';
 import { supabaseAdmin } from '@/lib/supabaseServer';
 import { getCreatorMatches } from '@/lib/aiMatchesHelper';
+import { GeminiUnavailableError } from '@/lib/gemini';
 import { checkQuota } from '@/lib/quotaHelper';
 
 export async function POST(request) {
@@ -23,7 +24,7 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { productType, audience, goal } = body;
+    const { productType, audience, goal, distinctValue, compensation } = body;
 
     if (!productType || !audience || !goal) {
       return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
@@ -38,11 +39,17 @@ export async function POST(request) {
       }, { status: 429 });
     }
 
-    // Get real matches from our matching engine using text-embedding-004
-    const matches = await getCreatorMatches({ productType, audience, goal });
+    // Get real matches using pgvector cosine similarity (falls back to JS cosine)
+    let matches;
+    try {
+      matches = await getCreatorMatches({ productType, audience, goal, distinctValue, compensation });
+    } catch (matchErr) {
+      console.error('Creator match embedding error:', matchErr);
+      throw new GeminiUnavailableError('AI matching is temporarily unavailable, please try again.');
+    }
     const topMatches = matches.slice(0, 3);
 
-    // Format matches as a markdown report
+    // Format matches as a readable report
     let report = `Based on your inputs, here are the top compatible creators matched from our platform:\n\n`;
 
     if (topMatches.length === 0) {
@@ -57,7 +64,7 @@ export async function POST(request) {
       report += `**Recommendation:** We recommend reaching out to **${topMatches[0].name}** first, as they have the highest compatibility score for your campaign goal.`;
     }
 
-    // Log usage in AIGeneration table
+    // Only log after a successful match run
     await supabaseAdmin
       .from('AIGeneration')
       .insert({
@@ -88,7 +95,10 @@ export async function POST(request) {
     });
 
   } catch (error) {
-    console.error("AI creator match error:", error);
+    if (error instanceof GeminiUnavailableError) {
+      return NextResponse.json({ error: error.message }, { status: 503 });
+    }
+    console.error('AI creator-match error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

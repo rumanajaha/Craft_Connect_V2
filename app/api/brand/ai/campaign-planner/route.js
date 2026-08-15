@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authenticate } from '@/middleware/auth';
 import { supabaseAdmin } from '@/lib/supabaseServer';
-import { getGeminiModel } from '@/lib/gemini';
+import { generateWithGemini, GeminiUnavailableError } from '@/lib/gemini';
 import { checkQuota } from '@/lib/quotaHelper';
 
 export async function POST(request) {
@@ -38,22 +38,17 @@ export async function POST(request) {
       }, { status: 429 });
     }
 
-    const model = getGeminiModel();
     const prompt = `Generate a detailed week-by-week influencer collaboration plan for a brand campaign.
 Campaign Goal: ${goal}
 Budget Range: ${budget}
 Product Category: ${category}
 
-Format it as clean markdown highlighting actions for Week 1 (Seeding), Week 2 (Teaser), Week 3 (Peak Launch), and Week 4 (Follow-Up). Keep the total length around 120-150 words. Do not use generic placeholders.`;
+Format it as clean markdown highlighting actions for Week 1 (Seeding), Week 2 (Teaser), Week 3 (Peak Launch), and Week 4 (Follow-Up). Keep the total length around 120-150 words. Do not use generic placeholders. Be specific and actionable.`;
 
-    const genResult = await model.generateContent(prompt);
-    const planText = genResult.response.text().trim();
+    // generateWithGemini throws GeminiUnavailableError on failure — quota is NOT incremented
+    const planText = await generateWithGemini(prompt);
 
-    if (!planText) {
-      return NextResponse.json({ error: 'Failed to generate campaign plan' }, { status: 500 });
-    }
-
-    // Log usage in AIGeneration table
+    // Only log after a successful generation
     await supabaseAdmin
       .from('AIGeneration')
       .insert({
@@ -70,7 +65,10 @@ Format it as clean markdown highlighting actions for Week 1 (Seeding), Week 2 (T
     });
 
   } catch (error) {
-    console.error("AI campaign planner error:", error);
+    if (error instanceof GeminiUnavailableError) {
+      return NextResponse.json({ error: error.message }, { status: 503 });
+    }
+    console.error('AI campaign-planner error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

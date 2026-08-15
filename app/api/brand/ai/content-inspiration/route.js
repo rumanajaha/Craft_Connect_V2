@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authenticate } from '@/middleware/auth';
 import { supabaseAdmin } from '@/lib/supabaseServer';
-import { getGeminiModel } from '@/lib/gemini';
+import { generateWithGemini, GeminiUnavailableError } from '@/lib/gemini';
 import { checkQuota } from '@/lib/quotaHelper';
 
 export async function POST(request) {
@@ -38,18 +38,19 @@ export async function POST(request) {
       }, { status: 429 });
     }
 
-    const model = getGeminiModel();
-    const prompt = `Brainstorm 3 short-form video hooks, video angles, and brief captions for the following topic: "${text}"
-Format as clean text under 120 words. No markdown headers.`;
+    const prompt = `You are a creative director for handmade and artisan brands. Brainstorm 3 short-form video concepts for the following topic: "${text}"
 
-    const genResult = await model.generateContent(prompt);
-    const inspirationText = genResult.response.text().trim();
+For each idea provide:
+- A compelling hook line (1 sentence to stop the scroll)
+- A brief video angle / visual description (2 sentences)
+- A short caption suggestion
 
-    if (!inspirationText) {
-      return NextResponse.json({ error: 'Failed to generate content ideas' }, { status: 500 });
-    }
+Format clearly numbered (1. 2. 3.) with no markdown headers. Keep total under 150 words. Make ideas platform-ready for Instagram Reels or TikTok.`;
 
-    // Log usage in AIGeneration table
+    // generateWithGemini throws GeminiUnavailableError on failure — quota is NOT incremented
+    const inspirationText = await generateWithGemini(prompt);
+
+    // Only log after a successful generation
     await supabaseAdmin
       .from('AIGeneration')
       .insert({
@@ -66,7 +67,10 @@ Format as clean text under 120 words. No markdown headers.`;
     });
 
   } catch (error) {
-    console.error("AI content inspiration error:", error);
+    if (error instanceof GeminiUnavailableError) {
+      return NextResponse.json({ error: error.message }, { status: 503 });
+    }
+    console.error('AI content-inspiration error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

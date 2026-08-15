@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { authenticate } from '@/middleware/auth';
 import { getSupabaseRouteClient } from '@/lib/supabaseRouteHandler';
+import { supabaseAdmin } from '@/lib/supabaseServer';
+import { updateProductEmbedding } from '@/lib/feedHelpers';
 
 export async function GET(request) {
   try {
@@ -123,6 +125,13 @@ export async function POST(request) {
           link: '/brand/products'
         });
     }
+
+    // Fire-and-forget embedding — never blocks the response
+    updateProductEmbedding(newProd.id, {
+      name: newProd.name,
+      category: newProd.category,
+      description: newProd.description
+    }).catch(err => console.error('Product embedding (non-fatal):', err.message));
 
     const formattedProduct = {
       id: newProd.id,

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { authenticate } from '@/middleware/auth';
 import { getSupabaseRouteClient } from '@/lib/supabaseRouteHandler';
+import { supabaseAdmin } from '@/lib/supabaseServer';
+import { updateCreatorEmbedding } from '@/lib/aiMatchesHelper';
 
 export async function GET(request) {
   try {
@@ -245,6 +247,19 @@ export async function PATCH(request) {
       if (histError) {
         console.error("PATCH FollowerHistory error:", histError.message, histError.details, histError.hint);
       }
+    }
+
+    // Regenerate embedding if any searchable field changed (non-blocking)
+    const searchableChanged = updateData.niches !== undefined ||
+                              updateData.ai_tags !== undefined ||
+                              updateData.bio !== undefined;
+    if (searchableChanged) {
+      // Fire-and-forget: pass the merged profile data so we don't need another DB read
+      updateCreatorEmbedding(updatedCreator.id, {
+        niches: updatedCreator.niches,
+        ai_tags: updatedCreator.ai_tags,
+        bio: updatedCreator.bio
+      }).catch(err => console.error('Embedding regeneration failed (non-fatal):', err.message));
     }
 
     const finalAvatar = updatedCreator.avatar_url || '';
