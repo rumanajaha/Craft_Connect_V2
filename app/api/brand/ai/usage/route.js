@@ -42,17 +42,20 @@ export async function GET(request) {
       'recommendation-tags': 0,
       'seo-description': 0,
       'creator-match': 0,
-      'campaign-planner': 0,
-      'request-analyzer': 0,
-      'content-inspiration': 0,
       'trending-feed': 0,
       'brand-match': 0,
       'content-ideas': 0,
     };
 
+    const aliasToUiKey = {
+      'brand_story': 'brand-story',
+      'brand_tags': 'recommendation-tags',
+    };
+
     (usageData || []).forEach(row => {
-      if (counts[row.tool_name] !== undefined) {
-        counts[row.tool_name]++;
+      const key = aliasToUiKey[row.tool_name] || row.tool_name;
+      if (counts[key] !== undefined) {
+        counts[key]++;
       }
     });
 

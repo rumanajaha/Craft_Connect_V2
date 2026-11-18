@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseRouteClient } from "@/lib/supabaseRouteHandler";
 import { createClient } from "@supabase/supabase-js";
-import { createNotification } from "@/lib/notify";
+import { createNotification, resolveSenderName } from "@/lib/notify";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -15,7 +15,7 @@ const supabaseAdmin = createClient(
  */
 export async function GET(request, { params }) {
   try {
-    const { id } = params || {};
+    const { id } = (await params) || {};
 
     const supabase = getSupabaseRouteClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -85,7 +85,7 @@ export async function GET(request, { params }) {
  */
 export async function POST(request, { params }) {
   try {
-    const { id } = params || {};
+    const { id } = (await params) || {};
     const { text, image } = await request.json();
 
     if (!text || !text.trim()) {
@@ -165,16 +165,18 @@ export async function POST(request, { params }) {
 
     const bodyText = text.slice(0, 60);
 
-    // Get sender display name
+    // Get sender display name & check if brand is replying to a customer's pending CustomRequest
     let senderName = null;
+    let senderBrandId = null;
     if (user.role === "BRANDOWNER") {
       const { data: brandProf } = await supabaseAdmin
         .from("BrandProfile")
-        .select("brand_name")
+        .select("id, brand_name")
         .eq("owner_user_id", user.id)
         .maybeSingle();
-      if (brandProf?.brand_name) {
-        senderName = brandProf.brand_name;
+      if (brandProf) {
+        senderBrandId = brandProf.id;
+        if (brandProf.brand_name) senderName = brandProf.brand_name;
       }
     } else if (user.role === "CREATOR") {
       const { data: creatorProf } = await supabaseAdmin
@@ -197,15 +199,53 @@ export async function POST(request, { params }) {
     }
 
     if (!senderName) {
-      const emailPrefix = user.email ? user.email.split("@")[0] : "user";
-      senderName = emailPrefix;
-      console.warn(`[WARNING] Name lookup returned null for sender_id ${user.id}. Falling back to email prefix: ${emailPrefix}`);
+      senderName = await resolveSenderName(user.id, user.email);
+    }
+
+    // If a brand owner replies in a thread with a customer who has pending CustomRequest(s),
+    // flip those pending requests to 'responded' and notify the customer with type 'request_responded'.
+    let flippedRequest = false;
+    if (recipientPortal === "customer") {
+      // Also detect brand owner even if role isn't populated on supabase.auth.getUser()
+      if (!senderBrandId) {
+        const { data: brandLookup } = await supabaseAdmin
+          .from("BrandProfile")
+          .select("id, brand_name")
+          .eq("owner_user_id", user.id)
+          .maybeSingle();
+        if (brandLookup) {
+          senderBrandId = brandLookup.id;
+          if (brandLookup.brand_name) senderName = brandLookup.brand_name;
+        }
+      }
+
+      if (senderBrandId) {
+        const { data: recipientCustomer } = await supabaseAdmin
+          .from("CustomerProfile")
+          .select("id")
+          .eq("owner_user_id", otherId)
+          .maybeSingle();
+
+        if (recipientCustomer?.id) {
+          const { data: updatedReqs, error: flipError } = await supabaseAdmin
+            .from("CustomRequest")
+            .update({ status: "responded" })
+            .eq("brand_id", senderBrandId)
+            .eq("customer_id", recipientCustomer.id)
+            .eq("status", "pending")
+            .select("id");
+
+          if (!flipError && updatedReqs && updatedReqs.length > 0) {
+            flippedRequest = true;
+          }
+        }
+      }
     }
 
     await createNotification({
       userId: otherId,
-      type: notifType,
-      title: notifTitle,
+      type: flippedRequest ? "request_responded" : notifType,
+      title: flippedRequest ? "Brand Responded to Your Request" : notifTitle,
       body: `${senderName}: ${bodyText}`,
       relatedEntityId: id,
       link: notifLink
@@ -232,7 +272,7 @@ export async function POST(request, { params }) {
  */
 export async function PATCH(request, { params }) {
   try {
-    const { id } = params || {};
+    const { id } = (await params) || {};
     const { status } = await request.json();
 
     if (!status) {
@@ -285,16 +325,8 @@ export async function PATCH(request, { params }) {
         initiatorPortal = "brand";
       }
 
-      // Get acceptor's display name
-      let acceptorName = "Someone";
-      const { data: acceptorCust } = await supabaseAdmin
-        .from("CustomerProfile")
-        .select("display_name")
-        .eq("owner_user_id", user.id)
-        .maybeSingle();
-      if (acceptorCust?.display_name) {
-        acceptorName = acceptorCust.display_name;
-      }
+      // Resolve real acceptor display name across BrandProfile / CreatorProfile / CustomerProfile (never "Someone")
+      const acceptorName = await resolveSenderName(user.id, user.email);
 
       await createNotification({
         userId: initiatorId,

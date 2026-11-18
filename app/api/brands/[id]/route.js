@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseRouteClient } from '@/lib/supabaseRouteHandler';
-import { supabaseAdmin } from '@/lib/supabaseServer';
+import { toBrandCard } from '@/lib/mappers';
 
 // TRUST SCORE FORMULA (server-side only, not user-editable)
 // Base score: 50
@@ -51,12 +51,12 @@ function computeTrustScore({ rating_avg, created_at, verified_at, response_rate 
 
 export async function GET(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const supabase = getSupabaseRouteClient();
 
     const { data: brand, error: brandError } = await supabase
       .from('BrandProfile')
-      .select('id, brand_name, category, location, website_url, logo_url, banner_video_url, description, ai_tags, rating_avg, review_count, trust_score, created_at, verified_at, response_rate')
+      .select('id, owner_user_id, brand_name, category, location, website_url, logo_url, banner_video_url, description, ai_tags, rating_avg, review_count, trust_score, created_at, verified_at, response_rate')
       .eq('id', id)
       .single();
 
@@ -93,17 +93,11 @@ export async function GET(request, { params }) {
     }
 
     const profile = {
-      id: brand.id,
-      name: brand.brand_name || '',
-      category: brand.category || '',
-      location: brand.location || '',
+      ...toBrandCard(brand),
       website: brand.website_url || '',
-      logo: brand.logo_url || '',
       banner: brand.banner_video_url || '',
       description: brand.description || '',
       tags: brand.ai_tags || [],
-      rating: brand.rating_avg !== null ? Number(brand.rating_avg) : 0,
-      reviewsCount: brand.review_count !== null ? Number(brand.review_count) : 0,
       trustScore,
       isSaved,
     };

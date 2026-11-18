@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { authenticate } from '@/middleware/auth';
 import { getSupabaseRouteClient } from '@/lib/supabaseRouteHandler';
+import { supabaseAdmin } from '@/lib/supabaseServer';
+import { updatePortfolioEmbedding } from '@/lib/feedHelpers';
 
 export async function GET(request) {
   try {
@@ -104,6 +106,12 @@ export async function POST(request) {
       console.error("Creator portfolio insert DB error:", insertError);
       return NextResponse.json({ error: 'Failed to create portfolio item' }, { status: 500 });
     }
+
+    // Fire-and-forget embedding — never blocks the response
+    updatePortfolioEmbedding(newItem.id, {
+      title: newItem.title,
+      description: newItem.description
+    }).catch(err => console.error('PortfolioItem embedding (non-fatal):', err.message));
 
     const formattedItem = {
       id: newItem.id,

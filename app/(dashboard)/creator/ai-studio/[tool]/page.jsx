@@ -16,7 +16,6 @@ import {
 import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
 import { useAIUsage } from "@/lib/aiUsageStore";
-import { MOCK_ACTIVE_CREATOR } from "@/lib/mockData";
 
 
 const TOOL_CONFIG = {
@@ -26,24 +25,6 @@ const TOOL_CONFIG = {
     icon: TrendingUp,
     buttonText: "Refresh Feed",
     noInput: true,
-    mockResult: `TRENDING CONTENT CATEGORIES (Updated Today)
-
-1. The "Anti-Trendy" Aesthetic
-Focuses on raw, imperfect, and timeless craftsmanship. 
-Best platforms: TikTok, Pinterest
-Example hook: "Stop buying [item] from big box stores. Here's why handmade matters."
-
-2. Behind-The-Scenes ASMR
-No voiceover, just the natural sounds of the process (e.g. clay hitting the wheel, scissors cutting fabric). 
-Best platforms: Instagram Reels, TikTok
-Example: A 15-second loop of packing an order in silence.
-
-3. "Day in the Life of a Maker"
-Authentic, minimally edited vlogs showing the struggles and wins of small business owners.
-Best platforms: YouTube Shorts, TikTok
-
-RECOMMENDED ACTION: 
-Try adapting the ASMR format to your ceramics niche this week. Engagement is up 42% for this style.`,
   },
   "brand-match": {
     title: "Brand Match Suggestions",
@@ -51,21 +32,6 @@ Try adapting the ASMR format to your ceramics niche this week. Engagement is up 
     icon: Users,
     buttonText: "Find Matches",
     noInput: false,
-    mockResult: `AI BRAND MATCH RESULTS
-
-Based on your profile (Ceramics, Slow Living, 45K followers, 4.8% ER), we found highly compatible brands looking for creators like you:
-
-1. Ochre Clay Studio (94% Match)
-Why it fits: Their rustic, wood-fired ceramics align perfectly with your slow-living aesthetic. 
-Suggested Pitch: Gifting or $300 Paid for a "Morning Routine" reel featuring their speckled mugs.
-
-2. Soren Objects (88% Match)
-Why it fits: Their minimalist walnut woodwork appeals to your exact demographic.
-Suggested Pitch: Barter (product exchange) for a styling/flat-lay photo series.
-
-3. Sienna Botanicals (85% Match)
-Why it fits: Organic skincare that complements the natural, grounded tone of your content.
-Suggested Pitch: $500 Paid for an integrated YouTube sponsorship segment.`,
   },
   "content-ideas": {
     title: "Content Idea Generation",
@@ -73,27 +39,6 @@ Suggested Pitch: $500 Paid for an integrated YouTube sponsorship segment.`,
     icon: Lightbulb,
     buttonText: "Generate Ideas",
     noInput: false,
-    mockResult: `TOP 5 CONTENT HOOKS (Tailored for Slow Living & Ceramics)
-
-1. The Morning Ritual
-Hook: "Why I stopped using my phone for the first hour of the day."
-Visuals: Brewing pour-over coffee, pouring into a handmade ceramic mug, sunlight streaming in. Soft lofi background track.
-
-2. The Curator's Corner
-Hook: "Three handmade items in my home I would save in a fire."
-Visuals: Showcase 3 distinct artisanal pieces (perfect for integrating brand collabs).
-
-3. The "Un-Haul" 
-Hook: "Things I stopped buying to make my home feel more peaceful."
-Visuals: Walking through a minimalist, curated living space. Educational tone.
-
-4. The Sensory Experience
-Hook: [Text only, no speech] "The sounds of a slow Sunday."
-Visuals: ASMR focus — grinding coffee beans, opening a fresh book, the clink of a ceramic bowl.
-
-5. The Maker's Story
-Hook: "You won't believe how long it takes to make this one mug."
-Visuals: Tell the story of a specific artisan brand you're collaborating with. Authenticity play.`,
   },
 };
 
@@ -103,7 +48,10 @@ function OutputPanel({ result, isGenerating, toolConfig }) {
 
   const handleCopy = () => {
     if (!result) return;
-    navigator.clipboard.writeText(result);
+    const textToCopy = Array.isArray(result)
+      ? result.map((item, i) => `${i + 1}. ${item}`).join("\n\n")
+      : result;
+    navigator.clipboard.writeText(textToCopy);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -146,9 +94,17 @@ function OutputPanel({ result, isGenerating, toolConfig }) {
         </button>
       </div>
       <div className="p-5">
-        <p className="text-sm text-brand-dark leading-relaxed whitespace-pre-wrap">
-          {result}
-        </p>
+        {Array.isArray(result) ? (
+          <ol className="space-y-3 list-decimal list-inside text-sm text-brand-dark leading-relaxed">
+            {result.map((idea, idx) => (
+              <li key={idx} className="whitespace-pre-wrap">{idea}</li>
+            ))}
+          </ol>
+        ) : (
+          <p className="text-sm text-brand-dark leading-relaxed whitespace-pre-wrap">
+            {result}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -162,9 +118,30 @@ export default function CreatorToolPage() {
   const [result, setResult] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [formData, setFormData] = useState({
-    niche: MOCK_ACTIVE_CREATOR.niches.join(", "),
+    niche: "",
     topic: "",
   });
+
+  // Fetch creator's real niches from their profile
+  useEffect(() => {
+    async function loadCreatorNiches() {
+      try {
+        const res = await fetch("/api/creator/profile");
+        if (res.ok) {
+          const data = await res.json();
+          const profile = data.profile || data;
+          const niches = Array.isArray(profile.niches)
+            ? profile.niches.join(", ")
+            : (profile.niches || "");
+          if (niches) setFormData(prev => ({ ...prev, niche: niches }));
+        }
+      } catch (err) {
+        console.error("Failed to load creator niches:", err);
+      }
+    }
+    loadCreatorNiches();
+  }, []);
+
 
   const toolConfig = TOOL_CONFIG[toolSlug];
   if (!toolConfig) {
@@ -187,6 +164,7 @@ export default function CreatorToolPage() {
     }
     
     setIsGenerating(true);
+    setResult("");
     try {
       const endpointMap = {
         "trending-feed": "/api/creator/ai/trending",
@@ -203,12 +181,12 @@ export default function CreatorToolPage() {
           channel: "Instagram"
         })
       });
-      if (res.ok) {
-        setResult(toolConfig.mockResult);
+      const data = await res.json();
+      if (res.ok && (Array.isArray(data.ideas) || data.result)) {
+        setResult(Array.isArray(data.ideas) ? data.ideas : data.result);
         incrementUsage(toolSlug);
       } else {
-        const errorData = await res.json();
-        alert(errorData.message || "AI generation failed.");
+        alert(data.message || data.error || "AI generation failed.");
       }
     } catch (err) {
       console.error(err);

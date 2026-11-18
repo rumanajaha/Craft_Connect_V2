@@ -6,16 +6,12 @@ import {
   BookOpen,
   FileText,
   Users,
-  CalendarDays,
-  ScanText,
-  Lightbulb as LightbulbIcon,
   TrendingUp,
   Award,
   Lightbulb,
   ArrowRight,
   Globe,
   Wrench,
-  Settings,
   Sparkles
 } from "lucide-react";
 import UsageQuotaBar from "@/components/brand/UsageQuotaBar";
@@ -46,25 +42,9 @@ const WORKSPACE_TOOLS = [
     description: "Find the perfect micro-influencer profiles for your next product launch.",
     icon: Users,
   },
-  {
-    slug: "campaign-planner",
-    title: "Campaign Planner",
-    description: "Generate a week-by-week strategy for influencer collaborations.",
-    icon: CalendarDays,
-  },
-  {
-    slug: "request-analyzer",
-    title: "Request Analyzer",
-    description: "Paste a messy customer inquiry to extract intent, specs, and budget.",
-    icon: ScanText,
-  },
-  {
-    slug: "content-inspiration",
-    title: "Content Inspiration",
-    description: "Generate hook ideas and angles for short-form video content.",
-    icon: LightbulbIcon,
-  },
 ];
+
+const STUDIO_TOOL_SLUGS = [...PUBLISH_TOOLS, ...WORKSPACE_TOOLS].map(t => t.slug);
 
 
 function ToolCard({ tool, isPublish }) {
@@ -154,9 +134,9 @@ export default function AIStudioHubPage() {
     loadInsights();
   }, []);
 
-  const tools = Object.keys(usageByTool || {});
-  const totalTools = tools.length || 8;
-  const cappedTools = tools.filter(tool => (usageByTool[tool] || 0) >= FREE_TRIAL_LIMIT).length;
+  const tools = STUDIO_TOOL_SLUGS;
+  const totalTools = tools.length;
+  const cappedTools = tools.filter(tool => (usageByTool?.[tool] || 0) >= FREE_TRIAL_LIMIT).length;
   const isCapped = !isPro && cappedTools > 0;
 
   return (
@@ -178,7 +158,7 @@ export default function AIStudioHubPage() {
             )}
           </h1>
           <p className="text-brand-muted text-sm mt-1.5">
-            Generate campaigns, discover creator matches, and get content inspiration.
+            Craft your brand story, write SEO product descriptions, and discover creator matches.
           </p>
         </div>
       </div>

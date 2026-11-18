@@ -12,10 +12,7 @@ import OutputPanel from "@/components/brand/ai-studio/OutputPanel";
 import {
   BrandStoryForm,
   SEODescriptionForm,
-  CreatorMatchForm,
-  CampaignPlannerForm,
-  RequestAnalyzerForm,
-  ContentInspirationForm
+  CreatorMatchForm
 } from "@/components/brand/ai-studio/Forms";
 
 function ToolPageContent() {
@@ -100,12 +97,9 @@ function ToolPageContent() {
 
   const renderForm = () => {
     switch (tool) {
-      case "brand-story":       return <BrandStoryForm onGenerate={handleGenerate} isGenerating={isGenerating} />;
-      case "seo-description":   return <SEODescriptionForm onGenerate={handleGenerate} isGenerating={isGenerating} products={products} selectedProductId={selectedProductId} setSelectedProductId={setSelectedProductId} />;
-      case "creator-match":     return <CreatorMatchForm onGenerate={handleGenerate} isGenerating={isGenerating} />;
-      case "campaign-planner":  return <CampaignPlannerForm onGenerate={handleGenerate} isGenerating={isGenerating} />;
-      case "request-analyzer":  return <RequestAnalyzerForm onGenerate={handleGenerate} isGenerating={isGenerating} />;
-      case "content-inspiration": return <ContentInspirationForm onGenerate={handleGenerate} isGenerating={isGenerating} />;
+      case "brand-story":     return <BrandStoryForm onGenerate={handleGenerate} isGenerating={isGenerating} />;
+      case "seo-description": return <SEODescriptionForm onGenerate={handleGenerate} isGenerating={isGenerating} products={products} selectedProductId={selectedProductId} setSelectedProductId={setSelectedProductId} />;
+      case "creator-match":   return <CreatorMatchForm onGenerate={handleGenerate} isGenerating={isGenerating} />;
       default: return null;
     }
   };

@@ -2,9 +2,6 @@ import {
   BookOpen,
   FileText,
   Users,
-  CalendarDays,
-  ScanText,
-  Lightbulb,
 } from "lucide-react";
 
 export const TOOL_CONFIG = {
@@ -55,72 +52,5 @@ Channels: Instagram, Pinterest
 Best fit: shelfie posts, flat-lay product features.
 
 Recommendation: Start with archetype #1 for fastest conversion. Offer gifting + a 10% affiliate code.`,
-  },
-  "campaign-planner": {
-    title: "Campaign Planner",
-    description: "Generate a week-by-week collaboration strategy for your next product drop.",
-    icon: CalendarDays,
-    category: "workspace",
-    buttonText: "Plan Campaign",
-    mockResult: `CAMPAIGN: Holiday Cozy Mug Launch
-Duration: 4 weeks · Budget range: $500–$1,000
-
-Week 1 — Seeding
-Send PR packages (mug + card) to 8–10 micro-creators in the Slow Living niche. No posting requirements yet.
-
-Week 2 — Teaser Phase
-Ask creators to post unboxing Stories / TikToks. No scripted copy — authentic reaction only. Provide hashtag #OchreClayStudio.
-
-Week 3 — Peak Launch
-Coordinated Reels and YouTube Shorts go live. Creators use affiliate code (10% off for their audience). Track link clicks.
-
-Week 4 — Follow-Up
-Repost the strongest content to brand channels. Send a "thank you" DM to top-performing creators for long-term relationship building.`,
-  },
-  "request-analyzer": {
-    title: "Request Analyzer",
-    description: "Paste a raw customer inquiry to extract intent, product specs, budget, and recommended next action.",
-    icon: ScanText,
-    category: "workspace",
-    buttonText: "Analyze Request",
-    mockResult: `ANALYSIS COMPLETE
-
-Intent: Custom Commission
-Confidence: High
-
-Extracted specs:
-• Product type: Ceramic water pitcher
-• Capacity: 1.5L (stated)
-• Modification: Thinner handle (structural concern — flag this)
-• Finish: Natural stoneware (implied)
-
-Budget: Not stated — follow up required
-Deadline: Not stated — follow up required
-
-Recommended next action:
-Reply to confirm handle dimensions and whether the thinner profile affects structural integrity at 1.5L capacity. Attach a quick sketch or reference photo before quoting a price.`,
-  },
-  "content-inspiration": {
-    title: "Content Inspiration",
-    description: "Generate hook ideas and content angles for short-form video (TikTok, Reels, Shorts).",
-    icon: Lightbulb,
-    category: "workspace",
-    buttonText: "Get Ideas",
-    mockResult: `TOP 5 CONTENT HOOKS
-
-1. The Process Reveal
-"This is what $120 of craft actually looks like." — Time-lapse of throwing → glazing → firing. No voiceover. Just sound.
-
-2. ASMR Unboxing
-Soft crinkling of the tissue paper, the thud of the mug on the table. Text on screen: "The most satisfying thing we ship."
-
-3. The Anti-Trendy Take
-"Stop buying ceramic mugs from big box stores. Here's why yours matters." — Educational + opinion hook.
-
-4. Pack An Order With Me
-First-person POV of wrapping a $150 order. Narrate what's special about each piece. Ends with closing the box.
-
-5. The Mistake
-"This kiln batch came out wrong. We're showing you anyway." — Authenticity play. Shows a cracked or bubbled piece. Very high engagement potential.`,
   },
 };

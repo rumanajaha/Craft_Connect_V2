@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authenticate } from '@/middleware/auth';
 import { supabaseAdmin } from '@/lib/supabaseServer';
-import { getGeminiModel } from '@/lib/gemini';
+import { generateWithGemini, GeminiUnavailableError } from '@/lib/gemini';
 import { checkQuota } from '@/lib/quotaHelper';
 
 export async function POST(request) {
@@ -28,7 +28,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
     }
 
-    // Verify product exists and belongs to this brand
+    // Verify product belongs to this brand
     const { data: product, error: productError } = await supabaseAdmin
       .from('Product')
       .select('*')
@@ -48,23 +48,16 @@ export async function POST(request) {
       }, { status: 429 });
     }
 
-    const model = getGeminiModel();
-    const prompt = `Generate an engaging, SEO-optimized product description for a product named "${product.name}" in category "${product.category || 'Handmade'}".
-Key selling points & features: ${features}
+    const prompt = `Write a concise, SEO-friendly product description (2-3 sentences) for "${product.name}" in category "${product.category || 'Handmade'}" with these features: ${features}.
+Focus on tactile/sensory detail appropriate for a handmade product. Do not invent certifications, awards, or specific quantities not provided.
 
-Format it as clean, readable text with:
-- An inviting introductory paragraph (1-2 sentences) about the craft style and appeal.
-- 3 key bullet points focusing on quality, materials, and care.
-Do not use markdown headers, just plain text and standard bullet points (•). Keep it concise, under 120 words.`;
+Then add 3 key bullet points (•) covering quality, materials, and care instructions.
+Do not use markdown headers. Keep the total under 120 words.`;
 
-    const genResult = await model.generateContent(prompt);
-    const seoText = genResult.response.text().trim();
+    // generateWithGemini throws GeminiUnavailableError on failure — quota is NOT incremented
+    const seoText = await generateWithGemini(prompt);
 
-    if (!seoText) {
-      return NextResponse.json({ error: 'Failed to generate SEO description' }, { status: 500 });
-    }
-
-    // Log usage in AIGeneration table
+    // Only log after a successful generation
     await supabaseAdmin
       .from('AIGeneration')
       .insert({
@@ -81,7 +74,10 @@ Do not use markdown headers, just plain text and standard bullet points (•). K
     });
 
   } catch (error) {
-    console.error("AI SEO description error:", error);
+    if (error instanceof GeminiUnavailableError) {
+      return NextResponse.json({ error: error.message }, { status: 503 });
+    }
+    console.error('AI seo-description error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

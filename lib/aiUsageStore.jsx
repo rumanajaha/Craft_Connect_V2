@@ -12,9 +12,6 @@ export function AIUsageProvider({ children }) {
     'recommendation-tags': 0,
     'seo-description': 0,
     'creator-match': 0,
-    'campaign-planner': 0,
-    'request-analyzer': 0,
-    'content-inspiration': 0,
     
     'trending-feed': 0,
     'brand-match': 0,

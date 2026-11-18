@@ -3,7 +3,7 @@ import { getSupabaseRouteClient } from '@/lib/supabaseRouteHandler';
 
 export async function GET(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const { searchParams } = new URL(request.url);
     const featured = searchParams.get('featured') === 'true';
 

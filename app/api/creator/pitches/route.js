@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authenticate } from '@/middleware/auth';
 import { getSupabaseRouteClient } from '@/lib/supabaseRouteHandler';
-import { createNotification } from '@/lib/notify';
+import { createNotification, resolveSenderName } from '@/lib/notify';
 import { findOrCreateThread } from '@/lib/messages';
 import { supabaseAdmin } from '@/lib/supabaseServer';
 
@@ -25,8 +25,8 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Creator profile not found' }, { status: 404 });
     }
 
-    // Fetch outgoing pitches for this creator joined with BrandProfile
-    const { data: pitchesData, error: pitchesError } = await supabase
+    // Fetch both outgoing pitches (creator -> brand) and incoming proposals (brand -> creator)
+    const { data: allRows, error: pitchesError } = await supabase
       .from('CollabRequest')
       .select(`
         id,
@@ -45,7 +45,6 @@ export async function GET(request) {
         )
       `)
       .eq('creator_id', creator.id)
-      .eq('direction', 'outgoing')
       .order('created_at', { ascending: false });
 
     if (pitchesError) {
@@ -53,23 +52,30 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Failed to retrieve pitches' }, { status: 500 });
     }
 
-    // Map each pitch to the shape expected by the frontend
-    const formattedPitches = (pitchesData || []).map(pitch => {
+    const formatRow = (pitch) => {
       const brandInfo = pitch.BrandProfile || {};
       return {
         id: pitch.id,
         brandId: pitch.brand_id,
         brandName: brandInfo.brand_name || 'Anonymous Brand',
-        brandLogo: brandInfo.logo_url || 'https://images.unsplash.com/photo-1544816155-12df9643f363?w=100&auto=format&fit=crop&q=80',
+        brandLogo: brandInfo.logo_url || null,
         category: brandInfo.category || 'General',
         compensation: pitch.compensation_type || 'discuss',
         snippet: pitch.pitch_message || '',
         status: pitch.status || 'pending',
+        direction: pitch.direction || 'outgoing',
         date: pitch.created_at ? pitch.created_at.split('T')[0] : ''
       };
-    });
+    };
 
-    return NextResponse.json({ pitches: formattedPitches });
+    const formattedAll = (allRows || []).map(formatRow);
+    const formattedPitches = formattedAll.filter(p => p.direction === 'outgoing');
+    const formattedProposals = formattedAll.filter(p => p.direction === 'incoming');
+
+    return NextResponse.json({
+      pitches: formattedPitches,
+      proposals: formattedProposals,
+    });
 
   } catch (error) {
     console.error("GET /api/creator/pitches error:", error);
@@ -161,13 +167,16 @@ export async function POST(request) {
     }
 
     // Insert Notification for brand owner, linking to this conversation thread
+    const creatorName = creator.display_name || (await resolveSenderName(user.id, user.email));
     await createNotification({
       userId: brand.owner_user_id,
       type: 'collab_pitch',
       title: 'New Collaboration Pitch',
-      body: `${creator.display_name} pitched a ${compensation} collaboration request.`,
+      body: `${creatorName} pitched a ${compensation} collaboration request.`,
       relatedEntityId: collabRequest.id,
-      link: `/brand/messages?thread=${threadId || ''}`
+      link: threadId
+        ? `/brand/messages?thread=${threadId}`
+        : `/brand?pitch=${collabRequest.id}#collaboration-requests`
     });
 
     return NextResponse.json({ success: true, pitch: collabRequest, threadId });

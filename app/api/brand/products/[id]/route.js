@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authenticate } from '@/middleware/auth';
 import { getSupabaseRouteClient } from '@/lib/supabaseRouteHandler';
+import { createNotification } from '@/lib/notify';
 
 export async function PATCH(request, { params }) {
   try {
@@ -10,7 +11,7 @@ export async function PATCH(request, { params }) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     const supabase = getSupabaseRouteClient();
     const { data: brand, error: brandError } = await supabase
@@ -85,21 +86,14 @@ export async function PATCH(request, { params }) {
     const oldStatus = existingProduct.status;
     const newStatus = updatedProd.status;
     if (newStatus !== oldStatus && (newStatus === 'out_of_stock' || newStatus === 'sold_out')) {
-      const { error: notifError } = await supabase
-        .from('Notification')
-        .insert({
-          user_id: user.id,
-          type: 'product_status',
-          title: 'Product Marked Sold Out',
-          body: `"${updatedProd.name}" automatically flagged as sold out.`,
-          is_read: false,
-          related_entity_id: updatedProd.id,
-          link: '/brand/products'
-        });
-
-      if (notifError) {
-        console.error("Failed to insert sold-out notification:", notifError);
-      }
+      await createNotification({
+        userId: user.id,
+        type: 'product_status',
+        title: 'Product Marked Sold Out',
+        body: `"${updatedProd.name}" automatically flagged as sold out.`,
+        relatedEntityId: updatedProd.id,
+        link: `/brand/products?product=${updatedProd.id}`,
+      });
     }
 
     const formattedProduct = {
@@ -132,7 +126,7 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     const supabase = getSupabaseRouteClient();
     const { data: brand, error: brandError } = await supabase

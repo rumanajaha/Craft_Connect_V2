@@ -5,8 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { Star, MapPin, ExternalLink, Bookmark, BookmarkCheck, X, Send } from "lucide-react";
-import { MOCK_BRANDS, MOCK_PRODUCTS, MOCK_COLLABS } from "@/lib/mockData";
-import { useBrandData } from "@/lib/brandDataStore";
 import ProductCard from "@/components/customer/ProductCard";
 import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
@@ -21,16 +19,15 @@ export default function BrandProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isSaved, setIsSaved] = useState(false);
+  const [logoError, setLogoError] = useState(false);
 
   const [showModal, setShowModal] = useState(false);
   const [requestType, setRequestType] = useState("Custom Product");
-  const [message, setMessage]       = useState("");
-  const [budget, setBudget]         = useState("");
-  const [deadline, setDeadline]     = useState("");
-  const [sending, setSending]       = useState(false);
-
-  const { activeBrandId } = useBrandData();
-  const isActiveBrand = id === activeBrandId;
+  const [requestTitle, setRequestTitle] = useState("");
+  const [message, setMessage] = useState("");
+  const [budget, setBudget] = useState("");
+  const [deadline, setDeadline] = useState("");
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -40,46 +37,85 @@ export default function BrandProfilePage() {
         setError(null);
 
         const res = await fetch(`/api/brand/public/${id}`);
+
         if (!res.ok) {
           throw new Error("Failed to load brand profile");
         }
         const data = await res.json();
 
         setBrand(data.profile);
-        setProducts(data.products || []);
+        setProducts(
+          (data.products || []).map((p) => ({
+            ...p,
+            brandName: p.brandName || data.profile?.name || "",
+          }))
+        );
         setCollabs(data.collabs || []);
+        setIsSaved(Boolean(data.profile?.saved));
       } catch (err) {
         console.error("Error fetching brand profile:", err);
-        
-        // Fallback to mock data if DB fetch fails (ensuring app doesn't break in dev)
-        const brandFromMock = MOCK_BRANDS.find(b => b.id === id);
-        if (brandFromMock) {
-          setBrand({
-            id: brandFromMock.id,
-            name: brandFromMock.name,
-            category: brandFromMock.category,
-            location: brandFromMock.location,
-            website: brandFromMock.website,
-            logo: brandFromMock.logo,
-            banner: brandFromMock.banner,
-            about: brandFromMock.about || "",
-            tags: brandFromMock.tags || [],
-            rating: brandFromMock.rating || 4.9,
-            reviewsCount: brandFromMock.reviewsCount || 0,
-            trustScore: brandFromMock.trustScore || 100,
-          });
-          setProducts(MOCK_PRODUCTS.filter(p => p.brandId === id));
-          setCollabs(MOCK_COLLABS.filter(c => c.brandId === id));
-          setError(null);
-        } else {
-          setError(err.message || "Failed to load brand details.");
-        }
+        setError(err.message || "Failed to load brand details.");
       } finally {
         setLoading(false);
       }
     }
     fetchBrandData();
   }, [id]);
+
+  const handleToggleSave = async () => {
+    if (!brand?.id) return;
+    const prev = isSaved;
+    setIsSaved(!prev);
+    try {
+      const res = prev
+        ? await fetch(`/api/customer/saved-brands/${encodeURIComponent(brand.id)}`, { method: "DELETE" })
+        : await fetch("/api/customer/saved-brands", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ brandId: brand.id }),
+          });
+      if (!res.ok) setIsSaved(prev);
+    } catch {
+      setIsSaved(prev);
+    }
+  };
+
+  const handleSendRequest = async () => {
+    if (!message.trim() || !brand?.id) return;
+    setSending(true);
+    try {
+      const res = await fetch("/api/customer/requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          brandId: brand.id,
+          title: requestTitle.trim() || `${requestType} — ${brand.name}`,
+          requestType,
+          message: message.trim(),
+          budget: budget.trim() || undefined,
+          deadline: deadline.trim() || undefined,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setShowModal(false);
+        setRequestTitle("");
+        setMessage("");
+        setBudget("");
+        setDeadline("");
+        router.push(data.threadId ? `/customer/messages?thread=${data.threadId}` : "/customer/messages");
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        alert(errData.error || "Failed to send request.");
+      }
+    } catch (err) {
+      console.error("Send request error:", err);
+      alert("Failed to send request.");
+    } finally {
+      setSending(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -94,46 +130,36 @@ export default function BrandProfilePage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-brand-muted">
         <p className="text-lg font-serif font-bold text-brand-dark">Brand not found</p>
-        <p className="text-sm text-red-500 mt-1">{error || ''}</p>
+        <p className="text-sm text-red-500 mt-1">{error || ""}</p>
         <Link href="/customer/discover" className="text-brand-primary text-sm mt-2 hover:underline">← Back to Discover</Link>
       </div>
     );
   }
 
   const aboutText = brand.about || brand.description || "";
-  const brandLogo = brand.logo || brand.logoUrl || "https://images.unsplash.com/photo-1612196808214-b8e1d6145a8c?w=400&auto=format&fit=crop&q=80";
+  const showLogo = Boolean(brand.logo) && !logoError;
+  const brandInitial = (brand.name?.trim()?.[0] || "B").toUpperCase();
   const brandBanner = brand.banner || brand.videoUrl || "";
-  const brandTags = Array.isArray(brand.tags) 
-    ? brand.tags 
+  const brandTags = Array.isArray(brand.tags)
+    ? brand.tags
     : (typeof brand.tags === "string" ? brand.tags.split(",").map(t => t.trim()).filter(Boolean) : []);
-
-  const handleSendRequest = () => {
-    if (!message.trim()) return;
-    setSending(true);
-    
-    setTimeout(() => {
-      setSending(false);
-      setShowModal(false);
-      router.push(`/customer/messages?thread=thread-${brand.id}`);
-    }, 800);
-  };
+  const rating = Number(brand.rating ?? 0);
+  const reviewCount = brand.reviewCount ?? brand.reviewsCount ?? 0;
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
-      {/* Back link */}
       <Link href="/customer/discover" className="inline-flex items-center gap-1.5 text-sm text-brand-muted hover:text-brand-primary transition-colors">
         ← Back to Discover
       </Link>
 
-      {/* Banner */}
       <div className="relative w-full h-52 md:h-64 rounded-2xl overflow-hidden bg-brand-border/20">
         {brandBanner ? (
           brandBanner.includes(".mp4") || brandBanner.includes("video") ? (
-            <video 
-              autoPlay 
-              loop 
-              muted 
-              playsInline 
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
               className="absolute inset-0 w-full h-full object-cover"
               src={brandBanner}
             />
@@ -145,9 +171,8 @@ export default function BrandProfilePage() {
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
-        {/* Save button */}
         <button
-          onClick={() => setIsSaved(s => !s)}
+          onClick={handleToggleSave}
           className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow hover:bg-white transition-colors"
         >
           {isSaved
@@ -156,51 +181,51 @@ export default function BrandProfilePage() {
           }
         </button>
 
-        {/* Logo + Info overlay */}
         <div className="absolute bottom-4 left-5 flex items-end gap-3">
-          <div className="relative w-16 h-16 rounded-xl overflow-hidden border-2 border-white shadow-md bg-white animate-in zoom-in-95 duration-200">
-            <Image 
-              src={brandLogo} 
-              alt={brand.name} 
-              fill 
-              sizes="64px" 
-              className="object-cover"
-              unoptimized 
-              onError={(e) => {
-                e.currentTarget.src = "https://images.unsplash.com/photo-1612196808214-b8e1d6145a8c?w=400&auto=format&fit=crop&q=80";
-                e.currentTarget.srcset = "";
-              }}
-            />
+          <div className="relative w-16 h-16 rounded-xl overflow-hidden border-2 border-white shadow-md bg-white flex items-center justify-center">
+            {showLogo ? (
+              <Image
+                src={brand.logo}
+                alt={brand.name}
+                fill
+                sizes="64px"
+                className="object-cover"
+                unoptimized
+                onError={() => setLogoError(true)}
+              />
+            ) : (
+              <span className="font-serif text-2xl font-bold text-brand-primary">
+                {brandInitial}
+              </span>
+            )}
           </div>
           <div>
             <h1 className="font-serif text-2xl font-bold text-white leading-tight drop-shadow-sm">{brand.name}</h1>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <MapPin className="w-3 h-3 text-white/80" />
-              <span className="text-xs text-white/80">{brand.location}</span>
-            </div>
+            {brand.location && (
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <MapPin className="w-3 h-3 text-white/80" />
+                <span className="text-xs text-white/80">{brand.location}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Stats Row */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-4">
-          {/* Rating stars */}
           <div className="flex items-center gap-1.5">
-            {[1,2,3,4,5].map(i => (
-              <Star key={i} className={`w-4 h-4 ${i <= Math.floor(brand.rating) ? "text-amber-400 fill-amber-400" : "text-brand-border"}`} />
+            {[1, 2, 3, 4, 5].map(i => (
+              <Star key={i} className={`w-4 h-4 ${i <= Math.floor(rating) ? "text-amber-400 fill-amber-400" : "text-brand-border"}`} />
             ))}
-            <span className="text-sm font-bold text-brand-dark ml-1">{brand.rating}</span>
-            <span className="text-xs text-brand-muted">({brand.reviewsCount} reviews)</span>
+            <span className="text-sm font-bold text-brand-dark ml-1">{rating.toFixed(1)}</span>
+            <span className="text-xs text-brand-muted">({reviewCount} reviews)</span>
           </div>
 
-          {/* Trust score indicator */}
           <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-200 rounded-full">
             <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
             <span className="text-xs font-bold text-emerald-700">Trust Score {brand.trustScore}%</span>
           </div>
 
-          {/* Category tag */}
           {brand.category && (
             <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-1 bg-brand-primary/10 text-brand-primary rounded-full">
               {brand.category}
@@ -225,10 +250,9 @@ export default function BrandProfilePage() {
         </div>
       </div>
 
-      {/* About Section */}
       <section className="bg-white rounded-2xl border border-brand-border/50 p-6 shadow-sm">
         <h2 className="font-serif text-lg font-bold text-brand-dark mb-3">About the Brand</h2>
-        <p className="text-sm text-brand-muted leading-relaxed mb-4">{aboutText}</p>
+        <p className="text-sm text-brand-muted leading-relaxed mb-4">{aboutText || "No description provided yet."}</p>
         {brandTags.length > 0 && (
           <div className="flex flex-wrap gap-2 pt-4 border-t border-brand-border/40">
             {brandTags.map(tag => (
@@ -240,7 +264,6 @@ export default function BrandProfilePage() {
         )}
       </section>
 
-      {/* Products Section */}
       {products.length > 0 && (
         <section className="animate-in fade-in duration-300">
           <h2 className="font-serif text-xl font-bold text-brand-dark mb-4">Featured Products</h2>
@@ -250,15 +273,20 @@ export default function BrandProfilePage() {
         </section>
       )}
 
-      {/* Collaborations Section */}
       {collabs.length > 0 && (
         <section>
           <h2 className="font-serif text-xl font-bold text-brand-dark mb-4">Past Creator Collaborations</h2>
           <div className="flex flex-wrap gap-3">
             {collabs.map(c => (
               <div key={c.id} className="flex items-center gap-3 bg-white rounded-xl border border-brand-border/50 px-4 py-3 shadow-sm">
-                <div className="w-8 h-8 rounded-full overflow-hidden bg-brand-border/20 shrink-0">
-                  <Image src={c.creatorAvatar} alt={c.creatorName} width={32} height={32} className="object-cover w-full h-full" unoptimized />
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-brand-primary/10 shrink-0 flex items-center justify-center">
+                  {c.creatorAvatar ? (
+                    <Image src={c.creatorAvatar} alt={c.creatorName} width={32} height={32} className="object-cover w-full h-full" unoptimized />
+                  ) : (
+                    <span className="text-xs font-serif font-bold text-brand-primary">
+                      {(c.creatorName?.[0] || "C").toUpperCase()}
+                    </span>
+                  )}
                 </div>
                 <div>
                   <p className="text-xs font-bold text-brand-dark">{c.creatorName}</p>
@@ -270,7 +298,6 @@ export default function BrandProfilePage() {
         </section>
       )}
 
-      {/* Send Request Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 space-y-5 relative animate-in fade-in zoom-in-95 duration-200">
@@ -297,6 +324,14 @@ export default function BrandProfilePage() {
                 </button>
               ))}
             </div>
+
+            <Input
+              id="requestTitle"
+              label="Request Title"
+              placeholder="e.g. Custom 1.5L stoneware pitcher"
+              value={requestTitle}
+              onChange={e => setRequestTitle(e.target.value)}
+            />
 
             <div>
               <label className="text-xs font-semibold uppercase tracking-wider text-brand-dark/80 block mb-1.5">

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { authenticate } from '@/middleware/auth';
-import { getCreatorMatches } from '@/lib/aiMatchesHelper';
+import { matchByEmbedding } from '@/lib/matching';
 
 export async function POST(request) {
   try {
@@ -19,12 +19,20 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
     }
 
-    const sortedMatches = await getCreatorMatches({ productType, audience, goal });
+    const queryText = [
+      `Product: ${productType}`,
+      `Audience: ${audience}`,
+      `Goal: ${goal}`,
+    ].join('. ');
 
-    return NextResponse.json({ matches: sortedMatches });
+    const matches = await matchByEmbedding(queryText, 'CreatorProfile', { limit: 10 });
 
+    return NextResponse.json({ matches });
   } catch (error) {
-    console.error("Matches error:", error);
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    console.error('Matches error:', error);
+    return NextResponse.json(
+      { error: error.message || 'Internal server error' },
+      { status: 500 }
+    );
   }
 }

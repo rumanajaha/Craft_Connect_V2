@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authenticate } from '@/middleware/auth';
 import { supabaseAdmin } from '@/lib/supabaseServer';
-import { getGeminiModel } from '@/lib/gemini';
+import { generateWithGemini, GeminiUnavailableError } from '@/lib/gemini';
 import { checkQuota } from '@/lib/quotaHelper';
 
 export async function POST(request) {
@@ -22,8 +22,8 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Brand profile not found' }, { status: 404 });
     }
 
-    // Check monthly quota for 'brand-story'
-    const quota = await checkQuota(brand.id, 'brand-story');
+    // Check monthly quota for 'brand_story'
+    const quota = await checkQuota(brand.id, 'brand_story');
     if (quota.exceeded) {
       return NextResponse.json({
         error: 'Quota exceeded',
@@ -36,28 +36,23 @@ export async function POST(request) {
 
     const finalTone = tone || 'Warm, authentic and narrative';
 
-    const model = getGeminiModel();
-    const prompt = `Generate a compelling wabi-sabi brand story / about philosophy text for a brand named "${brand.brand_name}" which operates in the "${brand.category || 'Craft'}" category.
+    const prompt = `Write a warm, authentic 2-3 paragraph brand story for a handmade goods brand named "${brand.brand_name}" in the "${brand.category || 'Craft'}" category.
 ${collection ? `Collection/Focus: ${collection}` : ''}
-Primary Craft Materials / Craft Type: ${materials || 'natural materials'}
+Materials / Craft Type: ${materials || 'natural materials'}
 Inspiration / Aesthetic Style: ${inspiration || 'slow living, hand-thrown'}
 Tone of Voice: ${finalTone}
 
-The story should be detailed, emotional, authentic, and highlight the beauty of slow-made, handcrafted goods. Format it as plain text with clean paragraphs. Do not use markdown headers, lists, or hashtags. Keep the length between 80 to 120 words.`;
+The story should be emotional, authentic, and highlight the beauty of slow-made, handcrafted goods. Do not invent specific awards, certifications, or customer counts not provided. Do not use generic marketing clichés. Format as plain text with clean paragraphs — no markdown headers, lists, or hashtags. Keep the length between 80 to 120 words.`;
 
-    const genResult = await model.generateContent(prompt);
-    const storyText = genResult.response.text().trim();
+    // generateWithGemini throws GeminiUnavailableError on failure — quota is NOT incremented
+    const storyText = await generateWithGemini(prompt);
 
-    if (!storyText) {
-      return NextResponse.json({ error: 'Failed to generate brand story' }, { status: 500 });
-    }
-
-    // Log usage in AIGeneration table
+    // Only log after a successful generation — failed calls do not count against quota
     await supabaseAdmin
       .from('AIGeneration')
       .insert({
         brand_id: brand.id,
-        tool_name: 'brand-story',
+        tool_name: 'brand_story',
         input_json: body,
         output_text: storyText
       });
@@ -65,11 +60,15 @@ The story should be detailed, emotional, authentic, and highlight the beauty of 
     return NextResponse.json({
       success: true,
       result: storyText,
+      story: storyText,
       remaining: Math.max(0, quota.limit - quota.count - 1)
     });
 
   } catch (error) {
-    console.error("AI story generation error:", error);
+    if (error instanceof GeminiUnavailableError) {
+      return NextResponse.json({ error: error.message }, { status: 503 });
+    }
+    console.error('AI brand-story error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
