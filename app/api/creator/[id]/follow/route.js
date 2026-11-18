@@ -11,15 +11,17 @@ async function syncCreatorFollowerCount(creatorId) {
 
   const realCount = count || 0;
 
-  await Promise.all([
-    supabaseAdmin
-      .from('CreatorProfile')
-      .update({ follower_count: realCount })
-      .eq('id', creatorId),
-    supabaseAdmin
-      .from('FollowerHistory')
-      .insert({ creator_id: creatorId, follower_count: realCount }),
-  ]);
+  await supabaseAdmin
+    .from('CreatorProfile')
+    .update({ follower_count: realCount })
+    .eq('id', creatorId);
+
+  // Best-effort snapshot if FollowerHistory table exists
+  await supabaseAdmin
+    .from('FollowerHistory')
+    .insert({ creator_id: creatorId, follower_count: realCount })
+    .then(() => {})
+    .catch(() => {});
 
   return realCount;
 }
