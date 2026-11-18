@@ -20,7 +20,7 @@ export async function GET(request, { params }) {
       supabase
         .from('CreatorProfile')
         .select(
-          'id, owner_user_id, display_name, bio, niches, ai_tags, follower_count, engagement_rate, avatar_url, location, instagram_url, tiktok_url, youtube_url'
+          'id, owner_user_id, display_name, bio, niches, ai_tags, follower_count, engagement_rate, avatar_url, instagram_url, tiktok_url, youtube_url'
         )
         .eq('id', id)
         .maybeSingle(),
