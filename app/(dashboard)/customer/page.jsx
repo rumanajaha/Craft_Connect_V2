@@ -45,6 +45,9 @@ export default function CustomerDashboard() {
 
   useEffect(() => {
     async function loadDashboard() {
+      const isNew = sessionStorage.getItem("cc_new_user") === "1";
+      let resolvedName = "";
+
       try {
         const [dashRes, reqsRes] = await Promise.all([
           fetch("/api/customer/dashboard"),
@@ -60,6 +63,10 @@ export default function CustomerDashboard() {
           setActiveRequests(dash.stats?.activeRequests ?? 0);
           setTotalMessages(dash.stats?.totalMessages ?? 0);
           setRecommendedBrands(dash.recommendedBrands || []);
+          if (dash.displayName?.trim()) {
+            resolvedName = dash.displayName.trim().split(/\s+/)[0];
+            sessionStorage.setItem("cc_display_name", dash.displayName.trim());
+          }
         }
         if (reqsRes.ok) {
           const reqs = await reqsRes.json();
@@ -70,30 +77,25 @@ export default function CustomerDashboard() {
       } finally {
         setLoadingRecs(false);
       }
-    }
-    loadDashboard();
-  }, [hydrateSaved]);
 
-  useEffect(() => {
-    async function buildGreeting() {
-      const isNew = sessionStorage.getItem("cc_new_user") === "1";
-      let name = sessionStorage.getItem("cc_display_name") ?? "";
-
-      if (!name) {
-        try {
-          const supabase = createClient();
-          const { data: { user } } = await supabase.auth.getUser();
-          const meta = user?.user_metadata ?? {};
-          const rawName = meta.full_name ?? meta.name ?? user?.email ?? "";
-          name = rawName.split(/[\s@]/)[0];
-        } catch (_) {}
+      if (!resolvedName) {
+        const cached = sessionStorage.getItem("cc_display_name") ?? "";
+        if (cached.trim()) {
+          resolvedName = cached.trim().split(/[\s@]/)[0];
+        } else {
+          try {
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+            const meta = user?.user_metadata ?? {};
+            const rawName = meta.full_name ?? meta.name ?? user?.email ?? "";
+            resolvedName = rawName.split(/[\s@]/)[0];
+          } catch (_) {}
+        }
       }
 
-      const firstName = name ? `, ${name}` : "";
-
+      const firstName = resolvedName ? `, ${resolvedName}` : "";
       if (isNew) {
         sessionStorage.removeItem("cc_new_user");
-        sessionStorage.removeItem("cc_display_name");
         setGreeting(`Welcome${firstName}! `);
         setSubtext("Your account is all set. Start discovering handcrafted brands.");
       } else {
@@ -101,8 +103,8 @@ export default function CustomerDashboard() {
         setSubtext("Here's what's happening with your brands and requests.");
       }
     }
-    buildGreeting();
-  }, []);
+    loadDashboard();
+  }, [hydrateSaved]);
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">

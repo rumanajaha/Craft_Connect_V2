@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback, useContext } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Sparkles, Loader2, MessageSquare, X, Handshake } from "lucide-react";
+import { Search, Sparkles, Loader2, MessageSquare, X, Handshake, ExternalLink } from "lucide-react";
 import FeedTile from "@/components/common/FeedTile";
 import { getFeedItems, rankFeed } from "@/lib/feedRanking";
 import { CollabContext } from "@/lib/collabStore";
@@ -26,7 +26,18 @@ function isWideTile(globalIndex) {
 }
 
 
-function ProfileSearchTile({ user, viewerRole, onStartChat, onProposeCollab }) {
+function getProfileHref(user, viewerRole) {
+  if (user.profileType === "creator") {
+    if (viewerRole === "customer") return `/customer/creator/${user.id}`;
+    if (viewerRole === "brand") return `/brand/creator/${user.id}`;
+    return `/creator/profile?id=${user.id}`;
+  }
+  if (viewerRole === "customer") return `/customer/brand/${user.id}`;
+  if (viewerRole === "brand") return `/brand/profile?id=${user.id}`;
+  return `/brand/${user.id}`;
+}
+
+function ProfileSearchTile({ user, viewerRole, onStartChat, onProposeCollab, onVisitProfile }) {
   const [hovered, setHovered] = useState(false);
 
   const isBrand = user.profileType === "brand";
@@ -41,12 +52,14 @@ function ProfileSearchTile({ user, viewerRole, onStartChat, onProposeCollab }) {
     (viewerRole === "creator" && user.profileType === "brand");
 
   const avatar = user.avatar_url || user.logo_url;
+  const profileHref = getProfileHref(user, viewerRole);
 
   return (
     <div
       className="relative block overflow-hidden rounded-lg bg-brand-border/20 group aspect-square select-none cursor-pointer"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      onClick={() => onVisitProfile(profileHref)}
     >
       {/* Background Image / Placeholder */}
       {avatar ? (
@@ -81,10 +94,21 @@ function ProfileSearchTile({ user, viewerRole, onStartChat, onProposeCollab }) {
 
         {/* Action Buttons overlay */}
         <div
-          className={`flex gap-1.5 mt-2 transition-all duration-300 origin-bottom ${
+          className={`flex flex-wrap gap-1.5 mt-2 transition-all duration-300 origin-bottom ${
             hovered ? "opacity-100 translate-y-0 h-auto" : "opacity-0 translate-y-2 h-0 overflow-hidden"
           }`}
         >
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onVisitProfile(profileHref);
+            }}
+            className="flex-1 py-1.5 px-2 bg-white/95 text-brand-dark rounded-lg text-[10px] font-bold hover:bg-white hover:text-brand-primary transition-all flex items-center justify-center gap-1 border border-brand-border/40 shadow-sm active:scale-[0.98]"
+          >
+            <ExternalLink className="w-3 h-3" />
+            Visit Profile
+          </button>
           <button
             onClick={(e) => {
               e.preventDefault();
@@ -103,7 +127,7 @@ function ProfileSearchTile({ user, viewerRole, onStartChat, onProposeCollab }) {
                 e.stopPropagation();
                 onProposeCollab(user);
               }}
-              className="flex-1 py-1.5 px-2 bg-white/95 text-brand-dark rounded-lg text-[10px] font-bold hover:bg-white hover:text-brand-primary transition-all flex items-center justify-center gap-1 border border-brand-border/40 shadow-sm active:scale-[0.98]"
+              className="w-full py-1.5 px-2 bg-white/95 text-brand-dark rounded-lg text-[10px] font-bold hover:bg-white hover:text-brand-primary transition-all flex items-center justify-center gap-1 border border-brand-border/40 shadow-sm active:scale-[0.98]"
             >
               <Handshake className="w-3 h-3 text-brand-primary" />
               Propose
@@ -190,10 +214,6 @@ export default function SharedFeedPage({ role, userTags = [], heading, subheadin
   }, [searchQuery]);
 
   const handleStartChat = async (user) => {
-    if (!currentUser) {
-      alert("Please log in to send a message.");
-      return;
-    }
     setIsInitiatingChat(true);
     try {
       const recipientId = user.owner_user_id;
@@ -208,15 +228,18 @@ export default function SharedFeedPage({ role, userTags = [], heading, subheadin
         body: JSON.stringify({ recipientId })
       });
 
+      if (res.status === 401) {
+        alert("Please log in to send a message.");
+        return;
+      }
+
       if (res.ok) {
         const data = await res.json();
-        let redirectUrl = "";
-        if (currentUser.role === "BRANDOWNER") {
+        let redirectUrl = `/customer/messages?thread=${data.threadId}`;
+        if (role === "brand" || currentUser?.role === "BRANDOWNER") {
           redirectUrl = `/brand/messages?thread=${data.threadId}`;
-        } else if (currentUser.role === "CREATOR") {
+        } else if (role === "creator" || currentUser?.role === "CREATOR") {
           redirectUrl = `/creator/messages?thread=${data.threadId}`;
-        } else {
-          redirectUrl = `/customer/messages?thread=${data.threadId}`;
         }
         window.location.href = redirectUrl;
       } else {
@@ -430,6 +453,7 @@ export default function SharedFeedPage({ role, userTags = [], heading, subheadin
                       viewerRole={role}
                       onStartChat={handleStartChat}
                       onProposeCollab={handleProposeCollab}
+                      onVisitProfile={(href) => router.push(href)}
                     />
                   ))}
                 </div>

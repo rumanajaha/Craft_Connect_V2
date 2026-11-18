@@ -1,72 +1,75 @@
 import { NextResponse } from "next/server";
+import { getSupabaseRouteClient } from "@/lib/supabaseRouteHandler";
 import { supabaseAdmin } from "@/lib/supabaseServer";
 
 export async function GET(request) {
   try {
-    const token = request.cookies.get("sb-access-token")?.value;
+    // 1. Primary: session-scoped @supabase/ssr client
+    const supabase = getSupabaseRouteClient();
+    let { data: { user }, error } = await supabase.auth.getUser();
 
-    if (!token) {
+    // 2. Fallback: legacy sb-access-token cookie if present
+    if ((error || !user)) {
+      const token = request.cookies.get("sb-access-token")?.value;
+      if (token) {
+        const res = await supabaseAdmin.auth.getUser(token);
+        user = res.data?.user || null;
+        error = res.error || null;
+      }
+    }
+
+    if (error || !user) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
-    if (error || !user) {
-      console.error("Session verification failure:", error?.message);
-      return NextResponse.json({ error: "Invalid session" }, { status: 401 });
-    }
-
-    // Resolve user's role
+    // Resolve user's role & real profile display name
     let mappedRole = user.user_metadata?.role;
     let displayName = user.user_metadata?.display_name || "";
 
-    if (!mappedRole) {
-      const { data: creator } = await supabaseAdmin
-        .from("CreatorProfile")
-        .select("id, display_name")
-        .eq("owner_user_id", user.id)
-        .maybeSingle();
+    if (mappedRole === "brand") mappedRole = "BRANDOWNER";
+    else if (mappedRole === "creator") mappedRole = "CREATOR";
+    else if (mappedRole === "customer") mappedRole = "CUSTOMER";
 
-      if (creator) {
-        mappedRole = "CREATOR";
-        displayName = creator.display_name;
-      } else {
-        const { data: brand } = await supabaseAdmin
+    if (!mappedRole || !displayName) {
+      const [creatorRes, brandRes, customerRes] = await Promise.all([
+        supabaseAdmin
+          .from("CreatorProfile")
+          .select("id, display_name")
+          .eq("owner_user_id", user.id)
+          .maybeSingle(),
+        supabaseAdmin
           .from("BrandProfile")
           .select("id, brand_name")
           .eq("owner_user_id", user.id)
-          .maybeSingle();
+          .maybeSingle(),
+        supabaseAdmin
+          .from("CustomerProfile")
+          .select("id, display_name")
+          .eq("owner_user_id", user.id)
+          .maybeSingle(),
+      ]);
 
-        if (brand) {
-          mappedRole = "BRANDOWNER";
-          displayName = brand.brand_name;
-        } else {
-          const { data: customer } = await supabaseAdmin
-            .from("CustomerProfile")
-            .select("id, display_name")
-            .eq("owner_user_id", user.id)
-            .maybeSingle();
-
-          if (customer) {
-            mappedRole = "CUSTOMER";
-            displayName = customer.display_name;
-          } else {
-            mappedRole = "CUSTOMER";
-          }
-        }
+      if (creatorRes.data) {
+        mappedRole = mappedRole || "CREATOR";
+        displayName = creatorRes.data.display_name || displayName;
+      } else if (brandRes.data) {
+        mappedRole = mappedRole || "BRANDOWNER";
+        displayName = brandRes.data.brand_name || displayName;
+      } else if (customerRes.data) {
+        mappedRole = mappedRole || "CUSTOMER";
+        displayName = customerRes.data.display_name || displayName;
+      } else {
+        mappedRole = mappedRole || "CUSTOMER";
       }
-    } else {
-      if (mappedRole === "brand") mappedRole = "BRANDOWNER";
-      else if (mappedRole === "creator") mappedRole = "CREATOR";
-      else if (mappedRole === "customer") mappedRole = "CUSTOMER";
     }
 
     return NextResponse.json({
       user: {
         id: user.id,
         email: user.email,
-        name: displayName,
-        role: mappedRole
-      }
+        name: displayName || user.email?.split("@")[0] || "",
+        role: mappedRole,
+      },
     });
   } catch (err) {
     console.error("GET /api/auth/me error:", err);

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Compass, MessageCircle, Bookmark, Settings, LogOut, Menu, X, Bell, Sparkles } from "lucide-react";
@@ -25,6 +26,7 @@ function getPageTitle(pathname) {
   if (pathname?.startsWith("/customer/settings")) return "Settings";
   if (pathname?.startsWith("/customer/notifications")) return "Notifications";
   if (pathname?.startsWith("/customer/brand")) return "Brand Profile";
+  if (pathname?.startsWith("/customer/creator")) return "Creator Profile";
   return "CraftConnect";
 }
 
@@ -89,8 +91,43 @@ function Sidebar({ pathname, onClose }) {
 export default function CustomerLayout({ children }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState(null);
+  const [avatarError, setAvatarError] = useState(false);
+  const [displayName, setDisplayName] = useState("");
   const pageTitle = getPageTitle(pathname);
   const { unreadCount } = useRealtime();
+
+  useEffect(() => {
+    let active = true;
+    async function loadProfileHeader() {
+      try {
+        const res = await fetch("/api/customer/profile");
+        if (res.ok && active) {
+          const data = await res.json();
+          setDisplayName(data.fullName || data.email || "");
+          setAvatarUrl(data.avatarUrl || null);
+          setAvatarError(false);
+        }
+      } catch (_) {}
+    }
+    loadProfileHeader();
+
+    const handleProfileUpdated = (e) => {
+      const detail = e?.detail || {};
+      if (detail.fullName !== undefined) setDisplayName(detail.fullName || "");
+      if (detail.avatarUrl !== undefined) {
+        setAvatarUrl(detail.avatarUrl || null);
+        setAvatarError(false);
+      }
+    };
+    window.addEventListener("customer-profile-updated", handleProfileUpdated);
+    return () => {
+      active = false;
+      window.removeEventListener("customer-profile-updated", handleProfileUpdated);
+    };
+  }, []);
+
+  const headerInitial = (displayName?.trim()?.[0] || "C").toUpperCase();
 
   return (
     <div className="min-h-screen bg-[#FAF7F0] flex">
@@ -151,8 +188,20 @@ export default function CustomerLayout({ children }) {
 
               
               <Link href="/customer/settings" aria-label="Profile settings">
-                <div className="w-8 h-8 rounded-full bg-brand-primary flex items-center justify-center text-white text-xs font-bold font-serif shadow-sm hover:shadow-md hover:ring-2 hover:ring-brand-primary/40 transition-all">
-                  A
+                <div className="relative w-8 h-8 rounded-full overflow-hidden bg-brand-primary flex items-center justify-center text-white text-xs font-bold font-serif shadow-sm hover:shadow-md hover:ring-2 hover:ring-brand-primary/40 transition-all">
+                  {avatarUrl && !avatarError ? (
+                    <Image
+                      src={avatarUrl}
+                      alt={displayName || "Profile"}
+                      fill
+                      sizes="32px"
+                      className="object-cover"
+                      unoptimized
+                      onError={() => setAvatarError(true)}
+                    />
+                  ) : (
+                    headerInitial
+                  )}
                 </div>
               </Link>
             </div>

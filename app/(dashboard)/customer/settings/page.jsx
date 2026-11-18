@@ -155,6 +155,21 @@ export default function CustomerSettingsPage() {
       if (data.stats) setStats(data.stats);
       setIsDirtyOverride(false);
       setGlobalSuccess("Settings updated successfully!");
+
+      // Notify customer header & dashboard immediately of updated name/avatar
+      if (typeof window !== "undefined") {
+        if (savedProfile.fullName) {
+          sessionStorage.setItem("cc_display_name", savedProfile.fullName);
+        }
+        window.dispatchEvent(
+          new CustomEvent("customer-profile-updated", {
+            detail: {
+              fullName: savedProfile.fullName,
+              avatarUrl: savedProfile.avatarUrl,
+            },
+          })
+        );
+      }
     } catch (err) {
       console.error("Failed to save customer settings:", err);
       setGlobalError(err.message || "Failed to save changes.");
