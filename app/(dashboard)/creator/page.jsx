@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Handshake, Clock, TrendingUp, Gift, DollarSign, RefreshCw, MessageSquare, Sparkles, Loader2 } from "lucide-react";
-import { MOCK_BRAND_MATCHES } from "@/lib/mockData";
 import { useCollab } from "@/lib/collabStore";
 import BrandMatchCard from "@/components/creator/BrandMatchCard";
 import ProposeCollabModal from "@/components/creator/ProposeCollabModal";
@@ -63,6 +62,8 @@ export default function CreatorDashboardPage() {
   // AI Brand Matches states
   const [isGeneratingMatches, setIsGeneratingMatches] = useState(false);
   const [matchesGenerated, setMatchesGenerated] = useState(false);
+  const [matchedBrands, setMatchedBrands] = useState([]);
+  const [matchSummary, setMatchSummary] = useState("");
   const [matchInputs, setMatchInputs] = useState({ categories: "", comp: "", value: "" });
 
   useEffect(() => {
@@ -111,10 +112,13 @@ export default function CreatorDashboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(matchInputs)
       });
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
+        setMatchedBrands(data.matches || []);
+        setMatchSummary(data.result || "");
         setMatchesGenerated(true);
       } else {
-        alert("Failed to call AI matching.");
+        alert(data.message || data.error || "Failed to call AI matching.");
       }
     } catch (err) {
       console.error(err);
@@ -393,15 +397,33 @@ export default function CreatorDashboardPage() {
               <>
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-200">
-                    Found {MOCK_BRAND_MATCHES.slice(0, 3).length} matches
+                    Found {matchedBrands.length} match{matchedBrands.length === 1 ? "" : "es"}
                   </span>
-                  <button onClick={() => setMatchesGenerated(false)} className="text-xs font-semibold text-brand-muted hover:text-brand-dark transition-colors">
+                  <button
+                    onClick={() => {
+                      setMatchesGenerated(false);
+                      setMatchedBrands([]);
+                      setMatchSummary("");
+                    }}
+                    className="text-xs font-semibold text-brand-muted hover:text-brand-dark transition-colors"
+                  >
                     Reset search
                   </button>
                 </div>
-                {MOCK_BRAND_MATCHES.slice(0, 3).map(brand => (
-                  <BrandMatchCard key={brand.id} brand={brand} onPitch={(b) => setPitchBrand(b)} />
-                ))}
+                {matchedBrands.length === 0 ? (
+                  <div className="bg-white border border-dashed border-brand-border rounded-2xl p-5 text-center text-xs text-brand-muted">
+                    No matching brands found yet. Try broader categories.
+                  </div>
+                ) : (
+                  matchedBrands.map(brand => (
+                    <BrandMatchCard key={brand.id} brand={brand} onPitch={(b) => setPitchBrand(b)} />
+                  ))
+                )}
+                {matchSummary && (
+                  <div className="bg-white border border-brand-border/50 rounded-2xl p-4 text-xs text-brand-dark/80 whitespace-pre-wrap leading-relaxed">
+                    {matchSummary}
+                  </div>
+                )}
               </>
             )}
           </div>
