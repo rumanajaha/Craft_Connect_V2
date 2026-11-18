@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { authenticate } from '@/middleware/auth';
 import { getSupabaseRouteClient } from '@/lib/supabaseRouteHandler';
 import { supabaseAdmin } from '@/lib/supabaseServer';
-import { updateCreatorEmbedding } from '@/lib/aiMatchesHelper';
+import { updateCreatorEmbedding } from '@/lib/matching';
 
 export async function GET(request) {
   try {

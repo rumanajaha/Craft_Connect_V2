@@ -3,7 +3,6 @@ import { authenticate } from '@/middleware/auth';
 import { checkCreatorQuota } from '@/lib/quotaHelper';
 import { getSupabaseRouteClient } from '@/lib/supabaseRouteHandler';
 import { supabaseAdmin } from '@/lib/supabaseServer';
-import { generateWithGemini, GeminiUnavailableError } from '@/lib/gemini';
 
 export async function POST(request) {
   try {
@@ -37,44 +36,71 @@ export async function POST(request) {
 
     const creatorNiches = niche || (Array.isArray(creator.niches) ? creator.niches.join(', ') : creator.niches) || 'Handmade & Artisan';
 
-    const model = getGeminiModel();
-    const prompt = `You are a social media trend analyst specialising in handmade goods, slow living, and artisan content.
+    // Real tag-aggregation query across BrandProfile.ai_tags and Product.category (no Gemini call)
+    const [brandsRes, productsRes] = await Promise.all([
+      supabaseAdmin.from('BrandProfile').select('brand_name, ai_tags, category'),
+      supabaseAdmin.from('Product').select('category')
+    ]);
 
-A content creator works in these niches: ${creatorNiches}.
+    if (brandsRes.error) {
+      console.error('Trending BrandProfile query error:', brandsRes.error);
+      return NextResponse.json({ error: 'Failed to aggregate trending tags' }, { status: 500 });
+    }
 
-Identify 3 trending content formats or creative angles that are performing well right now on platforms like Instagram Reels, TikTok, and Pinterest for this type of creator.
+    const tagCounts = {};
+    const addTag = (raw) => {
+      if (typeof raw !== 'string') return;
+      const normalized = raw.trim().toLowerCase();
+      if (normalized) {
+        tagCounts[normalized] = (tagCounts[normalized] || 0) + 1;
+      }
+    };
 
-For each trend:
-1. Give it a short name/title
-2. Briefly describe the format or angle (2-3 sentences)
-3. Suggest a specific hook line they could use
-4. Name the best platform for it
+    (brandsRes.data || []).forEach((brand) => {
+      if (Array.isArray(brand.ai_tags)) {
+        brand.ai_tags.forEach(addTag);
+      }
+      if (brand.category) addTag(brand.category);
+    });
 
-Format clearly numbered (1. 2. 3.). End with one actionable recommendation for what to try first this week. Keep total under 280 words. Sound practical and specific, not generic.`;
+    (productsRes.data || []).forEach((product) => {
+      if (product.category) addTag(product.category);
+    });
 
-    // generateWithGemini throws GeminiUnavailableError on failure — quota is NOT incremented
-    const trendingText = await generateWithGemini(prompt);
+    const trendingTags = Object.entries(tagCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([tag, count]) => ({
+        tag: tag.charAt(0).toUpperCase() + tag.slice(1),
+        count
+      }));
 
-    // Only log after a successful generation
+    const formattedResult = trendingTags.length > 0
+      ? `Top Trending CraftConnect Tags & Categories (based on live platform data):\n\n` +
+        trendingTags
+          .map((item, idx) => `${idx + 1}. #${item.tag} — ${item.count} listing${item.count === 1 ? '' : 's'}`)
+          .join('\n') +
+        `\n\nTip: Align your next post in "${creatorNiches}" with the top 2–3 tags above to increase brand discovery.`
+      : `No platform tags have been indexed yet. Check back as more brands add products and tags.`;
+
+    // Log to AIGeneration only after the query succeeds
     await supabaseAdmin
       .from('AIGeneration')
       .insert({
         creator_id: creator.id,
         tool_name: 'trending-feed',
         input_json: { niche: creatorNiches },
-        output_text: trendingText
+        output_text: JSON.stringify(trendingTags)
       });
 
     return NextResponse.json({
       success: true,
-      result: trendingText,
+      trendingTags,
+      result: formattedResult,
       remaining: Math.max(0, quota.limit - quota.count - 1)
     });
 
   } catch (error) {
-    if (error instanceof GeminiUnavailableError) {
-      return NextResponse.json({ error: error.message }, { status: 503 });
-    }
     console.error('AI Trending POST error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

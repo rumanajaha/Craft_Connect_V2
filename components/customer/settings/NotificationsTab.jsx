@@ -45,16 +45,20 @@ function NotifRow({ label, desc, emailOn, desktopOn, onToggleEmail, onToggleDesk
   );
 }
 
-export default function NotificationsTab({ notifications, setNotifications, setIsDirty }) {
+export default function NotificationsTab({ notifications, setNotifications, setIsDirty, userEmail: propEmail = "" }) {
   const [pushDismissed, setPushDismissed] = useState(false);
   const [pushPermission, setPushPermission] = useState(
     typeof window !== "undefined" && "Notification" in window
       ? Notification.permission
       : "default"
   );
-  const [userEmail, setUserEmail] = useState("alex@example.com");
+  const [userEmail, setUserEmail] = useState(propEmail);
 
   useEffect(() => {
+    if (propEmail) {
+      setUserEmail(propEmail);
+      return;
+    }
     async function loadEmail() {
       try {
         const supabase = createClient();
@@ -63,7 +67,7 @@ export default function NotificationsTab({ notifications, setNotifications, setI
       } catch (_) {}
     }
     loadEmail();
-  }, []);
+  }, [propEmail]);
 
   const handleToggleNotification = (key, channel) => {
     setNotifications(prev => ({

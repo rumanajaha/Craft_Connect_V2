@@ -5,6 +5,33 @@ import { getSupabaseRouteClient } from '@/lib/supabaseRouteHandler';
 import { supabaseAdmin } from '@/lib/supabaseServer';
 import { generateWithGemini, GeminiUnavailableError } from '@/lib/gemini';
 
+function parseIdeasArray(rawText) {
+  const cleaned = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+  try {
+    const parsed = JSON.parse(cleaned);
+    if (Array.isArray(parsed)) {
+      const strings = parsed
+        .map((item) => (typeof item === 'string' ? item.trim() : String(item || '').trim()))
+        .filter(Boolean);
+      if (strings.length > 0) return strings;
+    }
+  } catch {
+    // Fall back to line/numbered-item splitting if model didn't return strict JSON
+  }
+
+  const numbered = cleaned
+    .split(/\n(?=\s*\d+[.)]\s+)/)
+    .map((s) => s.replace(/^\s*\d+[.)]\s+/, '').trim())
+    .filter(Boolean);
+
+  if (numbered.length > 1) return numbered;
+
+  return cleaned
+    .split('\n')
+    .map((s) => s.replace(/^[-*•]\s+/, '').trim())
+    .filter(Boolean);
+}
+
 export async function POST(request) {
   try {
     const user = await authenticate(request);
@@ -35,25 +62,23 @@ export async function POST(request) {
       }, { status: 429 });
     }
 
-    // Build context from creator's actual profile
     const creatorNiches = niche || (Array.isArray(creator.niches) ? creator.niches.join(', ') : creator.niches) || 'Handmade & Artisan';
     const targetChannel = channel || 'Instagram';
     const topicContext = topic ? `Focus specifically on the topic: "${topic}".` : 'Cover a variety of engaging angles.';
 
-    const model = getGeminiModel();
     const prompt = `You are a creative content strategist for handmade and artisan creators. Generate 5 content hook ideas for a creator in the following niches: ${creatorNiches}.
 ${topicContext}
 Target platform: ${targetChannel}.
 
-For each idea, provide:
-- A compelling hook (1 sentence, designed to stop scrolling)
-- A brief visual/execution description (1-2 sentences)
-- Why it works for the artisan/slow-living audience
+Each string should contain a compelling scroll-stopping hook followed by a brief 1-sentence visual execution tip for an artisan/slow-living audience.
 
-Format each idea clearly numbered (1. 2. 3. 4. 5.) with the hook on the first line. Keep total response under 300 words. Do not use markdown headers or excessive symbols.`;
+Return ONLY a valid JSON array of 5 plain strings with no markdown formatting or extra commentary. Example:
+["Hook 1 — brief visual idea.", "Hook 2 — brief visual idea."]`;
 
     // generateWithGemini throws GeminiUnavailableError on failure — quota is NOT incremented
-    const ideasText = await generateWithGemini(prompt);
+    const rawIdeas = await generateWithGemini(prompt);
+    const ideas = parseIdeasArray(rawIdeas);
+    const formattedResult = ideas.map((idea, i) => `${i + 1}. ${idea}`).join('\n\n');
 
     // Only log after a successful generation
     await supabaseAdmin
@@ -62,12 +87,13 @@ Format each idea clearly numbered (1. 2. 3. 4. 5.) with the hook on the first li
         creator_id: creator.id,
         tool_name: 'content-ideas',
         input_json: { topic: topic || '', channel: targetChannel, niche: creatorNiches },
-        output_text: ideasText
+        output_text: JSON.stringify(ideas)
       });
 
     return NextResponse.json({
       success: true,
-      result: ideasText,
+      ideas,
+      result: formattedResult,
       remaining: Math.max(0, quota.limit - quota.count - 1)
     });
 

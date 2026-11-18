@@ -235,9 +235,11 @@ export default function SharedFeedPage({ role, userTags = [], heading, subheadin
     });
   };
 
-  // Fetch logic for brand/creator role
+  // Fetch logic for brand, creator, and customer roles
+  const isServerFeedRole = role === "brand" || role === "creator" || role === "customer";
+
   useEffect(() => {
-    if (role !== "brand" && role !== "creator") return;
+    if (!isServerFeedRole) return;
     if (searchQuery.trim()) return; // Skip feed fetching during active search
  
     let active = true;
@@ -248,7 +250,9 @@ export default function SharedFeedPage({ role, userTags = [], heading, subheadin
  
         const endpoint = role === "brand"
           ? `/api/brand/feed?page=${page}&limit=${PAGE_SIZE}`
-          : `/api/creator/feed?page=${page}&limit=${PAGE_SIZE}`;
+          : role === "creator"
+            ? `/api/creator/feed?page=${page}&limit=${PAGE_SIZE}`
+            : `/api/customer/feed?page=${page}&limit=${PAGE_SIZE}`;
  
         const res = await fetch(endpoint);
         if (!res.ok) throw new Error("Failed to fetch feed");
@@ -274,13 +278,13 @@ export default function SharedFeedPage({ role, userTags = [], heading, subheadin
  
     fetchFeed();
     return () => { active = false; };
-  }, [role, page, searchQuery]);
+  }, [role, isServerFeedRole, page, searchQuery]);
  
   useEffect(() => {
-    if (role === "brand" || role === "creator") {
+    if (isServerFeedRole) {
       setPage(1);
     }
-  }, [searchQuery, role]);
+  }, [searchQuery, isServerFeedRole]);
 
   const clientRawItems = useMemo(() => getFeedItems(), []);
   const clientItemsWithPinnedDiversity = useMemo(
@@ -305,25 +309,25 @@ export default function SharedFeedPage({ role, userTags = [], heading, subheadin
   const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
 
   useEffect(() => {
-    if (role !== "brand" && role !== "creator") {
+    if (!isServerFeedRole) {
       setDisplayCount(PAGE_SIZE);
     }
-  }, [searchQuery, role]);
+  }, [searchQuery, isServerFeedRole]);
 
   useEffect(() => {
-    if (role !== "brand" && role !== "creator") {
+    if (!isServerFeedRole) {
       setIsLoading(true);
       const t = setTimeout(() => setIsLoading(false), 400);
       return () => clearTimeout(t);
     }
-  }, [role]);
+  }, [isServerFeedRole]);
 
-  const visibleItems = (role === "brand" || role === "creator") ? items : clientFilteredItems.slice(0, displayCount);
-  const showLoader = (role === "brand" || role === "creator") ? hasMore : displayCount < clientFilteredItems.length;
+  const visibleItems = isServerFeedRole ? items : clientFilteredItems.slice(0, displayCount);
+  const showLoader = isServerFeedRole ? hasMore : displayCount < clientFilteredItems.length;
 
   const handleObserver = useCallback((entries) => {
     if (entries[0].isIntersecting) {
-      if (role === "brand" || role === "creator") {
+      if (isServerFeedRole) {
         if (hasMore && !isMoreLoading) {
           setPage(prev => prev + 1);
         }

@@ -56,6 +56,8 @@ export default function CreatorDashboardPage() {
     monthly_growth: "+0%"
   });
   const [pitches, setPitches] = useState([]);
+  const [proposals, setProposals] = useState([]);
+  const [updatingProposalId, setUpdatingProposalId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // AI Brand Matches states
@@ -89,6 +91,7 @@ export default function CreatorDashboardPage() {
         if (pitchesRes.ok) {
           const pitchesData = await pitchesRes.json();
           setPitches(pitchesData.pitches || []);
+          setProposals(pitchesData.proposals || []);
         }
       } catch (err) {
         console.error("Error loading creator dashboard data:", err);
@@ -133,6 +136,7 @@ export default function CreatorDashboardPage() {
           if (pitchesRes.ok) {
             const pitchesData = await pitchesRes.json();
             setPitches(pitchesData.pitches || []);
+            setProposals(pitchesData.proposals || []);
           }
 
           const statsRes = await fetch("/api/creator/dashboard");
@@ -144,6 +148,35 @@ export default function CreatorDashboardPage() {
           console.error("Error refreshing dashboard data:", err);
         }
       }, 500); // 500ms delay
+    }
+  };
+
+  const handleProposalDecision = async (proposalId, status) => {
+    setUpdatingProposalId(proposalId);
+    try {
+      const res = await fetch(`/api/creator/pitches/${encodeURIComponent(proposalId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (res.ok) {
+        setProposals((prev) =>
+          prev.map((p) => (p.id === proposalId ? { ...p, status } : p))
+        );
+        const statsRes = await fetch("/api/creator/dashboard");
+        if (statsRes.ok) {
+          const statsData = await statsRes.json();
+          setStats(statsData);
+        }
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        alert(errData.error || "Failed to update proposal status.");
+      }
+    } catch (err) {
+      console.error("Proposal update error:", err);
+      alert("Failed to update proposal status.");
+    } finally {
+      setUpdatingProposalId(null);
     }
   };
 
@@ -181,7 +214,104 @@ export default function CreatorDashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        <div className="lg:col-span-2 space-y-4">
+        <div className="lg:col-span-2 space-y-8">
+          <section id="brand-proposals" className="space-y-4">
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2">
+                <Handshake className="w-4 h-4 text-brand-primary" />
+                <h2 className="font-serif text-xl font-bold text-brand-dark">Brand Proposals</h2>
+              </div>
+              {proposals.filter((p) => p.status === "pending").length > 0 && (
+                <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                  {proposals.filter((p) => p.status === "pending").length} Pending
+                </span>
+              )}
+            </div>
+
+            {proposals.length === 0 ? (
+              <div className="bg-white border border-dashed border-brand-border rounded-2xl p-6 text-center text-brand-muted text-sm">
+                No incoming brand proposals yet. Brands can propose collaborations from your public profile.
+              </div>
+            ) : (
+              <div className="bg-white border border-brand-border/50 rounded-2xl overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-brand-border/40 bg-[#FAF7F0] text-[10px] font-bold uppercase tracking-wider text-brand-muted">
+                        <th className="py-3 px-4">Brand</th>
+                        <th className="py-3 px-4">Type</th>
+                        <th className="py-3 px-4">Proposal</th>
+                        <th className="py-3 px-4 text-right">Action / Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-brand-border/30 text-sm">
+                      {proposals.map((prop) => {
+                        const compBadge = getCompensationBadge(prop.compensation);
+                        const CompIcon = compBadge.icon;
+                        const isBusy = updatingProposalId === prop.id;
+                        return (
+                          <tr key={prop.id} className="hover:bg-brand-border/5">
+                            <td className="py-3.5 px-4">
+                              <div className="flex items-center gap-2.5">
+                                <div className="relative w-9 h-9 rounded-xl overflow-hidden border border-brand-border/40 shrink-0 bg-brand-primary/10 flex items-center justify-center">
+                                  {prop.brandLogo ? (
+                                    <Image src={prop.brandLogo} alt={prop.brandName} fill className="object-cover" unoptimized />
+                                  ) : (
+                                    <span className="font-serif text-sm font-bold text-brand-primary">
+                                      {(prop.brandName?.[0] || "B").toUpperCase()}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-bold text-brand-dark truncate">{prop.brandName}</p>
+                                  <p className="text-[11px] text-brand-muted">{prop.date}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider ${compBadge.color}`}>
+                                <CompIcon className="w-3 h-3" />
+                                {prop.compensation}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 max-w-xs">
+                              <p className="text-xs text-brand-dark/80 line-clamp-2">&quot;{prop.snippet}&quot;</p>
+                            </td>
+                            <td className="py-3.5 px-4 text-right">
+                              {prop.status === "pending" ? (
+                                <div className="inline-flex items-center gap-2">
+                                  <button
+                                    disabled={isBusy}
+                                    onClick={() => handleProposalDecision(prop.id, "accepted")}
+                                    className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors disabled:opacity-50"
+                                  >
+                                    Accept
+                                  </button>
+                                  <button
+                                    disabled={isBusy}
+                                    onClick={() => handleProposalDecision(prop.id, "declined")}
+                                    className="px-3 py-1.5 rounded-xl bg-white border border-red-200 text-red-600 hover:bg-red-50 text-xs font-bold transition-colors disabled:opacity-50"
+                                  >
+                                    Decline
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className={`text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-full ${getStatusBadge(prop.status)}`}>
+                                  {prop.status}
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </section>
+
+          <section id="my-pitches" className="space-y-4">
           <div className="flex items-center gap-2 px-1">
             <Handshake className="w-4 h-4 text-brand-primary" />
             <h2 className="font-serif text-xl font-bold text-brand-dark">My Pitches</h2>
@@ -199,8 +329,14 @@ export default function CreatorDashboardPage() {
                 return (
                   <div key={pitch.id} className="flex flex-col sm:flex-row gap-4 p-4 items-start sm:items-center bg-white border border-brand-border/50 rounded-2xl hover:shadow-sm transition-shadow">
                     <div className="flex items-center gap-3 w-full sm:w-1/4 shrink-0">
-                      <div className="relative w-10 h-10 rounded-xl overflow-hidden border border-brand-border/40 shrink-0 bg-white">
-                        <Image src={pitch.brandLogo} alt={pitch.brandName} fill className="object-cover" />
+                      <div className="relative w-10 h-10 rounded-xl overflow-hidden border border-brand-border/40 shrink-0 bg-brand-primary/10 flex items-center justify-center">
+                        {pitch.brandLogo ? (
+                          <Image src={pitch.brandLogo} alt={pitch.brandName} fill className="object-cover" unoptimized />
+                        ) : (
+                          <span className="font-serif text-sm font-bold text-brand-primary">
+                            {(pitch.brandName?.[0] || "B").toUpperCase()}
+                          </span>
+                        )}
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-bold text-brand-dark truncate">{pitch.brandName}</p>
@@ -229,6 +365,7 @@ export default function CreatorDashboardPage() {
               })}
             </div>
           )}
+          </section>
         </div>
 
         <aside className="space-y-4">

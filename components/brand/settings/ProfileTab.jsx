@@ -248,7 +248,7 @@ export default function ProfileTab({ profile, setProfile, setIsDirty }) {
                 setShowStoryModal(false);
                 setIsGeneratingStory(true);
                 try {
-                  const res = await fetch("/api/brand/ai/story", {
+                  const res = await fetch("/api/brand/ai/brand-story", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(storyInputs)
@@ -257,7 +257,7 @@ export default function ProfileTab({ profile, setProfile, setIsDirty }) {
                   if (res.ok) {
                     setProfile(p => ({
                       ...p,
-                      description: data.story
+                      description: data.story || data.result
                     }));
                     setIsDirty(true);
                     refreshUsage();
@@ -497,17 +497,10 @@ export default function ProfileTab({ profile, setProfile, setIsDirty }) {
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-bold text-brand-dark uppercase tracking-wider">Banner Video URL</label>
-                    <button 
-                      onClick={handleOpenVideoModal}
-                      disabled={isGeneratingVideo}
-                      className="text-xs font-bold text-brand-primary flex items-center gap-1.5 hover:text-brand-dark transition-colors disabled:opacity-50"
-                    >
-                      {isGeneratingVideo ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Video className="w-3.5 h-3.5" />} 
-                      {isGeneratingVideo ? "Generating..." : "Generate AI Video"}
-                      <span className="text-[10px] bg-brand-primary/10 text-brand-primary px-2 py-0.5 rounded-full font-semibold">
-                        {getRemainingForTool('banner-video')} free left
-                      </span>
-                    </button>
+                    <span className="text-xs font-medium text-brand-muted flex items-center gap-1.5">
+                      <Video className="w-3.5 h-3.5 opacity-60" />
+                      AI Video · Coming soon
+                    </span>
                   </div>
                   <input
                     type="url"

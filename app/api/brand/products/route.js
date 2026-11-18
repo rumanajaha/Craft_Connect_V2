@@ -3,6 +3,7 @@ import { authenticate } from '@/middleware/auth';
 import { getSupabaseRouteClient } from '@/lib/supabaseRouteHandler';
 import { supabaseAdmin } from '@/lib/supabaseServer';
 import { updateProductEmbedding } from '@/lib/feedHelpers';
+import { createNotification } from '@/lib/notify';
 
 export async function GET(request) {
   try {
@@ -113,17 +114,14 @@ export async function POST(request) {
     }
 
     if (finalStatus === 'out_of_stock' || finalStatus === 'sold_out') {
-      await supabase
-        .from('Notification')
-        .insert({
-          user_id: user.id,
-          type: 'product_status',
-          title: 'Product Marked Sold Out',
-          body: `"${newProd.name}" automatically flagged as sold out.`,
-          is_read: false,
-          related_entity_id: newProd.id,
-          link: '/brand/products'
-        });
+      await createNotification({
+        userId: user.id,
+        type: 'product_status',
+        title: 'Product Marked Sold Out',
+        body: `"${newProd.name}" automatically flagged as sold out.`,
+        relatedEntityId: newProd.id,
+        link: `/brand/products?product=${newProd.id}`,
+      });
     }
 
     // Fire-and-forget embedding — never blocks the response

@@ -22,8 +22,8 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Brand profile not found' }, { status: 404 });
     }
 
-    // Check monthly quota for 'brand-story'
-    const quota = await checkQuota(brand.id, 'brand-story');
+    // Check monthly quota for 'brand_story'
+    const quota = await checkQuota(brand.id, 'brand_story');
     if (quota.exceeded) {
       return NextResponse.json({
         error: 'Quota exceeded',
@@ -52,7 +52,7 @@ The story should be emotional, authentic, and highlight the beauty of slow-made,
       .from('AIGeneration')
       .insert({
         brand_id: brand.id,
-        tool_name: 'brand-story',
+        tool_name: 'brand_story',
         input_json: body,
         output_text: storyText
       });
@@ -60,6 +60,7 @@ The story should be emotional, authentic, and highlight the beauty of slow-made,
     return NextResponse.json({
       success: true,
       result: storyText,
+      story: storyText,
       remaining: Math.max(0, quota.limit - quota.count - 1)
     });
 

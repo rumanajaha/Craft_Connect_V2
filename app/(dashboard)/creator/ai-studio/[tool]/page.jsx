@@ -48,7 +48,10 @@ function OutputPanel({ result, isGenerating, toolConfig }) {
 
   const handleCopy = () => {
     if (!result) return;
-    navigator.clipboard.writeText(result);
+    const textToCopy = Array.isArray(result)
+      ? result.map((item, i) => `${i + 1}. ${item}`).join("\n\n")
+      : result;
+    navigator.clipboard.writeText(textToCopy);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -91,9 +94,17 @@ function OutputPanel({ result, isGenerating, toolConfig }) {
         </button>
       </div>
       <div className="p-5">
-        <p className="text-sm text-brand-dark leading-relaxed whitespace-pre-wrap">
-          {result}
-        </p>
+        {Array.isArray(result) ? (
+          <ol className="space-y-3 list-decimal list-inside text-sm text-brand-dark leading-relaxed">
+            {result.map((idea, idx) => (
+              <li key={idx} className="whitespace-pre-wrap">{idea}</li>
+            ))}
+          </ol>
+        ) : (
+          <p className="text-sm text-brand-dark leading-relaxed whitespace-pre-wrap">
+            {result}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -171,8 +182,8 @@ export default function CreatorToolPage() {
         })
       });
       const data = await res.json();
-      if (res.ok && data.result) {
-        setResult(data.result);  // Use real Gemini response
+      if (res.ok && (Array.isArray(data.ideas) || data.result)) {
+        setResult(Array.isArray(data.ideas) ? data.ideas : data.result);
         incrementUsage(toolSlug);
       } else {
         alert(data.message || data.error || "AI generation failed.");

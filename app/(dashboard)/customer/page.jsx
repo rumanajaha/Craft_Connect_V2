@@ -3,17 +3,10 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Bookmark, FileText, MessageCircle, Sparkles, ArrowRight, TrendingUp } from "lucide-react";
-import { MOCK_BRANDS, MOCK_REQUESTS, MOCK_MESSAGES } from "@/lib/mockData";
 import BrandCard from "@/components/customer/BrandCard";
 import RequestStatusBadge from "@/components/customer/RequestStatusBadge";
 import { createClient } from "@/lib/supabase/client";
-
-
-const INITIAL_SAVED = ["ochre-clay", "gaea-weaves"];
-
-
-const RECOMMENDED_BRANDS = MOCK_BRANDS.slice(0, 5);
-
+import { useSavedBrands } from "@/hooks/useSavedBrands";
 
 function StatPill({ icon: Icon, value, label, accent }) {
   return (
@@ -40,34 +33,65 @@ function StatPill({ icon: Icon, value, label, accent }) {
 }
 
 export default function CustomerDashboard() {
-  const [saved, setSaved] = useState(INITIAL_SAVED);
-
-  
+  const { savedIds, savedCount, hydrateSaved, toggleSave } = useSavedBrands();
+  const [totalBrands, setTotalBrands] = useState(0);
+  const [activeRequests, setActiveRequests] = useState(0);
+  const [totalMessages, setTotalMessages] = useState(0);
+  const [recentRequests, setRecentRequests] = useState([]);
+  const [recommendedBrands, setRecommendedBrands] = useState([]);
+  const [loadingRecs, setLoadingRecs] = useState(true);
   const [greeting, setGreeting] = useState("");
   const [subtext, setSubtext] = useState("");
 
   useEffect(() => {
-    async function buildGreeting() {
-      
-      const isNew  = sessionStorage.getItem("cc_new_user") === "1";
-      let   name   = sessionStorage.getItem("cc_display_name") ?? "";
+    async function loadDashboard() {
+      try {
+        const [dashRes, reqsRes] = await Promise.all([
+          fetch("/api/customer/dashboard"),
+          fetch("/api/customer/requests"),
+        ]);
+        if (dashRes.ok) {
+          const dash = await dashRes.json();
+          hydrateSaved(
+            dash.savedBrandIds || [],
+            dash.stats?.savedBrands ?? 0
+          );
+          setTotalBrands(dash.totalBrands || 0);
+          setActiveRequests(dash.stats?.activeRequests ?? 0);
+          setTotalMessages(dash.stats?.totalMessages ?? 0);
+          setRecommendedBrands(dash.recommendedBrands || []);
+        }
+        if (reqsRes.ok) {
+          const reqs = await reqsRes.json();
+          setRecentRequests((reqs.requests || []).slice(0, 5));
+        }
+      } catch (err) {
+        console.error("Failed to load customer dashboard:", err);
+      } finally {
+        setLoadingRecs(false);
+      }
+    }
+    loadDashboard();
+  }, [hydrateSaved]);
 
-      
+  useEffect(() => {
+    async function buildGreeting() {
+      const isNew = sessionStorage.getItem("cc_new_user") === "1";
+      let name = sessionStorage.getItem("cc_display_name") ?? "";
+
       if (!name) {
         try {
           const supabase = createClient();
           const { data: { user } } = await supabase.auth.getUser();
           const meta = user?.user_metadata ?? {};
-          
           const rawName = meta.full_name ?? meta.name ?? user?.email ?? "";
-          name = rawName.split(/[\s@]/)[0]; 
+          name = rawName.split(/[\s@]/)[0];
         } catch (_) {}
       }
 
       const firstName = name ? `, ${name}` : "";
 
       if (isNew) {
-        
         sessionStorage.removeItem("cc_new_user");
         sessionStorage.removeItem("cc_display_name");
         setGreeting(`Welcome${firstName}! `);
@@ -80,16 +104,8 @@ export default function CustomerDashboard() {
     buildGreeting();
   }, []);
 
-  const toggleSave = (id) =>
-    setSaved(prev => prev.includes(id) ? prev.filter(b => b !== id) : [...prev, id]);
-
-  const activeRequests = MOCK_REQUESTS.filter(r => r.status !== "closed").length;
-  const totalMessages  = MOCK_MESSAGES.reduce((sum, t) => sum + t.messages.length, 0);
-
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
-
-      
       <div className="min-h-[72px]">
         <h1 className="font-serif text-3xl md:text-4xl font-bold text-brand-dark">
           {greeting || <span className="opacity-0">Welcome</span>}
@@ -99,15 +115,13 @@ export default function CustomerDashboard() {
         </p>
       </div>
 
-      
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatPill icon={Bookmark}      value={saved.length}       label="Saved Brands"      />
-        <StatPill icon={FileText}      value={activeRequests}     label="Active Requests"   accent />
-        <StatPill icon={MessageCircle} value={totalMessages}      label="Total Messages"    />
-        <StatPill icon={TrendingUp}    value={MOCK_BRANDS.length} label="Brands Available"  />
+        <StatPill icon={Bookmark} value={savedCount} label="Saved Brands" />
+        <StatPill icon={FileText} value={activeRequests} label="Active Requests" accent />
+        <StatPill icon={MessageCircle} value={totalMessages} label="Total Messages" />
+        <StatPill icon={TrendingUp} value={totalBrands} label="Brands Available" />
       </div>
 
-      
       <section>
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-serif text-xl font-bold text-brand-dark">Recent Requests</h2>
@@ -116,35 +130,36 @@ export default function CustomerDashboard() {
           </Link>
         </div>
         <div className="bg-white rounded-2xl border border-brand-border/50 shadow-sm overflow-hidden">
-          {MOCK_REQUESTS.length === 0 ? (
-            <div className="p-8 text-center text-brand-muted text-sm">No requests yet.</div>
+          {recentRequests.length === 0 ? (
+            <div className="p-8 text-center text-brand-muted text-sm">
+              No requests yet. Explore brands on Discover to send a custom request.
+            </div>
           ) : (
             <ul className="divide-y divide-brand-border/40">
-              {MOCK_REQUESTS.map(req => {
-                const brand  = MOCK_BRANDS.find(b => b.id === req.brandId);
-                const thread = MOCK_MESSAGES.find(m => m.brandId === req.brandId);
-                return (
-                  <li key={req.id}>
-                    <Link
-                      href={`/customer/messages?thread=${thread?.id ?? ""}`}
-                      className="flex items-center gap-4 px-5 py-4 hover:bg-brand-border/10 transition-colors"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm text-brand-dark truncate">{req.subject}</p>
-                        <p className="text-xs text-brand-muted mt-0.5 truncate">{brand?.name} · {req.type}</p>
-                      </div>
-                      <RequestStatusBadge status={req.status} />
-                      <ArrowRight className="w-3.5 h-3.5 text-brand-muted shrink-0" />
-                    </Link>
-                  </li>
-                );
-              })}
+              {recentRequests.map(req => (
+                <li key={req.id}>
+                  <Link
+                    href={req.threadId ? `/customer/messages?thread=${req.threadId}` : "/customer/messages"}
+                    className="flex items-center gap-4 px-5 py-4 hover:bg-brand-border/10 transition-colors"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm text-brand-dark truncate">
+                        {req.title}
+                      </p>
+                      <p className="text-xs text-brand-muted mt-0.5 truncate">
+                        {req.brandName} · {req.requestType}
+                      </p>
+                    </div>
+                    <RequestStatusBadge status={req.status} />
+                    <ArrowRight className="w-3.5 h-3.5 text-brand-muted shrink-0" />
+                  </Link>
+                </li>
+              ))}
             </ul>
           )}
         </div>
       </section>
 
-      
       <section>
         <div className="flex items-center gap-2 mb-4">
           <Sparkles className="w-4 h-4 text-brand-primary" />
@@ -153,16 +168,25 @@ export default function CustomerDashboard() {
             AI Picks
           </span>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {RECOMMENDED_BRANDS.map(brand => (
-            <BrandCard
-              key={brand.id}
-              brand={brand}
-              isSaved={saved.includes(brand.id)}
-              onToggleSave={toggleSave}
-            />
-          ))}
-        </div>
+        {loadingRecs ? (
+          <div className="p-8 text-center text-brand-muted text-sm">Loading recommendations…</div>
+        ) : recommendedBrands.length === 0 ? (
+          <div className="p-8 bg-white rounded-2xl border border-brand-border/50 text-center text-brand-muted text-sm">
+            No brand recommendations available yet.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {recommendedBrands.map(brand => (
+              <BrandCard
+                key={brand.id}
+                brand={brand}
+                isSaved={savedIds.includes(brand.id)}
+                onToggleSave={(id) => toggleSave(id)}
+                compact
+              />
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );

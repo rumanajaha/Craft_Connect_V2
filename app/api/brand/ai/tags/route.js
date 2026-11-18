@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { authenticate } from '@/middleware/auth';
 import { supabaseAdmin } from '@/lib/supabaseServer';
-import { getGeminiModel } from '@/lib/gemini';
+import { generateWithGemini, GeminiUnavailableError } from '@/lib/gemini';
+import { checkQuota } from '@/lib/quotaHelper';
 
 export async function POST(request) {
   try {
@@ -27,26 +28,16 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
     }
 
-    // 1. Quota Check: count rows in AIGeneration for 'recommendation-tags'
-    const { count, error: countError } = await supabaseAdmin
-      .from('AIGeneration')
-      .select('*', { count: 'exact', head: true })
-      .eq('brand_id', brand.id)
-      .eq('tool_name', 'recommendation-tags');
-
-    if (countError) {
-      return NextResponse.json({ error: 'Failed to verify quota' }, { status: 500 });
-    }
-
-    if (count >= 3) {
+    // 1. Monthly Quota Check for 'brand_tags'
+    const quota = await checkQuota(brand.id, 'brand_tags');
+    if (quota.exceeded) {
       return NextResponse.json({
         error: 'Quota exceeded',
-        message: 'You have used all of your 3 free generations for this tool. Please upgrade to Pro to unlock unlimited usage.'
+        message: `You have used all of your ${quota.limit} free generations for this tool this month. Please upgrade to Pro.`
       }, { status: 429 });
     }
 
-    // 2. Generate content using Gemini
-    const model = getGeminiModel();
+    // 2. Generate content using Gemini (throws GeminiUnavailableError on failure — quota NOT incremented)
     const prompt = `Generate 6 to 8 relevant search and search-indexing tags (one or two words each) for an artisanal/craft brand.
 Brand Category: ${category}
 Aesthetic & Values Keywords: ${aesthetic}
@@ -54,17 +45,14 @@ Aesthetic & Values Keywords: ${aesthetic}
 Return the tags ONLY as a valid JSON array of lowercase strings, without any extra text or code blocks. For example:
 ["handcrafted", "wabi-sabi", "stoneware", "minimalist", "organic"]`;
 
-    const genResult = await model.generateContent(prompt);
-    const textOutput = genResult.response.text().trim();
+    const textOutput = await generateWithGemini(prompt);
 
-    // Clean up output to make sure it's valid JSON
     let tags = [];
     try {
       const cleanedText = textOutput.replace(/```json/g, '').replace(/```/g, '').trim();
       tags = JSON.parse(cleanedText);
     } catch (e) {
       console.error("Gemini tags output parsing error. Output was:", textOutput);
-      // Fallback tags parsing if JSON parse failed
       tags = textOutput
         .replace(/[\[\]"]/g, '')
         .split(',')
@@ -76,12 +64,12 @@ Return the tags ONLY as a valid JSON array of lowercase strings, without any ext
       tags = [category.toLowerCase(), "handmade", "artisan", "design"];
     }
 
-    // 3. Log usage in AIGeneration table
+    // 3. Log usage in AIGeneration table (only after successful generation)
     const { error: logError } = await supabaseAdmin
       .from('AIGeneration')
       .insert({
         brand_id: brand.id,
-        tool_name: 'recommendation-tags',
+        tool_name: 'brand_tags',
         input_json: { category, aesthetic },
         output_text: JSON.stringify(tags)
       });
@@ -92,11 +80,14 @@ Return the tags ONLY as a valid JSON array of lowercase strings, without any ext
 
     return NextResponse.json({
       success: true,
-      tags: tags,
-      remaining: Math.max(0, 3 - count - 1)
+      tags,
+      remaining: Math.max(0, quota.limit - quota.count - 1)
     });
 
   } catch (error) {
+    if (error instanceof GeminiUnavailableError) {
+      return NextResponse.json({ error: error.message }, { status: 503 });
+    }
     console.error("AI Tags generation error:", error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

@@ -47,6 +47,13 @@ export default function CreatorMatchCard({ creator }) {
           <span className="text-xs font-bold">{creator.compatibility}% Match</span>
         </div>
         
+        <Link
+          href={`/creator/profile?id=${creator.id}`}
+          className="flex items-center gap-1 text-xs font-bold text-brand-dark hover:text-brand-primary transition-colors px-2.5 py-1.5 rounded-xl border border-brand-border/60 hover:border-brand-primary/30"
+        >
+          View Profile
+        </Link>
+
         <button 
           onClick={async (e) => {
             e.preventDefault();

@@ -16,7 +16,6 @@
 require('dotenv').config({ path: '.env.local' });
 
 const { createClient } = require('@supabase/supabase-js');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -28,7 +27,6 @@ if (!supabaseUrl || !supabaseServiceKey || !geminiApiKey) {
 }
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
-const genAI = new GoogleGenerativeAI(geminiApiKey);
 
 function buildEmbeddingText(creator) {
   const niches = Array.isArray(creator.niches) ? creator.niches.join(', ') : (creator.niches || '');
@@ -37,11 +35,13 @@ function buildEmbeddingText(creator) {
   return `Niches: ${niches}. Tags: ${tags}. Bio: ${bio}`.trim();
 }
 
+let geminiModulePromise;
 async function getEmbedding(text) {
-  const model = genAI.getGenerativeModel({ model: 'gemini-embedding-001' });
-  const result = await model.embedContent(text);
-  if (!result?.embedding?.values) throw new Error('Empty embedding returned');
-  return result.embedding.values;
+  if (!geminiModulePromise) {
+    geminiModulePromise = import('../lib/gemini.js');
+  }
+  const { getGeminiEmbedding } = await geminiModulePromise;
+  return getGeminiEmbedding(text);
 }
 
 async function sleep(ms) {
