@@ -23,7 +23,7 @@ export async function GET(request) {
         .select(
           'brand_id, created_at, BrandProfile(id, owner_user_id, brand_name, logo_url, location, rating_avg, review_count, category)'
         )
-        .eq('user_id', user.id)
+        .eq('customer_id', customer.id)
         .order('created_at', { ascending: false }),
       getCustomerStats(customer.id, user.id, supabase),
     ]);
@@ -80,7 +80,7 @@ export async function POST(request) {
     const { error: insertError } = await supabase
       .from('SavedBrand')
       .insert({
-        user_id: user.id,
+        customer_id: customer.id,
         brand_id: brandId,
       });
 

@@ -22,7 +22,7 @@ export async function GET(request) {
     const { data: rows, error } = await supabase
       .from('CustomRequest')
       .select(
-        'id, brand_id, title, request_type, message, budget, deadline, status, created_at, BrandProfile(id, owner_user_id, brand_name)'
+        'id, brand_id, title, request_type, message, budget, status, created_at, BrandProfile(id, owner_user_id, brand_name)'
       )
       .eq('customer_id', customer.id)
       .order('created_at', { ascending: false })
@@ -121,7 +121,6 @@ export async function POST(request) {
         request_type: cleanType,
         message: cleanMessage,
         budget: budget?.trim() || null,
-        deadline: deadline?.trim() || null,
         status: 'pending',
       })
       .select('id')

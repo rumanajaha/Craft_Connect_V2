@@ -29,7 +29,7 @@ export async function GET(request) {
       supabase
         .from('SavedBrand')
         .select('brand_id')
-        .eq('user_id', user.id),
+        .eq('customer_id', customer.id),
     ]);
 
     if (brandsRes.error) {

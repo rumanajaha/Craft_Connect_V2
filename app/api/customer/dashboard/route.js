@@ -22,7 +22,7 @@ export async function GET(request) {
       supabase
         .from('SavedBrand')
         .select('brand_id, BrandProfile(id, embedding)')
-        .eq('user_id', user.id),
+        .eq('customer_id', customer.id),
       supabase
         .from('BrandProfile')
         .select('id', { count: 'exact', head: true }),

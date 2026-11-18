@@ -24,7 +24,7 @@ export async function GET(request) {
         const customer = await getCustomerProfile(user.id, supabase);
         if (customer) {
           const [savedRes, customerStats] = await Promise.all([
-            supabase.from('SavedBrand').select('brand_id').eq('user_id', user.id),
+            supabase.from('SavedBrand').select('brand_id').eq('customer_id', customer.id),
             getCustomerStats(customer.id, user.id, supabase),
           ]);
           savedBrandIds = (savedRes.data || []).map((r) => r.brand_id);
