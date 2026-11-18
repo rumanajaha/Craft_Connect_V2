@@ -45,11 +45,16 @@ export async function GET(request) {
       console.error("pending_pitches count error:", pendingError);
     }
 
-    // 3. Calculate monthly_growth from FollowerHistory over last 30 days
+    // 3. Real follower count from CreatorFollow & monthly_growth from FollowerHistory over last 30 days
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const latestCount = creator.follower_count || 0;
+    const { count: realFollowerCount } = await supabase
+      .from('CreatorFollow')
+      .select('follower_user_id', { count: 'exact', head: true })
+      .eq('creator_id', creator.id);
+
+    const latestCount = typeof realFollowerCount === 'number' ? realFollowerCount : 0;
 
     // Retrieve closest historical count <= 30 days ago
     const { data: histData } = await supabase

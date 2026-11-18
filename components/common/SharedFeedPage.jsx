@@ -124,6 +124,7 @@ export default function SharedFeedPage({ role, userTags = [], heading, subheadin
   const loaderRef = useRef(null);
 
   const [matchedUsers, setMatchedUsers] = useState([]);
+  const [matchedItems, setMatchedItems] = useState([]);
   const [isSearchingUsers, setIsSearchingUsers] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [isInitiatingChat, setIsInitiatingChat] = useState(false);
@@ -151,32 +152,36 @@ export default function SharedFeedPage({ role, userTags = [], heading, subheadin
     fetchMe();
   }, []);
 
-  // Fetch matched user profiles based on searchQuery
+  // Fetch matched profiles AND products/portfolio items based on searchQuery
   useEffect(() => {
     if (!searchQuery.trim()) {
       setMatchedUsers([]);
+      setMatchedItems([]);
       return;
     }
 
     let active = true;
-    const fetchUsers = async () => {
+    const fetchSearch = async () => {
       try {
         setIsSearchingUsers(true);
-        const res = await fetch(`/api/search/users?q=${encodeURIComponent(searchQuery)}&type=all`);
+        const res = await fetch(
+          `/api/brand/feed/search?q=${encodeURIComponent(searchQuery)}&type=all&limit=24`
+        );
         if (res.ok && active) {
           const data = await res.json();
           setMatchedUsers(data.users || []);
+          setMatchedItems(data.items || []);
         }
       } catch (err) {
-        console.error("Error fetching matching users:", err);
+        console.error("Error searching feed:", err);
       } finally {
         if (active) setIsSearchingUsers(false);
       }
     };
 
     const timer = setTimeout(() => {
-      fetchUsers();
-    }, 300);
+      fetchSearch();
+    }, 250);
 
     return () => {
       active = false;
@@ -372,9 +377,8 @@ export default function SharedFeedPage({ role, userTags = [], heading, subheadin
       </div>
 
       {searchQuery.trim() ? (
-        /* ═════════ SEARCH RESULTS GRID OVERLAY ═════════ */
-        isSearchingUsers && matchedUsers.length === 0 ? (
-          /* Searching state skeleton grid */
+        /* ═════════ SEARCH RESULTS OVERLAY (PRODUCTS, POSTS & PROFILES) ═════════ */
+        isSearchingUsers && matchedUsers.length === 0 && matchedItems.length === 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-[3px]">
             {Array.from({ length: 8 }).map((_, i) => (
               <div
@@ -383,29 +387,54 @@ export default function SharedFeedPage({ role, userTags = [], heading, subheadin
               />
             ))}
           </div>
-        ) : matchedUsers.length === 0 ? (
-          /* Empty state */
+        ) : matchedUsers.length === 0 && matchedItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <Sparkles className="w-10 h-10 text-brand-primary/20 mb-4" />
             <h3 className="font-serif text-lg font-bold text-brand-dark mb-2">
-              No profiles found
+              No results found
             </h3>
             <p className="text-sm text-brand-muted max-w-xs">
-              No brand or creator matches "{searchQuery}". Try a different term or hashtag.
+              No product, post, brand, or creator matches &quot;{searchQuery}&quot;. Try a different term or hashtag.
             </p>
           </div>
         ) : (
-          /* Search results grid */
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-[3px]">
-            {matchedUsers.map((user) => (
-              <ProfileSearchTile
-                key={user.id}
-                user={user}
-                viewerRole={role}
-                onStartChat={handleStartChat}
-                onProposeCollab={handleProposeCollab}
-              />
-            ))}
+          <div className="space-y-8">
+            {matchedItems.length > 0 && (
+              <section>
+                <h2 className="text-xs font-bold uppercase tracking-wider text-brand-muted mb-3">
+                  Products &amp; Posts ({matchedItems.length})
+                </h2>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-[3px]">
+                  {matchedItems.map((item) => (
+                    <FeedTile
+                      key={`${item.type}-${item.id}`}
+                      item={item}
+                      viewerRole={role}
+                      isWide={false}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {matchedUsers.length > 0 && (
+              <section>
+                <h2 className="text-xs font-bold uppercase tracking-wider text-brand-muted mb-3">
+                  Brands &amp; Creators ({matchedUsers.length})
+                </h2>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-[3px]">
+                  {matchedUsers.map((user) => (
+                    <ProfileSearchTile
+                      key={user.id}
+                      user={user}
+                      viewerRole={role}
+                      onStartChat={handleStartChat}
+                      onProposeCollab={handleProposeCollab}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
         )
       ) : (

@@ -376,7 +376,13 @@ export default function CreatorProfilePage() {
             <Input label="Niches (comma-separated)" name="niches" value={profile.niches} onChange={handleProfileChange} />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input label="Follower Count" name="followers" type="number" value={profile.followers} onChange={handleProfileChange} />
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-brand-dark uppercase tracking-wider">Follower Count</label>
+                <div className="w-full px-4 py-2.5 rounded-xl border border-brand-border/60 bg-brand-border/15 text-sm font-semibold text-brand-dark cursor-not-allowed">
+                  {(profile.followers || 0).toLocaleString()}
+                </div>
+                <p className="text-[10px] text-brand-muted">Automatically calculated from users following your profile.</p>
+              </div>
               <div>
                 <Input label="Engagement Rate (%)" name="engagementRate" type="number" step="0.1" value={profile.engagementRate} onChange={handleProfileChange} />
                 <p className="text-[10px] text-brand-muted mt-1">Feeds the AI matching algorithm for brand compatibility.</p>

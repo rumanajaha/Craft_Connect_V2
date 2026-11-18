@@ -65,6 +65,14 @@ export async function GET(request) {
       }
     };
 
+    // Compute real follower count from CreatorFollow table
+    const { count: realFollowerCount } = await supabase
+      .from('CreatorFollow')
+      .select('follower_user_id', { count: 'exact', head: true })
+      .eq('creator_id', creator.id);
+
+    const followerCount = typeof realFollowerCount === 'number' ? realFollowerCount : 0;
+
     // Map database fields to frontend model
     const profile = {
       id: creator.id,
@@ -72,8 +80,8 @@ export async function GET(request) {
       display_name: creator.display_name || '',
       bio: creator.bio || '',
       niches: creator.niches ? creator.niches.join(', ') : '',
-      follower_count: creator.follower_count || 0,
-      followers: creator.follower_count || 0,
+      follower_count: followerCount,
+      followers: followerCount,
       engagement_rate: creator.engagement_rate || 0,
       engagementRate: creator.engagement_rate || 0,
       ai_tags: creator.ai_tags ? creator.ai_tags.join(', ') : '',
@@ -148,15 +156,7 @@ export async function PATCH(request) {
     if (body.avatar_url !== undefined) updateData.avatar_url = body.avatar_url;
     if (body.avatar !== undefined) updateData.avatar_url = body.avatar;
 
-    // Validate follower_count
-    if (body.followers !== undefined || body.follower_count !== undefined) {
-      const followersVal = body.followers !== undefined ? body.followers : body.follower_count;
-      const followersNum = Number(followersVal);
-      if (isNaN(followersNum) || followersNum < 0) {
-        return NextResponse.json({ error: 'Follower count must be a non-negative number' }, { status: 400 });
-      }
-      updateData.follower_count = Math.floor(followersNum);
-    }
+    // follower_count is derived from real CreatorFollow rows and cannot be edited manually.
 
     // Validate engagement_rate
     if (body.engagementRate !== undefined || body.engagement_rate !== undefined) {
@@ -282,14 +282,20 @@ export async function PATCH(request) {
     };
 
     // Return the updated profile
+    const { count: realFollowerCount } = await supabase
+      .from('CreatorFollow')
+      .select('follower_user_id', { count: 'exact', head: true })
+      .eq('creator_id', updatedCreator.id);
+    const followerCount = typeof realFollowerCount === 'number' ? realFollowerCount : 0;
+
     const profile = {
       id: updatedCreator.id,
       displayName: updatedCreator.display_name || '',
       display_name: updatedCreator.display_name || '',
       bio: updatedCreator.bio || '',
       niches: updatedCreator.niches ? updatedCreator.niches.join(', ') : '',
-      follower_count: updatedCreator.follower_count || 0,
-      followers: updatedCreator.follower_count || 0,
+      follower_count: followerCount,
+      followers: followerCount,
       engagement_rate: updatedCreator.engagement_rate || 0,
       engagementRate: updatedCreator.engagement_rate || 0,
       ai_tags: updatedCreator.ai_tags ? updatedCreator.ai_tags.join(', ') : '',

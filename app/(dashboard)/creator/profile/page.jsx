@@ -4,7 +4,7 @@ import React, { useState, useEffect, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Users, Activity, Eye, Handshake, X, Send } from "lucide-react";
+import { Users, Activity, Eye, Handshake, X, Send, UserPlus, UserCheck } from "lucide-react";
 import PortfolioDetailModal from "@/components/common/PortfolioDetailModal";
 import Button from "@/components/ui/button";
 
@@ -34,6 +34,10 @@ function CreatorProfileContent() {
   const [submitting, setSubmitting] = useState(false);
   const [proposalError, setProposalError] = useState("");
 
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followBusy, setFollowBusy] = useState(false);
+
   useEffect(() => {
     async function fetchProfileData() {
       try {
@@ -51,6 +55,8 @@ function CreatorProfileContent() {
           if (!res.ok) throw new Error("Failed to load creator profile");
           const data = await res.json();
           setCreator(data.profile);
+          setFollowerCount(data.profile?.follower_count ?? data.profile?.followers ?? 0);
+          setIsFollowing(Boolean(data.profile?.isFollowing));
           setPortfolio(data.portfolio || []);
         } else {
           const [profileRes, portfolioRes] = await Promise.all([
@@ -62,6 +68,7 @@ function CreatorProfileContent() {
           const profileData = await profileRes.json();
           const portfolioData = await portfolioRes.json();
           setCreator(profileData.profile);
+          setFollowerCount(profileData.profile?.follower_count ?? profileData.profile?.followers ?? 0);
           setPortfolio(portfolioData.portfolio || []);
         }
       } catch (err) {
@@ -73,6 +80,31 @@ function CreatorProfileContent() {
     }
     fetchProfileData();
   }, [creatorIdParam]);
+
+  const handleToggleFollow = async () => {
+    if (!creator?.id || followBusy) return;
+    const prevFollowing = isFollowing;
+    const prevCount = followerCount;
+    setFollowBusy(true);
+    setIsFollowing(!prevFollowing);
+    try {
+      const res = await fetch(`/api/creator/${encodeURIComponent(creator.id)}/follow`, {
+        method: prevFollowing ? "DELETE" : "POST",
+      });
+      if (!res.ok) throw new Error("Follow toggle failed");
+      const data = await res.json();
+      setIsFollowing(Boolean(data.following));
+      if (typeof data.followerCount === "number") {
+        setFollowerCount(data.followerCount);
+      }
+    } catch (err) {
+      console.error("Follow toggle error:", err);
+      setIsFollowing(prevFollowing);
+      setFollowerCount(prevCount);
+    } finally {
+      setFollowBusy(false);
+    }
+  };
 
   const handleProposeCollaboration = async (e) => {
     e.preventDefault();
@@ -167,7 +199,7 @@ function CreatorProfileContent() {
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-brand-border/50 rounded-full shadow-sm">
             <Users className="w-4 h-4 text-brand-primary" />
-            <span className="text-sm font-bold text-brand-dark">{(creator.followers || creator.follower_count || 0).toLocaleString()}</span>
+            <span className="text-sm font-bold text-brand-dark">{followerCount.toLocaleString()}</span>
             <span className="text-xs text-brand-muted">Followers</span>
           </div>
 
@@ -195,7 +227,26 @@ function CreatorProfileContent() {
           </div>
         </div>
 
-        <div>
+        <div className="flex items-center gap-2.5">
+          {creatorIdParam && !creator.isOwnProfile && viewerRole && (
+            <Button
+              variant={isFollowing ? "outline" : "primary"}
+              size="md"
+              disabled={followBusy}
+              onClick={handleToggleFollow}
+              className="inline-flex items-center gap-1.5"
+            >
+              {isFollowing ? (
+                <>
+                  <UserCheck className="w-4 h-4" /> Following
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-4 h-4" /> Follow
+                </>
+              )}
+            </Button>
+          )}
           {isBrandViewer ? (
             <Button
               variant="primary"
