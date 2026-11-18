@@ -29,7 +29,7 @@ export async function GET(request) {
       const { data: savedRows } = await supabase
         .from('SavedBrand')
         .select('brand_id, BrandProfile (brand_name, category, ai_tags)')
-        .eq('user_id', user.id)
+        .eq('customer_id', customer.id)
         .limit(10);
 
       if (savedRows && savedRows.length > 0) {

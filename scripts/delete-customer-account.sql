@@ -18,10 +18,10 @@ BEGIN
   FROM "CustomerProfile"
   WHERE owner_user_id = delete_customer_account.user_id;
 
-  -- 1. Saved brands
-  IF to_regclass('public."SavedBrand"') IS NOT NULL THEN
+  -- 1. Saved brands (keyed by CustomerProfile.id)
+  IF v_customer_id IS NOT NULL AND to_regclass('public."SavedBrand"') IS NOT NULL THEN
     DELETE FROM "SavedBrand"
-    WHERE "SavedBrand".user_id = delete_customer_account.user_id;
+    WHERE customer_id = v_customer_id;
   END IF;
 
   -- 2. Custom requests (keyed by CustomerProfile.id)

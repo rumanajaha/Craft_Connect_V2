@@ -28,14 +28,14 @@ export async function GET(request) {
       supabase
         .from('SavedBrand')
         .select('brand_id, BrandProfile(embedding, ai_tags, category)')
-        .eq('user_id', user.id),
+        .eq('customer_id', customer.id),
       supabase
         .from('Product')
-        .select('*, BrandProfile(brand_name, logo_url, category, ai_tags), embedding')
+        .select('*, BrandProfile(brand_name, logo_url, category, ai_tags)')
         .eq('status', 'in_stock'),
       supabase
         .from('PortfolioItem')
-        .select('*, CreatorProfile(display_name, avatar_url, niches), embedding'),
+        .select('*, CreatorProfile(display_name, avatar_url, niches)'),
     ]);
 
     if (productsRes.error) {

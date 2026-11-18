@@ -31,7 +31,7 @@ function mergeNotificationPrefs(existing, incoming) {
 function formatProfileResponse(customer, user, stats) {
   return {
     fullName: customer.display_name || '',
-    phone: customer.phone || '',
+    phone: customer.phone_number || '',
     location: customer.location || '',
     avatarUrl: customer.avatar_url || null,
     email: user.email || '',
@@ -84,7 +84,7 @@ export async function PATCH(request) {
       updates.display_name = body.fullName.trim();
     }
     if (typeof body.phone === 'string') {
-      updates.phone = body.phone.trim();
+      updates.phone_number = body.phone.trim();
     }
     if (typeof body.location === 'string') {
       updates.location = body.location.trim();
@@ -109,7 +109,7 @@ export async function PATCH(request) {
       .update(updates)
       .eq('id', customer.id)
       .eq('owner_user_id', user.id)
-      .select('id, owner_user_id, display_name, avatar_url, location, phone, notification_prefs, created_at')
+      .select('id, owner_user_id, display_name, avatar_url, location, phone_number, notification_prefs, created_at')
       .single();
 
     if (error) {

@@ -48,8 +48,8 @@ export async function GET(request, { params }) {
         if (customer) {
           const { data: savedRow } = await supabase
             .from('SavedBrand')
-            .select('id')
-            .eq('user_id', user.id)
+            .select('brand_id')
+            .eq('customer_id', customer.id)
             .eq('brand_id', brand.id)
             .maybeSingle();
           saved = Boolean(savedRow);

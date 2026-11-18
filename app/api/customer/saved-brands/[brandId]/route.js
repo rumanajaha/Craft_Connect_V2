@@ -25,7 +25,7 @@ export async function DELETE(request, { params }) {
     const { error: deleteError } = await supabase
       .from('SavedBrand')
       .delete()
-      .eq('user_id', user.id)
+      .eq('customer_id', customer.id)
       .eq('brand_id', brandId);
 
     if (deleteError) {
